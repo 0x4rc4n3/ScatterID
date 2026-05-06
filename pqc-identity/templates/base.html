@@ -18,7 +18,7 @@
   <div class="app-shell">
     <nav class="topbar">
       <a class="topbar-brand" href="{{ url_for('index') }}">
-        <img src="{{ url_for('static', filename='logo.svg') }}" style="height:24px; margin-right:6px">
+        <div class="topbar-brand-icon" style="margin-right:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:white"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"></polygon><polyline points="2 7 12 12 22 7"></polyline><polyline points="12 22 12 12"></polyline></svg></div>
         KFUEIT <span style="color:var(--text-faint);font-weight:400;margin-left:3px">Portal</span>
       </a>
       <div class="topbar-nav">
@@ -96,15 +96,15 @@
   <div class="public-shell">
     <nav class="pub-nav">
       <a class="pub-brand" href="{{ url_for('login_page') }}">
-        <img src="{{ url_for('static', filename='logo.svg') }}" style="height:24px; margin-right:6px">
+        <div class="pub-brand-icon" style="margin-right:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:white"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"></polygon><polyline points="2 7 12 12 22 7"></polyline><polyline points="12 22 12 12"></polyline></svg></div>
         KFUEIT <span class="pub-brand-sub">Identity Portal</span>
       </a>
       <div class="pub-nav-links">
         <a class="pub-nav-link {% if request.endpoint=='verify_page' %}active{% endif %}"
-           href="{{ url_for('verify_page') }}"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg> Verify</a>
+           href="{{ url_for('verify_page') }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg> Verify</a>
         <a class="pub-nav-link {% if request.endpoint=='blockchain_page' %}active{% endif %}"
-           href="{{ url_for('blockchain_page') }}"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"></polygon></svg> Blockchain</a>
-        <a class="pub-nav-link" href="{{ url_for('info_page') }}"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Info Stack</a>
+           href="{{ url_for('blockchain_page') }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"></polygon><polyline points="2 7 12 12 22 7"></polyline><polyline points="12 22 12 12"></polyline></svg> Blockchain</a>
+        <a class="pub-nav-link" href="{{ url_for('info_page') }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Info Stack</a>
         {% if request.endpoint != 'login_page' %}
         <a class="pub-btn" href="{{ url_for('login_page') }}">Sign In →</a>
         {% endif %}
