@@ -14,7 +14,7 @@ from flask import (Flask, render_template, request, session,
 from models  import (init_db, create_signup_request, get_pending_requests,
                      get_all_requests, update_request_status, create_user,
                      get_user_by_did, get_user_by_email, get_user_by_roll_no,
-                     get_all_users, delete_user, update_last_login,
+                     get_all_users, delete_user, update_last_login, update_user,
                      create_challenge, consume_challenge, log_event,
                      get_recent_events, get_all_events, roll_to_email, email_to_roll)
 from pqc_engine import generate_keypair, verify_signature
@@ -433,6 +433,38 @@ def api_revoke(did):
         print(f"[Ledger] Anchor failed during revocation: {e}")
 
     log_event("revoked", did=did, ip=request.remote_addr, detail=user["email"])
+    return jsonify({"ok": True})
+
+@app.route("/api/admin/edit/<did>", methods=["POST"])
+@admin_required
+def api_edit_user(did):
+    data = request.get_json(silent=True) or {}
+    full_name = data.get("full_name", "").strip()
+    email = data.get("email", "").strip()
+    role = data.get("role", "student").strip()
+    
+    if not all([full_name, email, role]):
+        return jsonify({"ok": False, "error": "All fields required."}), 400
+        
+    user = get_user_by_did(did)
+    if not user:
+        return jsonify({"ok": False, "error": "User not found."}), 404
+        
+    success = update_user(did, full_name, email, role)
+    if not success:
+        return jsonify({"ok": False, "error": "Email might be already in use or update failed."}), 400
+        
+    try:
+        add_block({
+            "action":    "edit_user",
+            "did":       did,
+            "email":     email,
+            "edited_by": session["did"][:20] + "…"
+        })
+    except Exception as e:
+        print(f"[Ledger] Anchor failed during edit: {e}")
+        
+    log_event("edited_user", did=did, ip=request.remote_addr, detail=email)
     return jsonify({"ok": True})
 
 # ── API: Sign (wallet proxy) ──────────────────────────────────────────────────

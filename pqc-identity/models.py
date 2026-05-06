@@ -166,6 +166,20 @@ def get_all_users():
     db.close()
     return [dict(r) for r in rows]
 
+def update_user(did, full_name, email, role):
+    db = get_db()
+    try:
+        db.execute(
+            "UPDATE users SET full_name=?, email=?, role=? WHERE did=?",
+            (full_name, email, role, did)
+        )
+        db.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        db.close()
+
 def delete_user(did):
     """Hard delete a user to revoke their access."""
     db = get_db()

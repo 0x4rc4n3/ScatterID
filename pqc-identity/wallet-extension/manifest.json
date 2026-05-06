@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "QuantumID Wallet",
+  "version": "1.0.0",
+  "description": "Post-Quantum Decentralized Identity Wallet — ML-DSA-44 / did:key",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": ["http://localhost:8080/*", "http://127.0.0.1:8080/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "QuantumID Wallet",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:8080/*", "http://127.0.0.1:8080/*"],
+      "js":      ["content.js"],
+      "run_at":  "document_idle"
+    }
+  ],
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

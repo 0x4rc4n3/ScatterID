@@ -165,9 +165,10 @@ code, .mono { font-family: 'JetBrains Mono', monospace; font-size: .85em; }
 
 /* ── Auth Pages (login / signup) ──────────────────────────────────── */
 .auth-page {
-  min-height: 100vh;
+  height: calc(100vh - 50px);
   display: flex;
   background: var(--bg);
+  overflow: hidden;
 }
 
 .auth-left {
@@ -187,8 +188,8 @@ code, .mono { font-family: 'JetBrains Mono', monospace; font-size: .85em; }
   align-items: center;
   justify-content: center;
   padding: 32px 40px;
+  height: 100%;
   overflow-y: auto;
-  max-height: 100vh;
 }
 
 .auth-illustration {
@@ -201,6 +202,7 @@ code, .mono { font-family: 'JetBrains Mono', monospace; font-size: .85em; }
   font-weight: 700;
   background: linear-gradient(135deg, var(--primary), var(--accent));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 16px;
 }
