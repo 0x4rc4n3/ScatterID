@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#5b6cf9" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shield/Hexagon -->
+  <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="url(#grad1)" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Inner Circuit / Keyhole -->
+  <circle cx="50" cy="40" r="12" fill="none" stroke="url(#grad1)" stroke-width="6"/>
+  <rect x="46" y="52" width="8" height="20" fill="url(#grad1)" rx="2"/>
+  <rect x="54" y="64" width="8" height="6" fill="url(#grad1)" rx="1"/>
+</svg>

@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+{% block title %}Technology Info{% endblock %}
+
+{% block head %}
+<style>
+  :root {
+    --glass: rgba(22, 27, 39, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+  }
+
+  .info-wrapper { 
+    max-width: 960px; margin: 0 auto; padding: 20px 0 80px;
+    animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .premium-hero {
+    position: relative;
+    padding: 80px 40px;
+    background: radial-gradient(circle at top right, rgba(91, 108, 249, 0.2), transparent 60%),
+                linear-gradient(135deg, #0f1218, #050608);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    margin-bottom: 50px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+
+  /* Animated Lattice Background */
+  .lattice-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: radial-gradient(circle, var(--primary) 1px, transparent 1px);
+    background-size: 30px 30px;
+    mask-image: linear-gradient(to bottom, black, transparent);
+    opacity: 0.1;
+    animation: slideBg 60s linear infinite;
+  }
+  @keyframes slideBg { from { background-position: 0 0; } to { background-position: 300px 300px; } }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 99px; font-size: 12px; font-weight: 700;
+    color: #4ade80; text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 28px;
+    position: relative; z-index: 1;
+  }
+
+  .status-pulse {
+    width: 8px; height: 8px; background: #4ade80;
+    border-radius: 50%; box-shadow: 0 0 12px #4ade80;
+    animation: pulse 2s infinite;
+  }
+
+  /* Process Flow Infographic */
+  .process-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 50px;
+  }
+
+  .process-title {
+    font-size: 12px; font-weight: 800; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.2em;
+    margin-bottom: 32px; text-align: center;
+  }
+
+  .flow-grid {
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; max-width: 800px; margin: 0 auto;
+  }
+
+  .flow-step {
+    flex: 1; text-align: center; position: relative; z-index: 2;
+  }
+
+  .flow-icon {
+    width: 60px; height: 60px; background: var(--surface-2);
+    border: 1px solid var(--border-active); border-radius: 18px;
+    display: grid; place-items: center; font-size: 24px;
+    margin: 0 auto 16px; transition: all 0.3s;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+
+  .flow-step:hover .flow-icon { transform: scale(1.1); color: var(--primary-light); }
+  
+  .flow-label { font-size: 13px; font-weight: 700; color: var(--text); }
+  .flow-sub { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+
+  .flow-line {
+    position: absolute; top: 30px; left: 10%; width: 80%;
+    height: 1px; background: var(--border);
+    z-index: 1;
+  }
+
+  .flow-progress {
+    position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
+    animation: flowProgress 4s infinite;
+  }
+  @keyframes flowProgress { 0% { width: 0%; left: 0; } 100% { width: 40%; left: 100%; } }
+
+  /* Stacked Infographic */
+  .stack-container {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
+    margin-bottom: 50px;
+  }
+
+  .stack-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    padding: 30px 24px; border-radius: 20px;
+    position: relative; overflow: hidden;
+  }
+
+  .stack-visual {
+    height: 180px; display: flex; flex-direction: column-reverse;
+    gap: 8px; margin-bottom: 30px;
+  }
+
+  .stack-layer {
+    padding: 10px; text-align: center; font-size: 10px; font-weight: 800;
+    text-transform: uppercase; color: #fff;
+    border-radius: 6px; position: relative; overflow: hidden;
+  }
+
+  .layer-1 { background: rgba(91, 108, 249, 0.8); width: 100%; }
+  .layer-2 { background: rgba(91, 108, 249, 0.5); width: 85%; align-self: center; }
+  .layer-3 { background: rgba(91, 108, 249, 0.3); width: 70%; align-self: center; }
+
+  /* DID Visual Nodes */
+  .did-visual {
+    height: 180px; display: flex; flex-direction: column; justify-content: space-between;
+    padding: 10px 0; margin-bottom: 30px; position: relative;
+  }
+  .did-node {
+    display: grid; grid-template-columns: 32px 1fr; align-items: center; gap: 12px; 
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); 
+    padding: 8px 12px; border-radius: 10px; position: relative; z-index: 2;
+  }
+  .did-node-icon { font-size: 16px; width: 32px; height: 32px; background: var(--surface-3); border-radius: 8px; display: grid; place-items: center; }
+  .did-node-text { min-width: 0; }
+  .did-node-label { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
+  .did-node-val { font-size: 10px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  
+  .did-line {
+    position: absolute; left: 28px; top: 30px; bottom: 30px; width: 2px;
+    background: linear-gradient(to bottom, var(--primary), var(--accent));
+    opacity: 0.3; z-index: 1;
+  }
+
+  /* Threat Matrix */
+  .threat-matrix {
+    background: #000; border: 1px solid var(--danger);
+    border-radius: 20px; padding: 40px; margin-bottom: 50px;
+    position: relative; overflow: hidden;
+  }
+
+  .danger-glow {
+    position: absolute; top: 0; right: 0; width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 70%);
+  }
+
+  .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  
+  .matrix-item {
+    background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239,68,68,0.1);
+    padding: 24px; border-radius: 12px;
+  }
+
+  .matrix-tag {
+    font-size: 10px; font-weight: 800; color: var(--danger);
+    text-transform: uppercase; display: block; margin-bottom: 8px;
+  }
+
+  .matrix-val { font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--text-muted); }
+
+  .timeline-label {
+    position: absolute; bottom: 20px; left: 0; right: 0; text-align: center;
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-faint);
+  }
+  .year-mark { color: var(--danger); }
+
+  /* ── HNDL Infographic ───────────────────────────────────── */
+  .hndl-infographic {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 40px; margin-top: 30px; position: relative;
+  }
+  .hndl-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;
+    position: relative;
+  }
+  .hndl-stage {
+    text-align: center; position: relative; padding: 20px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+  }
+  .stage-num {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-2); border: 1px solid var(--border);
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800; color: var(--text-faint);
+  }
+  .stage-icon { font-size: 40px; margin-bottom: 20px; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); }
+  .stage-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; color: var(--text-heading); }
+  .stage-desc  { font-size: 11.5px; line-height: 1.6; color: var(--text-muted); }
+  
+  .hndl-arrow {
+    position: absolute; top: 50%; width: 20px; height: 2px;
+    background: var(--border); transform: translateY(-50%);
+    opacity: 0.3;
+  }
+  .arrow-1 { left: 33%; }
+  .arrow-2 { left: 66%; }
+
+  .era-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 9px; font-weight: 800; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .era-now    { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+  .era-wait   { background: rgba(107, 114, 128, 0.1); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.2); }
+  .era-future { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+</style>
+{% endblock %}
+
+{% macro render_info() %}
+<div class="info-wrapper">
+  <!-- Hero Section -->
+  <div class="premium-hero">
+    <div class="lattice-bg"></div>
+    <div class="status-badge">
+      <div class="status-pulse"></div>
+      System Integrity: Quantum Secure (FIPS 204)
+    </div>
+    <h1 style="font-size: 44px; margin-bottom: 20px; letter-spacing: -0.03em; font-weight: 800; position: relative; z-index: 1;">
+      PQC Decentralized <span style="background: linear-gradient(90deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Identity Stack</span>
+    </h1>
+    <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; max-width: 680px; margin: 0 auto; position: relative; z-index: 1;">
+      The first academic identity portal utilizing ML-DSA lattice cryptography. Anchored on a private university ledger, built to survive the quantum transition.
+    </p>
+  </div>
+
+  <!-- Infographic Flow -->
+  <div class="process-block">
+    <div class="process-title">Identity Lifecycle Integration</div>
+    <div class="flow-grid">
+      <div class="flow-line"><div class="flow-progress"></div></div>
+      <div class="flow-step">
+        <div class="flow-icon">🔑</div>
+        <div class="flow-label">Local Gen</div>
+        <div class="flow-sub">Dilithium Keypair</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">🏛️</div>
+        <div class="flow-label">Portal Sync</div>
+        <div class="flow-sub">Admin Endorsement</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">⛓️</div>
+        <div class="flow-label">Ledger Anchor</div>
+        <div class="flow-sub">3-Node BFT Consensus</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-icon">📱</div>
+        <div class="flow-label">Extension</div>
+        <div class="flow-sub">Universal Login</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-container">
+    <!-- Cryptographic Stack -->
+    <div class="stack-card">
+      <h3 style="margin-bottom: 20px; font-size: 18px;">Security Architecture</h3>
+      <div class="stack-visual">
+        <div class="stack-layer layer-1">Decentralized DID (Self-Sovereign)</div>
+        <div class="stack-layer layer-2">3-Node Proof-of-Authority</div>
+        <div class="stack-layer layer-3">ML-DSA Core (Lattice Engine)</div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+        Our defense-in-depth approach ensures that identity is not just encrypted, but decentralized. Even a core server breach cannot compromise your private cryptographic keys.
+      </p>
+    </div>
+
+    <!-- Algorithm stats -->
+    <div class="stack-card">
+      <h3 style="margin-bottom: 20px; font-size: 18px;">Algorithm Performance</h3>
+      <div style="height: 180px; margin-bottom: 30px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 12px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:12px;">
+            <span style="color:var(--text-faint)">Key Size</span>
+            <span style="font-family:monospace">1,312 Bytes</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:12px;">
+            <span style="color:var(--text-faint)">Signature Size</span>
+            <span style="font-family:monospace">2,420 Bytes</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:var(--text-faint)">NIST Security</span>
+            <span style="color:var(--success)">Level 2 (PQC)</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+        ML-DSA (Dilithium) offers the optimal balance between performance and signature size for web-based decentralized authentication.
+      </p>
+    </div>
+
+    <!-- DID Protocol Card -->
+    <div class="stack-card">
+      <h3 style="margin-bottom: 20px; font-size: 18px;">How DID Works</h3>
+      <div class="did-visual">
+        <div class="did-line"></div>
+        <div class="did-node">
+          <div class="did-node-icon">🏛️</div>
+          <div class="did-node-text">
+            <span class="did-node-label">1. Issuer</span>
+            <span class="did-node-val">University signs your ID</span>
+          </div>
+        </div>
+        <div class="did-node">
+          <div class="did-node-icon">📱</div>
+          <div class="did-node-text">
+            <span class="did-node-label">2. Holder</span>
+            <span class="did-node-val">Your Local PQC Wallet</span>
+          </div>
+        </div>
+        <div class="did-node">
+          <div class="did-node-icon">✓</div>
+          <div class="did-node-text">
+            <span class="did-node-label">3. Verifier</span>
+            <span class="did-node-val">Services check the Ledger</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+        Unlike central databases, DID gives you <strong>Self-Sovereign Identity (SSI)</strong>. Your keys stay on <em>your</em> device; only verification happens on the public ledger.
+      </p>
+    </div>
+  </div>
+
+  <!-- Educational Block: HNDL Crisis -->
+  <div class="threat-matrix" style="background: linear-gradient(180deg, rgba(239, 68, 68, 0.05), #000); border-color: rgba(239, 68, 68, 0.3);">
+    <div class="danger-glow"></div>
+    <div style="margin-bottom: 32px; position: relative; z-index: 1;">
+      <h3 style="color: var(--danger); font-size: 22px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        The HNDL Crisis: Harvest Now, Decrypt Later
+      </h3>
+      <p style="color: var(--text-muted); font-size: 15px; line-height: 1.6; max-width: 800px;">
+        Quantum computers don't need to exist today to threaten <strong>long-term data</strong>. Under the HNDL paradigm, encrypted traffic is being captured now for future decryption once a Cryptographically Relevant Quantum Computer (CRQC) is realized.
+      </p>
+    </div>
+
+    <div style="position: relative; z-index: 1;">
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+        <h4 style="font-size: 12px; color: var(--text-heading); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;">Critical Risks to Long-Term Confidentiality</h4>
+        <ul style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font-size: 13px; color: var(--text-muted); list-style: none; padding: 0; margin: 0;">
+          <li style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <div style="font-size: 20px; margin-bottom: 8px;">🏛️</div>
+            <strong>Academic Integrity</strong><br>
+            Research records captured today could be retrospectively forged in 10-20 years.
+          </li>
+          <li style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <div style="font-size: 20px; margin-bottom: 8px;">🩺</div>
+            <strong>Medical Privacy</strong><br>
+            HNDL makes current medical encryption a "delayed-release" data breach.
+          </li>
+          <li style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <div style="font-size: 20px; margin-bottom: 8px;">⚖️</div>
+            <strong>Legal Records</strong><br>
+            Documents with 50-year secrecy are vulnerable unless protected by PQC ASAP.
+          </li>
+        </ul>
+      </div>
+
+      <div class="hndl-infographic">
+        <div class="hndl-row">
+          <!-- Stage 1 -->
+          <div class="hndl-stage">
+            <div class="stage-num">1</div>
+            <div class="era-tag era-now">Current Era (2025)</div>
+            <span class="stage-icon">📡</span>
+            <div class="stage-title">Harvest / Siphon</div>
+            <p class="stage-desc">
+              Adversaries intercept and record encrypted traffic from the student workspace across public networks.
+            </p>
+          </div>
+
+          <div class="hndl-arrow arrow-1"></div>
+
+          <!-- Stage 2 -->
+          <div class="hndl-stage">
+            <div class="stage-num">2</div>
+            <div class="era-tag era-wait">Retention Period</div>
+            <span class="stage-icon">📦</span>
+            <div class="stage-title">Cold Storage</div>
+            <p class="stage-desc">
+              Captured data blobs are stored in hostile "Dark Vaults," waiting for quantum computational power to scale.
+            </p>
+          </div>
+
+          <div class="hndl-arrow arrow-2"></div>
+
+          <!-- Stage 3 -->
+          <div class="hndl-stage">
+            <div class="stage-num">3</div>
+            <div class="era-tag era-future">Quantum Era (203X+)</div>
+            <span class="stage-icon">🔨</span>
+            <div class="stage-title">Retro-Decryption</div>
+            <p class="stage-desc">
+              Quantum computers apply Shor’s Algorithm to historic traffic, exposing transcripts and research instantly.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endmacro %}
+
+{% block auth_shell %}{{ render_info() }}{% endblock %}
+{% block pub_content %}{{ render_info() }}{% endblock %}

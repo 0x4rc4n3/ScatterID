@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Audit Center — PQC Identity System{% endblock %}
+
+{% block dashboard_nav %}
+<div class="topbar-nav">
+  <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Dashboard</a>
+  <a href="{{ url_for('admin_logs') }}" class="nav-link active">Security Audit Center</a>
+</div>
+{% endblock %}
+
+{% macro render_logs() %}
+<div class="page-container" style="margin: 0 auto; animation: fadeIn 0.4s ease-out;">
+  <div class="page-header" style="margin-bottom: 2rem;">
+    <div>
+      <h1 class="page-title">Security Registry & Audit Logs</h1>
+      <p class="page-subtitle">Administrative oversight of all cryptographic events, endorsements, and authentication traffic.</p>
+    </div>
+    <div style="display:flex; gap:10px">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline btn-sm">← Back</a>
+      <button class="btn btn-primary btn-sm" onclick="window.location.reload()">↻ Refresh Real-time Feed</button>
+    </div>
+  </div>
+
+  <!-- Security Stats Ribbon -->
+  <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom: 2rem;">
+    <div class="card" style="padding: 20px; text-align: center; border-left: 3px solid var(--primary);">
+      <div style="font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; margin-bottom: 8px;">Total Events</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--text-heading);">{{ stats.total }}</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center; border-left: 3px solid var(--success);">
+      <div style="font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; margin-bottom: 8px;">Auth Success Rate</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--success);">{{ stats.rate }}%</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center; border-left: 3px solid var(--danger);">
+      <div style="font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; margin-bottom: 8px;">Threat Detections</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--danger);">{{ stats.failed }}</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center; border-left: 3px solid var(--accent);">
+      <div style="font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; margin-bottom: 8px;">Identity Endorsements</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--accent);">{{ stats.admin }}</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="tab-bar" style="margin-bottom: 20px; display:flex; gap:8px;">
+    <button class="tab-btn active" data-filter="all">All Events</button>
+    <button class="tab-btn" data-filter="login">Authentication</button>
+    <button class="tab-btn" data-filter="admin">Administrative</button>
+    <button class="tab-btn" data-filter="threat">Threat Log</button>
+  </div>
+
+  <!-- Audit Log List -->
+  <div class="card" style="overflow: hidden;">
+    <div style="overflow-x: auto;">
+      <table class="data-table" id="audit-table">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Timestamp</th>
+            <th style="width: 130px;">Event Category</th>
+            <th>Identity Metadata (DID)</th>
+            <th style="width: 130px;">Client IP</th>
+            <th>Activity Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in logs %}
+          <tr class="log-row" 
+              data-type="{% if event.event in ['login_ok', 'login_fail'] %}login{% elif event.event in ['approved', 'rejected', 'keygen', 'signup_request'] %}admin{% else %}other{% endif %}"
+              data-is-fail="{{ 'true' if event.event == 'login_fail' else 'false' }}">
+            <td style="font-family: inherit; font-size: 11px; color: var(--text-muted); opacity: 0.8;">
+              {{ event.ts | ts_to_dt }}
+            </td>
+            <td>
+              {% if event.event == 'login_ok' %}
+                <div class="event-tag success">🔐 Auth Success</div>
+              {% elif event.event == 'login_fail' %}
+                <div class="event-tag threat">⚠️ Auth Failed</div>
+              {% elif event.event == 'approved' %}
+                <div class="event-tag admin">💎 Endorsed</div>
+              {% elif event.event == 'rejected' %}
+                <div class="event-tag rejected">🛑 Rejected</div>
+              {% elif event.event == 'keygen' %}
+                <div class="event-tag keygen">🧬 Keygen</div>
+              {% elif event.event == 'signup_request' %}
+                <div class="event-tag req">📬 Register Req</div>
+              {% else %}
+                <div class="event-tag">{{ event.event }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if event.did %}
+                <div class="crypto-field" style="max-width:240px">
+                  <div class="crypto-field-text">{{ event.did }}</div>
+                  <button class="crypto-copy-btn" onclick="copyToClipboard('{{ event.did }}', this)">⧉</button>
+                </div>
+              {% else %}
+                <span style="color: var(--text-muted); font-style: italic; font-size:11px">Global System</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); font-family: monospace;">
+              {{ event.ip or '-' }}
+            </td>
+            <td style="font-size: 12.5px; line-height: 1.4; color: var(--text-muted);">
+              {{ event.detail or '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not logs %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 4rem; color: var(--text-faint);">
+              No activity logs detected in session database.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; padding: 16px; background: var(--surface-2);
+    font-size: 10px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td { padding: 16px; border-bottom: 1px solid var(--border); vertical-align: middle; transition: all 0.2s; }
+  .data-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+  .event-tag {
+    display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px;
+    font-size: 10.5px; font-weight: 700; white-space: nowrap; border: 1px solid transparent;
+    background: var(--surface-3); color: var(--text-muted);
+  }
+  .event-tag.success  { background: rgba(16, 185, 129, 0.08); color: #4ade80; border-color: rgba(16, 185, 129, 0.2); }
+  .event-tag.threat   { background: rgba(239, 68, 68, 0.08); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+  .event-tag.admin    { background: rgba(59, 130, 246, 0.08); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }
+  .event-tag.rejected { background: rgba(245, 158, 11, 0.08); color: #fbbf24; border-color: rgba(245, 158, 11, 0.2); }
+  .event-tag.keygen   { background: rgba(139, 92, 246, 0.08); color: #a78bfa; border-color: rgba(139, 92, 246, 0.2); }
+  .event-tag.req      { background: rgba(107, 114, 128, 0.08); color: #9ca3af; border-color: rgba(107, 114, 128, 0.2); }
+
+  .tab-btn {
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-muted); padding: 8px 16px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { background: var(--surface-3); color: var(--text-heading); }
+  .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .log-row.hidden { display: none; }
+</style>
+
+<script>
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Toggle active state
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const filter = btn.dataset.filter;
+      const rows = document.querySelectorAll('.log-row');
+
+      rows.forEach(row => {
+        const type = row.dataset.type;
+        const isFail = row.dataset.isFail === 'true';
+
+        if (filter === 'all') {
+          row.classList.remove('hidden');
+        } else if (filter === 'login' && type === 'login') {
+          row.classList.remove('hidden');
+        } else if (filter === 'admin' && type === 'admin') {
+          row.classList.remove('hidden');
+        } else if (filter === 'threat' && isFail) {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>
+{% endmacro %}
+
+{% block auth_shell %}{{ render_logs() }}{% endblock %}
+{% block pub_content %}{{ render_logs() }}{% endblock %}

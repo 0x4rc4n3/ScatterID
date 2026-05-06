@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Pending Approval{% endblock %}
+
+{% block auth_page %}
+<div class="pending-page">
+  <div class="pending-card">
+    <div class="pending-icon">⏳</div>
+    <h2>Identity Submitted</h2>
+    <p>Your quantum identity request has been received and is awaiting <strong>admin approval</strong>.</p>
+    <p>Once approved, your DID will be anchored to the blockchain ledger and you'll be able to sign in.</p>
+
+    {% if did %}
+    <div style="background:var(--surface-2);border:1px dashed var(--border-active);border-radius:var(--radius);padding:14px;margin:20px 0;text-align:left">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:6px">Your DID</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);word-break:break-all">{{ did }}</div>
+    </div>
+    <p style="font-size:12px;color:var(--text-faint)">Save your DID — you'll need it to sign in.</p>
+    {% endif %}
+
+    <div style="margin-top:8px;display:flex;gap:10px;justify-content:center">
+      <a class="btn btn-outline btn-sm" href="{{ url_for('login_page') }}">← Back to Login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

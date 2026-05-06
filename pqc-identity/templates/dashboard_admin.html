@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block auth_shell %}
+<div class="page-container" style="margin: 0 auto; animation: fadeIn 0.4s ease-out;">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Admin Dashboard</h1>
+      <p class="page-subtitle">KFUEIT Identity Management · {{ admin.email }}</p>
+    </div>
+  </div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Pending</div>
+    <div class="stat-value" style="color:var(--warning)">{{ pending|length }}</div>
+    <div class="stat-sub">awaiting approval</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Registered</div>
+    <div class="stat-value">{{ users|length }}</div>
+    <div class="stat-sub">approved identities</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Ledger Nodes</div>
+    <div class="stat-value" style="color:var(--success)">3</div>
+    <div class="stat-sub">all online</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Signature Scheme</div>
+    <div class="stat-value" style="font-size:11px;padding-top:6px;line-height:1.3">ML-DSA-44</div>
+    <div class="stat-sub">NIST FIPS 204</div>
+  </div>
+</div>
+
+<!-- Pending Signup Requests -->
+<div class="card" style="margin-bottom:24px" id="requests">
+  <div class="card-header">
+    Signup Requests
+    <span class="badge badge-pending">{{ pending|length }} pending</span>
+  </div>
+  {% if pending %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Roll / Email</th>
+          <th>Identifier (DID)</th>
+          <th>Public Key</th>
+          <th>Submitted</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="pending-table">
+        {% for req in pending %}
+        <tr id="row-{{ req.id }}">
+          <td><strong>{{ req.full_name }}</strong></td>
+          <td>
+            <div style="font-size:12px;font-weight:600">{{ req.student_id or req.email.split('@')[0] }}</div>
+            <div style="font-size:10px;color:var(--text-faint)">{{ req.email }}</div>
+          </td>
+          <td>
+            <div class="crypto-field" style="max-width:130px">
+              <div class="crypto-field-text">{{ req.did }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ req.did }}', this)">⧉</button>
+            </div>
+          </td>
+          <td>
+            <div class="crypto-field" style="max-width:130px">
+              <div class="crypto-field-text">{{ req.pubkey_hex }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ req.pubkey_hex }}', this)">⧉</button>
+            </div>
+          </td>
+          <td style="font-size:11px;color:var(--text-faint);white-space:nowrap">
+            {{ req.created_at | ts_to_dt }}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-success-outline btn-sm"
+                      data-id="{{ req.id }}" data-action="approve"
+                      onclick="handleRequestEl(this)">✓ Approve</button>
+              <button class="btn btn-danger-outline btn-sm"
+                      data-id="{{ req.id }}" data-action="reject"
+                      onclick="handleRequestEl(this)">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:32px;text-align:center;color:var(--text-muted)">
+    No pending requests
+  </div>
+  {% endif %}
+</div>
+
+<!-- Registered Users -->
+<div class="card" style="margin-bottom:24px" id="users">
+  <div class="card-header">Registered Identities</div>
+  {% if users %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Roll / Email</th>
+          <th>Role</th>
+          <th>Identifier (DID)</th>
+          <th>Public Key</th>
+          <th>Registered</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><strong>{{ u.full_name }}</strong></td>
+          <td>
+            <div style="font-size:12px;font-weight:600">{{ u.student_id or u.email.split('@')[0] }}</div>
+            <div style="font-size:10px;color:var(--text-faint)">{{ u.email }}</div>
+          </td>
+          <td>
+            {% if u.role == 'admin' %}
+              <span class="badge badge-admin">Admin</span>
+            {% else %}
+              <span class="badge badge-approved">Student</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="crypto-field" style="max-width:130px">
+              <div class="crypto-field-text">{{ u.did }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ u.did }}', this)">⧉</button>
+            </div>
+          </td>
+          <td>
+            <div class="crypto-field" style="max-width:130px">
+              <div class="crypto-field-text">{{ u.pubkey_hex }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ u.pubkey_hex }}', this)">⧉</button>
+            </div>
+          </td>
+          <td style="font-size:11px;color:var(--text-faint);white-space:nowrap">{{ u.created_at | ts_to_dt }}</td>
+          <td>
+            {% if u.role != 'admin' %}
+            <button class="btn btn-danger-outline btn-sm"
+                    data-id="{{ u.did }}" data-action="revoke"
+                    onclick="handleRequestEl(this)">✕ Revoke</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:24px;text-align:center;color:var(--text-muted)">No users registered yet.</div>
+  {% endif %}
+</div>
+
+<!-- Ledger Status (inline mini) -->
+<div class="card" style="margin-bottom:24px">
+  <div class="card-header">
+    Ledger Health
+    <a href="{{ url_for('blockchain_page') }}" class="btn btn-outline btn-sm">Full View →</a>
+  </div>
+  <div class="card-body">
+    <div class="ledger-nodes">
+      {% for s in ledger_stats %}
+      <div class="ledger-node {{ 'ledger-node-valid' if s.valid else 'ledger-node-invalid' }}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div class="node-status-dot {{ 'node-status-dot-online' if s.online else 'node-status-dot-offline' }}"></div>
+          <div class="ledger-node-name">{{ s.name }}</div>
+        </div>
+        <div class="ledger-node-stat">Blocks: <strong class="accent-text">{{ s.blocks }}</strong></div>
+        <div class="ledger-node-stat">Status:
+          <strong class="{{ 'text-valid' if s.valid else 'text-invalid' }}">
+            {% if s.valid %}✓ Valid{% else %}✕ Error{% endif %}
+          </strong>
+        </div>
+        <div class="ledger-node-stat" style="margin-top:4px;font-family:monospace;font-size:9.5px">
+          tip: {{ s.tip[:14] }}…
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Audit Log Action -->
+<div class="card" id="log" style="background: linear-gradient(135deg, rgba(91, 108, 249, 0.05), transparent);">
+  <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; padding: 32px 24px;">
+    <div>
+      <h3 style="margin-bottom: 8px; font-size: 18px; color: var(--text-heading);">System Audit Trail</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Access the dedicated high-fidelity activity logs and security events.</p>
+    </div>
+    <a href="{{ url_for('admin_logs') }}" class="btn btn-primary">
+      Open Secure Logs →
+    </a>
+  </div>
+</div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Use data-id + data-action pattern (no Jinja2 in onclick)
+function handleRequestEl(btn) {
+  const id = btn.getAttribute('data-id');
+  const action = btn.getAttribute('data-action');
+  handleRequest(id, action, btn.closest('tr'));
+}
+async function handleRequest(id, action, row) {
+  row = row || document.getElementById('row-' + id);
+  const btns = row ? row.querySelectorAll('button') : [];
+  btns.forEach(b => b.disabled = true);
+  try {
+    const resp = await fetch(`/api/admin/${action}/${id}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await resp.json();
+    if (!data.ok) { alert('Error: ' + data.error); btns.forEach(b => b.disabled = false); return; }
+    if (row) {
+      row.style.transition = 'opacity .4s, transform .3s';
+      row.style.opacity    = '0';
+      row.style.transform  = 'translateX(16px)';
+      setTimeout(() => {
+          row.remove();
+          if (action === 'approve') window.location.reload();
+      }, 420);
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// Legacy helpers removed. Global copyToClipboard is used.
+</script>
+{% endblock %}

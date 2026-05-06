@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}Blockchain Ledger{% endblock %}
+
+{% macro render_content() %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Blockchain Ledger</div>
+    <div class="page-subtitle">3-node SHA3-256 hash chain · identity registration log</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <a href="javascript:history.back()" class="btn btn-outline btn-sm">← Back</a>
+    <button class="btn btn-outline btn-sm" id="btn-verify-all">✦ Verify All</button>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-left:6px">
+      <input type="checkbox" id="raw-toggle" style="cursor:pointer"> Raw JSON
+    </label>
+  </div>
+</div>
+
+<div id="verify-alert" class="alert" style="margin-bottom:24px;display:none;"></div>
+
+<!-- Node health strip -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+  {% for s in stats %}
+  <div class="card {{ 'card-valid' if s.valid else 'card-invalid' }}">
+    <div style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div class="node-dot {{ 'online' if s.online else 'offline' }}"></div>
+        <div style="font-size:11px;font-weight:700">{{ s.name }}</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:start">
+        <div>
+          <div style="color:var(--text-faint);margin-bottom:2px">Blocks</div>
+          <div style="font-family:monospace;font-weight:700;color:var(--accent)">{{ s.blocks }}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-faint);margin-bottom:2px">Chain</div>
+          <div class="{{ 'text-valid' if s.valid else 'text-invalid' }}" style="font-weight:600">
+            {% if s.valid %}✓ Valid{% else %}✕ Error{% endif %}
+          </div>
+        </div>
+        <div style="grid-column:1/-1; min-width:0">
+          <div style="color:var(--text-faint);margin-bottom:2px">Tip Hash</div>
+          <div class="crypto-field" style="border:none; background:rgba(0,0,0,0.1); padding:4px 8px; max-width:210px">
+            <div class="crypto-field-text" style="font-size:9.5px">{{ s.tip }}</div>
+            <button class="crypto-copy-btn" onclick="copyToClipboard('{{ s.tip }}', this)">⧉</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Node tabs -->
+<div class="tab-bar">
+  {% for c in chains %}
+  <button class="tab-btn{% if loop.first %} active{% endif %}"
+          data-node="{{ c.node }}" id="tab-{{ c.node }}">
+    Node {{ c.node }}
+    <span class="tab-count">{{ c.count }}</span>
+  </button>
+  {% endfor %}
+</div>
+
+<!-- Chain panels -->
+{% for c in chains %}
+<div class="chain-panel{% if not loop.first %} hidden{% endif %}" id="panel-{{ c.node }}">
+  <div class="{{ 'panel-valid' if c.valid else 'panel-invalid' }}" style="font-size:11px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+    {% if c.valid %}✓{% else %}✕{% endif %} {{ c.status }}
+  </div>
+
+  <div class="chain-list" id="chain-{{ c.node }}">
+    {% for blk in c.chain %}
+    {# Store block JSON in data attr for reliable raw view #}
+    {% set blk_json = {
+        'index':     blk.index,
+        'timestamp': blk.ts,
+        'data':      blk.data,
+        'prev_hash': blk.prev_hash,
+        'hash':      blk.hash
+    } | tojson %}
+
+    <div class="chain-item">
+      {% if not loop.first %}<div class="chain-connector"></div>{% endif %}
+      <div class="blk-card {% if blk.index == 0 %}blk-genesis{% endif %}"
+           id="blk-{{ c.node }}-{{ blk.index }}"
+           data-raw="{{ blk_json | forceescape }}">
+           
+        <div class="blk-header" data-node="{{ c.node }}" data-idx="{{ blk.index }}" onclick="toggleBlock(this.dataset.node, this.dataset.idx)">
+          <div class="blk-num">#{{ blk.index }}</div>
+          <div class="blk-action">{{ blk.data.get('action','—') }}</div>
+          {% if blk.data.get('name') %}
+          <div class="blk-name">{{ blk.data.name }}</div>
+          {% elif blk.data.get('email') %}
+          <div class="blk-name">{{ blk.data.email }}</div>
+          {% endif %}
+          <div class="blk-hash">{{ blk.hash[:12] }}…</div>
+          <div class="blk-ts">{{ blk.ts | ts_to_dt }}</div>
+          <div class="blk-chevron" id="chev-{{ c.node }}-{{ blk.index }}">▼</div>
+        </div>
+
+        <!-- Expandable details -->
+        <div class="blk-body" id="body-{{ c.node }}-{{ blk.index }}" style="display:none">
+          
+          <!-- Normal view -->
+          <div class="blk-fields" id="normal-{{ c.node }}-{{ blk.index }}">
+              <div class="bf"><span class="bf-k">Time</span><span class="bf-v">{{ blk.ts | ts_to_dt }}</span></div>
+              <div class="bf"><span class="bf-k">Action</span><span class="bf-v mono">{{ blk.data.get('action','—') }}</span></div>
+              {% if blk.data.get('name') %}
+              <div class="bf"><span class="bf-k">Name</span><span class="bf-v">{{ blk.data.name }}</span></div>
+              {% endif %}
+              {% if blk.data.get('email') %}
+              <div class="bf"><span class="bf-k">Email</span><span class="bf-v mono">{{ blk.data.email }}</span></div>
+              {% endif %}
+              {% if blk.data.get('roll_no') %}
+              <div class="bf"><span class="bf-k">Roll</span><span class="bf-v mono">{{ blk.data.roll_no }}</span></div>
+              {% endif %}
+              {% if blk.data.get('did') %}
+              <div class="bf">
+                <span class="bf-k">DID</span>
+                <div class="crypto-field">
+                  <div class="crypto-field-text">{{ blk.data.did }}</div>
+                  <button class="crypto-copy-btn" onclick="copyToClipboard('{{ blk.data.did }}', this)">⧉</button>
+                </div>
+              </div>
+              {% endif %}
+              {% if blk.data.get('pubkey') %}
+              <div class="bf">
+                <span class="bf-k">Pubkey</span>
+                <div class="crypto-field">
+                  <div class="crypto-field-text">{{ blk.data.pubkey }}</div>
+                  <button class="crypto-copy-btn" onclick="copyToClipboard('{{ blk.data.pubkey }}', this)">⧉</button>
+                </div>
+              </div>
+              {% endif %}
+              {% if blk.data.get('message') %}
+              <div class="bf"><span class="bf-k">Message</span><span class="bf-v">{{ blk.data.message }}</span></div>
+              {% endif %}
+              <div class="bf">
+                <span class="bf-k">Hash</span>
+                <div class="crypto-field" style="margin-top:4px">
+                  <div class="crypto-field-text">{{ blk.hash }}</div>
+                  <button class="crypto-copy-btn" onclick="copyToClipboard('{{ blk.hash }}', this)">⧉</button>
+                </div>
+              </div>
+              <div class="bf">
+                <span class="bf-k">Prev</span>
+                <div class="crypto-field">
+                  <div class="crypto-field-text">{{ blk.prev_hash }}</div>
+                  <button class="crypto-copy-btn" onclick="copyToClipboard('{{ blk.prev_hash }}', this)">⧉</button>
+                </div>
+              </div>
+            </div>
+          <!-- Normal view END -->
+
+          <!-- Raw JSON view -->
+          <div class="blk-raw" id="raw-{{ c.node }}-{{ blk.index }}" style="display:none">
+            <pre class="raw-pre"></pre>
+            <button class="kbtn-sm" style="margin:6px 12px 8px"
+                    data-node="{{ c.node }}" data-idx="{{ blk.index }}" onclick="copyRaw(this.dataset.node, this.dataset.idx)">⧉ Copy JSON</button>
+          </div>
+        </div><!-- .blk-body -->
+      </div><!-- .blk-card -->
+    </div><!-- .chain-item -->
+    {% endfor %}
+  </div><!-- .chain-list -->
+</div><!-- .chain-panel -->
+{% endfor %}
+
+<style>
+/* ── Node status dots ───────────────────────────────────────── */
+.node-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.node-dot.online  { background:#22c55e; box-shadow:0 0 7px #22c55e; }
+.node-dot.offline { background:#ef4444; }
+
+.card-valid { border-color:rgba(34,197,94,.3)!important; }
+.card-invalid { border-color:rgba(239,68,68,.3)!important; }
+.panel-valid { color:#22c55e; }
+.panel-invalid { color:#ef4444; }
+
+/* ── Tabs ───────────────────────────────────────────────────── */
+.tab-bar { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.tab-btn {
+  background:none; border:none;
+  border-bottom:2px solid transparent;
+  color:var(--text-muted); font-size:12.5px; font-weight:600;
+  font-family:inherit; padding:7px 18px 12px; cursor:pointer; transition:all .15s;
+}
+.tab-btn:hover  { color:var(--text); }
+.tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-count { font-size:10px; opacity:.65; margin-left:4px; }
+
+/* ── Chain layout ───────────────────────────────────────────── */
+.chain-panel.hidden { display:none; }
+.chain-list   { display:flex; flex-direction:column; }
+.chain-item   { position:relative; }
+.chain-connector {
+  width:2px; height:16px;
+  background:linear-gradient(to bottom, rgba(91,108,249,.5), var(--border));
+  margin-left:20px;
+}
+
+/* ── Block card ─────────────────────────────────────────────── */
+.blk-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden; margin-bottom:0;
+  transition:border-color .15s;
+}
+.blk-card:hover { border-color:var(--border-active); }
+.blk-genesis { border-color:rgba(91,108,249,.35); background:rgba(91,108,249,.03); }
+
+.blk-header {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px; cursor:pointer; user-select:none;
+}
+.blk-header:hover { background:var(--surface-2); }
+.blk-num  { font-family:monospace; font-size:13px; font-weight:700; color:var(--primary); width:34px; flex-shrink:0; }
+.blk-action { font-size:12px; font-weight:600; min-width:90px; }
+.blk-genesis .blk-action { color:var(--primary); }
+.blk-name { font-size:11px; color:var(--accent); }
+.blk-hash { font-family:monospace; font-size:10px; color:var(--text-faint); flex:1; }
+.blk-ts   { font-size:10.5px; color:var(--text-faint); white-space:nowrap; }
+.blk-chevron { font-size:10px; color:var(--text-faint); transition:transform .2s; flex-shrink:0; }
+.blk-chevron.open { transform:rotate(180deg); }
+
+/* ── Block body ─────────────────────────────────────────────── */
+.blk-body { border-top:1px solid var(--border); }
+.blk-fields { padding:10px 14px; }
+.bf {
+  display:flex; align-items:baseline; gap:10px;
+  padding:5px 0; border-bottom:1px solid rgba(255,255,255,.03); font-size:12px;
+}
+.bf:last-child { border-bottom:none; }
+.bf-k { color:var(--text-faint); width:54px; flex-shrink:0; font-size:10.5px; font-weight:600; }
+.bf-v { color:var(--text); word-break:break-all; }
+.bf-v.mono { font-family:monospace; font-size:10.5px; color:var(--accent); }
+
+/* Fixed-width scrollable key */
+.key-scroll {
+  font-family:monospace; font-size:10px; color:var(--accent);
+  max-width:380px; overflow:hidden; white-space:nowrap;
+  text-overflow:ellipsis; flex:1;
+}
+
+/* ── Raw JSON ───────────────────────────────────────────────── */
+.raw-pre {
+  font-family:monospace; font-size:10.5px; color:#7dd3fc;
+  background:#040810; padding:12px 14px;
+  white-space:pre; overflow-x:auto; margin:0;
+  max-height:320px; overflow-y:auto;
+  line-height:1.65;
+}
+.mono-truncate { font-family:monospace; font-size:10px; color:var(--text-faint); }
+
+/* ── Small copy button ──────────────────────────────────────── */
+.kbtn-sm {
+  background:none; border:1px solid var(--border);
+  color:var(--text-faint); border-radius:4px;
+  padding:2px 7px; font-size:10px; cursor:pointer;
+  font-family:inherit; flex-shrink:0; transition:all .15s; white-space:nowrap;
+}
+.kbtn-sm:hover { border-color:var(--accent); color:var(--accent); }
+</style>
+{% endmacro %}
+{% block auth_shell %}{{ render_content() }}{% endblock %}
+{% block pub_content %}{{ render_content() }}{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Global state ──────────────────────────────────────────────────────────
+let rawMode = false;
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const node = btn.dataset.node;
+    document.querySelectorAll('.chain-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + node).classList.remove('hidden');
+    btn.classList.add('active');
+  });
+});
+
+// ── Toggle block expand/collapse ──────────────────────────────────────────
+function toggleBlock(node, idx) {
+  const body  = document.getElementById(`body-${node}-${idx}`);
+  const chev  = document.getElementById(`chev-${node}-${idx}`);
+  const card  = document.getElementById(`blk-${node}-${idx}`);
+  if (!body) return;
+
+  const opening = body.style.display === 'none';
+  body.style.display = opening ? 'block' : 'none';
+  chev.classList.toggle('open', opening);
+
+  if (opening) {
+    // Populate raw JSON from data attribute
+    const raw  = card.dataset.raw;
+    const pre  = document.getElementById(`raw-${node}-${idx}`).querySelector('pre');
+    try { pre.textContent = JSON.stringify(JSON.parse(raw), null, 2); } catch(e) { pre.textContent = raw; }
+    // Apply current raw/normal mode
+    applyRawMode(node, idx);
+  }
+}
+
+// ── Apply raw vs normal view ──────────────────────────────────────────────
+function applyRawMode(node, idx) {
+  const normal = document.getElementById(`normal-${node}-${idx}`);
+  const raw    = document.getElementById(`raw-${node}-${idx}`);
+  if (normal) normal.style.display = rawMode ? 'none'  : 'block';
+  if (raw)    raw.style.display    = rawMode ? 'block' : 'none';
+}
+
+// ── Raw toggle checkbox ───────────────────────────────────────────────────
+document.getElementById('raw-toggle').addEventListener('change', e => {
+  rawMode = e.target.checked;
+  // Apply to all currently OPEN block bodies
+  document.querySelectorAll('.blk-body').forEach(body => {
+    if (body.style.display !== 'none') {
+      const id     = body.id;  // format: body-NODE-IDX
+      const parts  = id.split('-');
+      const node   = parts[1];
+      const idx    = parts[2];
+      applyRawMode(node, idx);
+    }
+  });
+});
+
+// ── Copy raw JSON ─────────────────────────────────────────────────────────
+function copyRaw(node, idx) {
+  const raw = document.getElementById(`blk-${node}-${idx}`).dataset.raw;
+  try {
+    navigator.clipboard.writeText(JSON.stringify(JSON.parse(raw), null, 2));
+  } catch(e) {
+    navigator.clipboard.writeText(raw);
+  }
+}
+
+// Legacy helpers removed. Global copyToClipboard is used.
+
+// ── Verify all nodes ──────────────────────────────────────────────────────
+document.getElementById('btn-verify-all').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-verify-all');
+  btn.disabled = true;
+  btn.innerHTML = "<span class='spinner'></span> Analyzing...";
+  
+  const alertBox = document.getElementById("verify-alert");
+  alertBox.className = "alert show alert-info";
+  alertBox.style.display = "block";
+  alertBox.innerHTML = `
+    <strong>Initiating Consensus Sequence</strong><br>
+    <div style="margin-top:10px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden;">
+      <div id="prog-bar" style="height:100%; width:0%; background:var(--accent); transition:width 0.4s;"></div>
+    </div>
+    <div id="prog-text" style="font-family:monospace; font-size:10px; color:var(--text-faint); margin-top:6px;">Querying Node 0 (Local Ledger)...</div>
+  `;
+
+  const results = [];
+  try {
+    for(let i = 0; i < 3; i++) {
+        document.getElementById("prog-text").textContent = `Validating Hash Integrity — Node ${i}...`;
+        const res = await fetch(`/api/blockchain/verify/${i}`).then(r => r.json());
+        results.push(res);
+        document.getElementById("prog-bar").style.width = `${(i+1)*33}%`;
+        await new Promise(r => setTimeout(r, 600)); 
+    }
+    
+    const allOk = results.every(r => r.valid);
+    const consensusMatch = results[0].tip === results[1].tip && results[1].tip === results[2].tip;
+    
+    btn.innerHTML = allOk ? '✓ All Valid' : '⚠ Issues Found';
+    btn.style.color = allOk ? '#22c55e' : '#f59e0b';
+    
+    if (allOk) {
+      alertBox.className = "alert show alert-success";
+      alertBox.innerHTML = `
+        <div>
+          <div style="font-weight:700;margin-bottom:10px;font-size:14px">Blockchain Integrity Verified ✅</div>
+          <div style="font-size:12px;margin-bottom:12px;opacity:0.9">The cryptographic consensus across all 3 nodes is successfully validated.</div>
+          <table style="width:100%;font-size:11px;border-top:1px solid rgba(16,185,129,0.2);padding-top:10px">
+            <tr style="color:var(--text-faint)">
+              <th style="padding:4px 0; text-align:left;">NODE</th>
+              <th style="padding:4px 0; text-align:left;">BLOCKS</th>
+              <th style="padding:4px 0; text-align:left;">TIP HASH</th>
+              <th style="padding:4px 0; text-align:right">CONSENSUS</th>
+            </tr>
+            ${results.map((r, i) => `
+            <tr>
+              <td style="font-weight:600;padding:4px 0">Node ${i}</td>
+              <td style="font-family:monospace;padding:4px 0">${r.blocks}</td>
+              <td style="font-family:monospace;padding:4px 0;opacity:0.7">${r.tip ? r.tip.slice(0,10) : '—'}...</td>
+              <td style="text-align:right;padding:4px 0">${consensusMatch ? '✓ Matching' : '⚠ Mismatch'}</td>
+            </tr>
+            `).join('')}
+          </table>
+          <div style="margin-top:10px;font-size:10px;color:rgba(16,185,129,0.7);font-style:italic">
+            ${consensusMatch ? 'Global Quorum reached via 2-of-3 consensus logic.' : 'Network Alert: Tips do not match across nodes!'}
+          </div>
+        </div>
+      `;
+    } else {
+      alertBox.className = "alert show alert-error";
+      alertBox.innerHTML = "<strong>Blockchain Validation Failed ❌</strong><br>One or more networks encountered missing hash links or compromised payloads. Check stats!";
+    }
+  } catch (e) {
+      alertBox.className = "alert show alert-error";
+      alertBox.innerHTML = `<strong>Error ❌</strong><br>${e.message}`;
+  }
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Verify All';
+    btn.style.color = '';
+    alertBox.className = "alert";
+    alertBox.style.display = "none";
+  }, 10000);
+});
+</script>
+{% endblock %}

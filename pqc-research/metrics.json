@@ -1,0 +1,434 @@
+[
+  {
+    "timestamp": 1776189231.3363433,
+    "operation": "Key Generation",
+    "entity": "Student_Portal",
+    "latency_ms": 3.38,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189231.3863733,
+    "operation": "Digital Signature",
+    "entity": "Student_Portal",
+    "latency_ms": 49.781,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189231.3869474,
+    "operation": "Verification",
+    "entity": "Student_Portal",
+    "latency_ms": 0.368,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189231.8877575,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.28,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189231.9209247,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 32.638,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189231.9214928,
+    "operation": "Verification",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.335,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.422467,
+    "operation": "Key Generation",
+    "entity": "Wallet_Ext",
+    "latency_ms": 0.384,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.4496512,
+    "operation": "Digital Signature",
+    "entity": "Wallet_Ext",
+    "latency_ms": 26.457,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.4510767,
+    "operation": "Verification",
+    "entity": "Wallet_Ext",
+    "latency_ms": 0.854,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.952592,
+    "operation": "Key Generation",
+    "entity": "Student_Portal",
+    "latency_ms": 0.395,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.977347,
+    "operation": "Digital Signature",
+    "entity": "Student_Portal",
+    "latency_ms": 23.499,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189232.9795454,
+    "operation": "Verification",
+    "entity": "Student_Portal",
+    "latency_ms": 1.258,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189233.4810824,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_2",
+    "latency_ms": 0.442,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189233.4908822,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_2",
+    "latency_ms": 8.652,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776189233.4931552,
+    "operation": "Verification",
+    "entity": "Ledger_Node_2",
+    "latency_ms": 1.273,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190140.4191408,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.97,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190140.4712043,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 19.724,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190140.4872851,
+    "operation": "Verification",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.592,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190140.98856,
+    "operation": "Key Generation",
+    "entity": "Admin_Gateway",
+    "latency_ms": 0.441,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190141.027461,
+    "operation": "Digital Signature",
+    "entity": "Admin_Gateway",
+    "latency_ms": 37.739,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190141.0284493,
+    "operation": "Verification",
+    "entity": "Admin_Gateway",
+    "latency_ms": 0.517,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190141.5296443,
+    "operation": "Key Generation",
+    "entity": "Wallet_Ext",
+    "latency_ms": 0.39,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190141.554603,
+    "operation": "Digital Signature",
+    "entity": "Wallet_Ext",
+    "latency_ms": 23.543,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190141.5561862,
+    "operation": "Verification",
+    "entity": "Wallet_Ext",
+    "latency_ms": 0.79,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190160.8484251,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.836,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190160.8868515,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 37.99,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190160.8881314,
+    "operation": "Verification",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.591,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.389034,
+    "operation": "Key Generation",
+    "entity": "Admin_Gateway",
+    "latency_ms": 0.166,
+    "payload_size_bytes": 3889,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.4348984,
+    "operation": "Digital Signature",
+    "entity": "Admin_Gateway",
+    "latency_ms": 45.264,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.4360383,
+    "operation": "Verification",
+    "entity": "Admin_Gateway",
+    "latency_ms": 0.553,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.9374235,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.405,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.9842544,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 45.23,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190161.9862711,
+    "operation": "Verification",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.994,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190162.4881537,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.389,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190162.5369205,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 47.213,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190162.5397046,
+    "operation": "Verification",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 1.403,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.0420666,
+    "operation": "Key Generation",
+    "entity": "Student_Portal",
+    "latency_ms": 0.632,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.089489,
+    "operation": "Digital Signature",
+    "entity": "Student_Portal",
+    "latency_ms": 45.929,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.090739,
+    "operation": "Verification",
+    "entity": "Student_Portal",
+    "latency_ms": 0.581,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.5920928,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.387,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.6147075,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 21.068,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190163.617805,
+    "operation": "Verification",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 1.16,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.119753,
+    "operation": "Key Generation",
+    "entity": "Wallet_Ext",
+    "latency_ms": 0.333,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.1395833,
+    "operation": "Digital Signature",
+    "entity": "Wallet_Ext",
+    "latency_ms": 16.938,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.1423814,
+    "operation": "Verification",
+    "entity": "Wallet_Ext",
+    "latency_ms": 1.052,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.643989,
+    "operation": "Key Generation",
+    "entity": "Student_Portal",
+    "latency_ms": 0.285,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.658513,
+    "operation": "Digital Signature",
+    "entity": "Student_Portal",
+    "latency_ms": 13.19,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190164.6604183,
+    "operation": "Verification",
+    "entity": "Student_Portal",
+    "latency_ms": 0.898,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.1618705,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 0.292,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.1752672,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 11.632,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.1783316,
+    "operation": "Verification",
+    "entity": "Ledger_Node_1",
+    "latency_ms": 1.14,
+    "payload_size_bytes": 39,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.6800976,
+    "operation": "Key Generation",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.254,
+    "payload_size_bytes": 3888,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.7189333,
+    "operation": "Digital Signature",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 37.617,
+    "payload_size_bytes": 2420,
+    "method": "ML-DSA-44"
+  },
+  {
+    "timestamp": 1776190165.7202053,
+    "operation": "Verification",
+    "entity": "Ledger_Node_0",
+    "latency_ms": 0.524,
+    "payload_size_bytes": 38,
+    "method": "ML-DSA-44"
+  }
+]

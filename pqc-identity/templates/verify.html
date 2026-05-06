@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Verify Identity{% endblock %}
+
+{% macro render_content() %}
+<div class="page-container" style="margin: 0 auto; animation: fadeIn 0.4s ease-out;">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Identity Verification</h1>
+      <p class="page-subtitle">Check whether an identity is registered and anchored on the ledger</p>
+    </div>
+    <div style="display:flex; gap:10px">
+      <a href="javascript:history.back()" class="btn btn-outline btn-sm">← Back</a>
+    </div>
+  </div>
+
+  <!-- Search Content -->
+  <div style="margin-bottom:2.5rem;">
+    <div class="card" style="width:100%;">
+      <div style="padding:24px">
+        <form method="GET" action="{{ url_for('verify_page') }}" style="display:flex; gap:10px">
+          <input class="form-control" name="q" value="{{ query }}"
+                 placeholder="Enter Roll Number or full DID…"
+                 style="flex:1; height:42px" autocomplete="off" spellcheck="false">
+          <button class="btn btn-primary" type="submit" style="height:42px; padding:0 22px">
+            Verify Proof →
+          </button>
+        </form>
+        <div style="margin-top:10px; font-size:11px; color:var(--text-faint); text-align:center">
+          Format Guide: <code style="color:var(--accent)">LLLLDDDDDDDDD</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:100%;">
+    {% if err %}
+      <div class="alert show alert-error" style="margin-bottom:1.5rem">✕ {{ err }}</div>
+    {% endif %}
+
+    {% if result %}
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px">
+          <div style="width:52px; height:52px; background:linear-gradient(135deg,var(--primary),var(--accent));
+                      border-radius:50%; display:grid; place-items:center; font-size:22px;
+                      font-weight:700; color:#fff; flex-shrink:0">{{ result.full_name[0]|upper }}</div>
+          <div style="flex:1">
+            {% set name_parts = result.full_name.split() %}
+            {% set masked_name = "" %}
+            {% for part in name_parts %}
+              {% set masked_name = masked_name + part[0] + ("*" * (part|length - 1)) + " " %}
+            {% endfor %}
+            <div style="font-size:16px; font-weight:700">{{ masked_name }}</div>
+            
+            {% set email_parts = result.email.split('@') %}
+            {% set masked_email = email_parts[0][0] + ("*" * (email_parts[0]|length - 1)) + "@" + email_parts[1] %}
+            <div style="font-size:12.5px; color:var(--text-muted)">{{ masked_email }}</div>
+          </div>
+          {% if chain_block %}
+          <div style="text-align:right">
+            <div style="font-size:12px; font-weight:700; color:#22c55e">✓ Cryptographic Proof</div>
+            <div style="font-size:10px; color:var(--text-faint)">Block #{{ chain_block.index }}</div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="padding:24px">
+          <div style="margin-bottom:16px">
+            <div class="v-label">Decentralized Identifier</div>
+            <div class="crypto-field">
+              <div class="crypto-field-text">{{ result.did }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ result.did }}', this)">⧉ Copy</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <div class="v-label">Public Key (ML-DSA-44 · 1312 bytes)</div>
+            <div class="crypto-field">
+              <div class="crypto-field-text">pk_{{ result.pubkey_hex }}</div>
+              <button class="crypto-copy-btn" onclick="copyToClipboard('{{ result.pubkey_hex }}', this)">⧉ Copy</button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; border-top: 1px solid var(--border); padding-top:20px">
+            <div>
+              <div class="v-label">Role</div>
+              <span class="badge {{ 'badge-admin' if result.role=='admin' else 'badge-approved' }}" style="margin-top:4px">{{ result.role|capitalize }}</span>
+            </div>
+            <div>
+              <div class="v-label">Registered Date</div>
+              <div style="font-size:13px; margin-top:5px">{{ result.created_at|ts_to_dt }}</div>
+            </div>
+            <div>
+              <div class="v-label">Last Activity</div>
+              <div style="font-size:13px; margin-top:5px">{{ result.last_login|ts_to_dt if result.last_login else 'Never' }}</div>
+            </div>
+          </div>
+        </div>
+
+        {% if chain_block %}
+        <div style="padding:20px 24px; background:rgba(34,197,94,.04); border-top:1px solid var(--border)">
+          <div class="v-label" style="margin-bottom:10px">Blockchain Anchor Verification</div>
+          <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:start">
+            <div>
+              <div class="v-label">Block</div>
+              <div style="font-family:monospace; font-size:16px; font-weight:700; color:var(--accent); margin-top:4px">#{{ chain_block.index }}</div>
+            </div>
+            <div>
+              <div class="v-label">Timestamp</div>
+              <div style="font-size:12px; margin-top:6px">{{ chain_block.ts|ts_to_dt }}</div>
+            </div>
+            <div style="flex:1; min-width:280px">
+              <div class="v-label">Block Hash</div>
+              <div class="crypto-field" style="margin-top:6px">
+                <div class="crypto-field-text">{{ chain_block.hash }}</div>
+                <button class="crypto-copy-btn" onclick="copyToClipboard('{{ chain_block.hash }}', this)">⧉</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <div class="card-header" style="display:flex; align-items:center; justify-content:space-between">
+          <span>Distributed Integrity Quorum</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" id="btn-verify-nodes" {% if not chain_block %}disabled{% endif %}>✦ Run Consensus Audit</button>
+            <a href="{{ url_for('blockchain_page') }}" class="btn btn-outline btn-sm">Full Ledger →</a>
+          </div>
+        </div>
+        <div id="verify-alert" class="alert" style="display:none; margin:16px 20px 0;"></div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; padding:20px">
+          {% for i in range(3) %}
+          <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; text-align:center">
+            <div style="font-size:11px; font-weight:700; margin-bottom:8px">Consensus Node {{ i }}</div>
+            {% if chain_block %}
+              <div style="font-size:22px; color:#22c55e">✓</div>
+              <div style="font-size:10px; color:#22c55e; font-weight:600">STATE: ANCHORED</div>
+            {% else %}
+              <div style="font-size:22px; color:var(--text-faint)">-</div>
+              <div style="font-size:10px; color:var(--text-faint)">WAITING</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% elif query %}
+      <div class="card" style="padding:4rem; text-align:center; color:var(--text-muted)">
+        <div style="font-size:3rem; margin-bottom:1rem; opacity:0.3">🔎</div>
+        <div style="font-size:1.1rem; font-weight:600">Identity Not Found</div>
+        <p style="font-size:0.9rem; margin-top:0.5rem">No registered quantum identity matches: <strong>{{ query }}</strong></p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% block auth_shell %}{{ render_content() }}{% endblock %}
+{% block pub_content %}{{ render_content() }}{% endblock %}
+
+{% block scripts %}
+<style>
+  .v-label { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+{% if chain_block %}
+<script>
+document.getElementById('btn-verify-nodes').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-verify-nodes');
+  btn.disabled = true;
+  btn.innerHTML = "<span class='spinner' style='width:12px;height:12px'></span> Auditing...";
+  
+  const alertBox = document.getElementById("verify-alert");
+  alertBox.className = "alert show alert-info";
+  alertBox.style.display = "block";
+  alertBox.innerHTML = `
+    <strong>Cross-Node Consensus Verification</strong><br>
+    <div style="margin-top:10px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden;">
+      <div id="prog-bar" style="height:100%; width:0%; background:var(--accent); transition:width 0.4s;"></div>
+    </div>
+    <div id="prog-text" style="font-family:monospace; font-size:10px; color:var(--text-faint); margin-top:6px;">Syncing with Distributed Quorum...</div>
+  `;
+
+  const results = [];
+  try {
+    for(let i = 0; i < 3; i++) {
+        document.getElementById("prog-text").textContent = `Validating Hash Chain Integrity — Node ${i}...`;
+        const res = await fetch(`/api/blockchain/verify/${i}`).then(r => r.json());
+        results.push(res);
+        document.getElementById("prog-bar").style.width = `${(i+1)*33}%`;
+        await new Promise(r => setTimeout(r, 600)); 
+    }
+    
+    const allOk = results.every(r => r.valid);
+    btn.innerHTML = allOk ? '✓ Quorum Verified' : '⚠ Integrity Warning';
+    btn.style.color = allOk ? '#22c55e' : '#f59e0b';
+    
+    if (allOk) {
+      alertBox.className = "alert show alert-success";
+      alertBox.innerHTML = "<strong>Mathematical Consensus Confirmed ✅</strong><br>This identity is correctly anchored and cryptographically verified across all ledger nodes.";
+    } else {
+      alertBox.className = "alert show alert-error";
+      alertBox.innerHTML = "<strong>Consensus Failure ❌</strong><br>Hash mismatch detected across the distributed quorum. Possible data tampering or node out of sync.";
+    }
+  } catch (e) {
+      alertBox.className = "alert show alert-error";
+      alertBox.innerHTML = `<strong>Audit Interrupted ❌</strong><br>${e.message}`;
+  }
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Run Consensus Audit';
+    btn.style.color = '';
+    alertBox.className = "alert";
+    alertBox.style.display = "none";
+  }, 8000);
+});
+</script>
+{% endif %}
+{% endblock %}

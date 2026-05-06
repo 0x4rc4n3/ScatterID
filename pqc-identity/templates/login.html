@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block auth_page %}
+<div class="auth-page">
+  <!-- Left panel -->
+  <div class="auth-left">
+    <div class="auth-illustration">
+      <h1>University<br>Identity Portal</h1>
+      <p>Sign in with your university roll number. Your identity is verified cryptographically — no password stored anywhere.</p>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:28px">
+        <span class="badge badge-pqc">ML-DSA-44</span>
+        <span class="badge badge-pqc">NIST FIPS 204</span>
+        <span class="badge badge-pqc">did:key</span>
+        <span class="badge badge-pqc">3-Node Ledger</span>
+      </div>
+
+      <div class="pqc-nodes">
+        <div class="pqc-node"><div class="dot"></div>Node 0<br><span style="font-size:10px;font-family:monospace">SHA-256</span></div>
+        <div class="pqc-node"><div class="dot"></div>Node 1<br><span style="font-size:10px;font-family:monospace">SHA-256</span></div>
+        <div class="pqc-node"><div class="dot"></div>Node 2<br><span style="font-size:10px;font-family:monospace">SHA-256</span></div>
+      </div>
+
+      <div style="margin-top:22px;font-size:12px;color:var(--text-faint)">
+        2-of-3 quorum · blockchain-anchored identities
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel: login form -->
+  <div class="auth-right">
+    <div class="auth-card-header">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='logo.svg') }}" style="height:24px; vertical-align:middle; margin-right:6px">
+        KFUEIT · QuantumID
+      </div>
+      <h2>Welcome back</h2>
+    </div>
+
+    <!-- Step 1: Roll number -->
+    <div id="step-rollno" style="width:100%">
+      <div class="form-group">
+        <input class="form-control" id="rollno-input" type="text"
+               placeholder="University Roll Number (csec22110...)"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               style="text-transform:lowercase">
+        <div style="margin-top:6px;font-size:11px;color:var(--text-faint)">
+          Email will be derived as <span id="email-preview" style="color:var(--accent);font-family:monospace">…@kfueit.edu.pk</span>
+        </div>
+      </div>
+
+      <div id="alert-rollno" class="alert"></div>
+
+      <button class="btn btn-primary btn-block" id="btn-get-challenge">
+        Continue →
+      </button>
+
+      <div style="margin-top:16px; width:100%; border-top:1px solid var(--border); padding-top:16px; text-align:center;">
+        <p style="font-size:12.5px;color:var(--text-muted); margin-bottom:10px;">Don't have a secure DID Identity?</p>
+        <a href="{{ url_for('signup_page') }}" class="btn btn-outline" style="width:100%; color:var(--text-heading); border-color:rgba(91,108,249,.45); background:rgba(91,108,249,.04);">Sign Up for KFUEIT QuantumID ➕</a>
+      </div>
+    </div>
+
+    <!-- Step 2: Challenge + signature -->
+    <div id="step-sign" style="display:none;width:100%">
+      <!-- Identity card returned by server -->
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:6px">Signing as</div>
+        <div style="font-weight:600;font-size:13px" id="id-name"></div>
+        <div style="font-size:11px;color:var(--text-muted)" id="id-email"></div>
+        <div style="margin-top:6px">
+          <span class="badge badge-pqc" id="id-did-badge" style="font-size:9.5px"></span>
+        </div>
+      </div>
+
+      <div class="challenge-box show" id="challenge-box">
+        <div class="challenge-label">Challenge — sign this nonce with your key</div>
+        <div class="challenge-value" id="challenge-value"></div>
+        <div class="challenge-timer" id="challenge-timer">⏱ 120s</div>
+      </div>
+
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label" for="sig-input">Signature (hex)</label>
+        <textarea class="form-control mono" id="sig-input" rows="3"
+          placeholder="Paste your Dilithium2 signature hex…"></textarea>
+      </div>
+
+      <div id="alert-sign" class="alert"></div>
+
+      <button class="btn btn-primary btn-block" id="btn-verify">
+        Verify &amp; Sign In
+      </button>
+
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-outline btn-sm" id="btn-back">← Back</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Wallet PIN overlay -->
+<div class="wallet-overlay" id="wallet-pin-overlay">
+  <div class="wallet-popup">
+    <button class="wallet-close" id="wallet-pin-close">✕</button>
+    <div class="wallet-popup-header">
+      <div class="wallet-popup-icon">🔑</div>
+      <div>
+        <h3>Unlock Wallet</h3>
+        <p>PIN to decrypt and sign the challenge</p>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Wallet PIN</label>
+      <input class="form-control" id="wallet-pin" type="password" placeholder="••••••" autocomplete="off">
+    </div>
+    <div id="alert-pin" class="alert"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1" id="btn-pin-confirm">Unlock &amp; Sign</button>
+      <button class="btn btn-outline" id="btn-pin-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDid       = "";
+let currentChallenge = "";
+let timerInterval    = null;
+
+function showAlert(el, msg, type) {
+  el.textContent = msg;
+  el.className   = "alert show alert-" + type;
+}
+function clearAlert(el) { el.className = "alert"; }
+
+// ── Email preview ──────────────────────────────────────────────────────────
+document.getElementById("rollno-input").addEventListener("input", e => {
+  const rn = e.target.value.trim().toLowerCase();
+  document.getElementById("email-preview").textContent =
+    rn ? `${rn}@kfueit.edu.pk` : "…@kfueit.edu.pk";
+});
+
+// ── Step 1: get challenge by roll no ──────────────────────────────────────
+document.getElementById("btn-get-challenge").addEventListener("click", async () => {
+  const btn     = document.getElementById("btn-get-challenge");
+  const alertEl = document.getElementById("alert-rollno");
+  const rn      = document.getElementById("rollno-input").value.trim().toLowerCase();
+  clearAlert(alertEl);
+
+  if (!rn) { showAlert(alertEl, "Enter your roll number.", "error"); return; }
+  
+  btn.disabled  = true;
+  btn.innerHTML = "<span class='spinner'></span>&nbsp;";
+  try {
+    const resp = await fetch("/api/challenge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roll_no: rn })
+    });
+    const data = await resp.json();
+    if (!data.ok) { showAlert(alertEl, data.error, "error"); return; }
+
+    currentDid       = data.did;
+    currentChallenge = data.challenge;
+
+    document.getElementById("id-name").textContent      = data.name;
+    document.getElementById("id-email").textContent     = data.email;
+    document.getElementById("id-did-badge").textContent =
+      data.did.slice(0, 20) + "…" + data.did.slice(-8);
+    document.getElementById("challenge-value").textContent = data.challenge;
+
+    let ttl = data.ttl || 120;
+    clearInterval(timerInterval);
+    const timerEl = document.getElementById("challenge-timer");
+    timerInterval = setInterval(() => {
+      ttl--;
+      timerEl.textContent = `⏱ ${ttl}s`;
+      if (ttl <= 0) { clearInterval(timerInterval); timerEl.className = "challenge-timer expiring"; timerEl.textContent = "⏰ Expired — retry"; }
+      else if (ttl < 30) timerEl.className = "challenge-timer expiring";
+    }, 1000);
+
+    document.getElementById("step-rollno").style.display = "none";
+    document.getElementById("step-sign").style.display   = "block";
+  } catch(e) {
+    showAlert(alertEl, "Network error: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Continue →";
+  }
+});
+
+
+// ── Back ──────────────────────────────────────────────────────────────────
+document.getElementById("btn-back").addEventListener("click", () => {
+  clearInterval(timerInterval);
+  document.getElementById("step-rollno").style.display = "block";
+  document.getElementById("step-sign").style.display   = "none";
+  clearAlert(document.getElementById("alert-sign"));
+});
+
+// ── Verify signature ──────────────────────────────────────────────────────
+document.getElementById("btn-verify").addEventListener("click", async () => {
+  const btn     = document.getElementById("btn-verify");
+  const alertEl = document.getElementById("alert-sign");
+  const sig     = document.getElementById("sig-input").value.trim();
+  clearAlert(alertEl);
+
+  if (!sig) { showAlert(alertEl, "Paste your signature.", "error"); return; }
+
+  btn.disabled  = true;
+  btn.innerHTML = "<span class='spinner'></span>&nbsp;";
+  try {
+    const resp = await fetch("/api/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ did: currentDid, challenge: currentChallenge, signature: sig })
+    });
+    const data = await resp.json();
+    if (!data.ok) { 
+        showAlert(alertEl, data.error, "error"); 
+        return; 
+    }
+
+    showAlert(alertEl, "✓ Identity verified — redirecting…", "success");
+    setTimeout(() => {
+        window.location.href = data.redirect;
+    }, 600);
+  } catch(e) {
+    showAlert(alertEl, "Network error: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Verify &amp; Sign In";
+  }
+});
+
+</script>
+{% endblock %}

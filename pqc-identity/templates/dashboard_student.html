@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard{% endblock %}
+
+{% block auth_shell %}
+<div class="page-container" style="margin: 0 auto; animation: fadeIn 0.4s ease-out;">
+  <!-- DID identity strip (from Frappe LMS profile header pattern) -->
+  <div class="did-strip">
+    <span class="did-strip-icon">🪪</span>
+    <div style="flex:1;min-width:0">
+      <div class="did-strip-label">Verified Quantum Identity</div>
+      <div class="crypto-field" style="margin-top:4px; max-width:100%">
+        <div class="crypto-field-text">{{ user.did }}</div>
+        <button class="crypto-copy-btn" onclick="copyToClipboard('{{ user.did }}', this)">⧉ Copy</button>
+      </div>
+    </div>
+    <span class="badge badge-pqc">ML-DSA-44 ✓</span>
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Welcome back, {{ user.full_name.split()[0] }} 👋</h1>
+      <p class="page-subtitle">{{ user.email }} · Student ID: {{ user.student_id or 'N/A' }}</p>
+    </div>
+  </div>
+
+  <!-- Stats (from LMS statistics.html pattern) -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Courses Enrolled</div>
+      <div class="stat-value">4</div>
+      <div class="stat-sub">2 in progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Lessons Completed</div>
+      <div class="stat-value">31</div>
+      <div class="stat-sub">of 88 total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Assignments</div>
+      <div class="stat-value">3</div>
+      <div class="stat-sub">due this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Certificates</div>
+      <div class="stat-value">1</div>
+      <div class="stat-sub">PQC Fundamentals</div>
+    </div>
+  </div>
+
+  <!-- My Courses -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header">
+      My Courses
+      <a href="#" class="btn btn-outline btn-sm">Browse All →</a>
+    </div>
+    <div class="card-body">
+      <div class="course-cards-parent">
+        {% set courses = [
+          {"emoji": "🔐", "title": "Post-Quantum Cryptography", "meta": "12 lessons · Dr. Chen", "progress": 65},
+          {"emoji": "⛓",  "title": "Blockchain & Distributed Ledgers", "meta": "8 lessons · Prof. Kim", "progress": 40},
+          {"emoji": "🧮",  "title": "Lattice-Based Cryptography", "meta": "10 lessons · Dr. Patel", "progress": 20},
+          {"emoji": "🛡",  "title": "Zero-Knowledge Proofs", "meta": "6 lessons · Prof. Rao", "progress": 0},
+        ] %}
+        {% for c in courses %}
+        <div class="course-card">
+          <div class="course-card-cover">{{ c.emoji }}</div>
+          <div class="course-card-body">
+            <div class="course-card-title">{{ c.title }}</div>
+            <div class="course-card-meta">{{ c.meta }}</div>
+            <div class="course-progress">
+              <div class="course-progress-fill" style="width:{{ c.progress }}%"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:6px">{{ c.progress }}% complete</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Services / Quick Links -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header">Academic Services</div>
+    <div class="card-body" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; padding:20px;">
+      {% set links = [
+          {"icon": "📄", "name": "View My Roll No Slip"},
+          {"icon": "🎓", "name": "View My Transcript"},
+          {"icon": "📅", "name": "View My Plan of Study"},
+          {"icon": "📚", "name": "View My Current Enrollments"},
+          {"icon": "✅", "name": "Course Registration"},
+          {"icon": "🛑", "name": "My Clearance"},
+          {"icon": "🩺", "name": "Medical Profile"},
+      ] %}
+      {% for l in links %}
+      <a href="#" style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit;">
+        <div style="font-size:24px;">{{ l.icon }}</div>
+        <div style="font-weight:600; font-size:13px;">{{ l.name }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Upcoming / Notifications -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card">
+      <div class="card-header">Upcoming Evaluations</div>
+      <div class="card-body" style="padding:0">
+        {% set evals = [
+          {"title": "PQC Midterm Exam", "date": "Apr 18", "course": "Post-Quantum Cryptography"},
+          {"title": "Blockchain Assignment 2", "date": "Apr 21", "course": "Distributed Ledgers"},
+          {"title": "ZKP Quiz", "date": "Apr 25", "course": "Zero-Knowledge Proofs"},
+        ] %}
+        {% for ev in evals %}
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center">
+          <div style="text-align:center;min-width:40px">
+            <div style="font-size:10px;color:var(--text-faint)">{{ ev.date.split()[0] }}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--text-heading)">{{ ev.date.split()[1] }}</div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600">{{ ev.title }}</div>
+            <div style="font-size:11px;color:var(--text-muted)">{{ ev.course }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Recent Activity</div>
+      <div class="card-body" style="padding:0">
+        {% set notifs = [
+          {"icon": "✓", "msg": "Your identity was approved by admin", "time": "2h ago"},
+          {"icon": "📜", "msg": "Certificate issued: PQC Fundamentals", "time": "1d ago"},
+          {"icon": "📝", "msg": "Assignment submitted: Lattice Math", "time": "3d ago"},
+        ] %}
+        {% for n in notifs %}
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+          <div style="width:24px;height:24px;background:var(--primary-light);border-radius:50%;display:grid;place-items:center;font-size:11px;flex-shrink:0">{{ n.icon }}</div>
+          <div>
+            <div style="font-size:12.5px">{{ n.msg }}</div>
+            <div style="font-size:11px;color:var(--text-faint)">{{ n.time }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

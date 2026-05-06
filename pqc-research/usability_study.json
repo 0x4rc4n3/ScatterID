@@ -1,0 +1,1106 @@
+[
+  {
+    "timestamp": 1776000883.415567,
+    "session_id": "SID-289989",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 119567,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 1}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Khurram Shehzad\", \"did\": \"did:pqc:73ecdf686702a102\"}}"
+  },
+  {
+    "timestamp": 1776003058.415567,
+    "session_id": "SID-900495",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 99985,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:da5430a01c32e471\"}}"
+  },
+  {
+    "timestamp": 1776006688.415567,
+    "session_id": "SID-369212",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 99183,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Sara Ahmed\", \"did\": \"did:pqc:92bcf9568f9afad9\"}}"
+  },
+  {
+    "timestamp": 1776009576.415567,
+    "session_id": "SID-720901",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 119733,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 1}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:ba83cc4c7a0d905\"}}"
+  },
+  {
+    "timestamp": 1776013339.415567,
+    "session_id": "SID-650076",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 104531,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 1, \"vault_pos\": 3, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Ali Raza\", \"did\": \"did:pqc:97e644e92a19b945\"}}"
+  },
+  {
+    "timestamp": 1776016151.415567,
+    "session_id": "SID-979955",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80689,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Khurram Shehzad\", \"did\": \"did:pqc:5e3d0e358bf19897\"}}"
+  },
+  {
+    "timestamp": 1776022076.415567,
+    "session_id": "SID-852292",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 81070,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 5, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Maira Khan\", \"did\": \"did:pqc:df12304be6889e2f\"}}"
+  },
+  {
+    "timestamp": 1776025641.415567,
+    "session_id": "SID-128418",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 74134,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Sara Ahmed\", \"did\": \"did:pqc:326f7e7f27a9a50\"}}"
+  },
+  {
+    "timestamp": 1776029146.415567,
+    "session_id": "SID-140315",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 66599,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"What does PQC mean? I'm a bit confused by the jargon.\", \"user\": {\"name\": \"Ibrahim Khalil\", \"did\": \"did:pqc:752661b4824dd4b0\"}}"
+  },
+  {
+    "timestamp": 1776030249.415567,
+    "session_id": "SID-854680",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 61084,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"What does PQC mean? I'm a bit confused by the jargon.\", \"user\": {\"name\": \"Anonymous Student (2310)\", \"did\": \"did:pqc:4eef5e54b8550d2e\"}}"
+  },
+  {
+    "timestamp": 1776034647.415567,
+    "session_id": "SID-826311",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 75287,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 3, \"bi_adopt\": 2, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 2}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Anonymous Student (8633)\", \"did\": \"did:pqc:1e2f79003cdc634f\"}}"
+  },
+  {
+    "timestamp": 1776037664.415567,
+    "session_id": "SID-827121",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 93146,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Noman Ijaz\", \"did\": \"did:pqc:8b3dd82d128dfeed\"}}"
+  },
+  {
+    "timestamp": 1776043226.415567,
+    "session_id": "SID-855130",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 67246,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 1, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 4, \"bi_adopt\": 5, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Omer Farooq\", \"did\": \"did:pqc:a6e6a660a5bdfe3e\"}}"
+  },
+  {
+    "timestamp": 1776045143.415567,
+    "session_id": "SID-575338",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 76789,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 1, \"bi_adopt\": 2, \"vault_pos\": 1, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"What does PQC mean? I'm a bit confused by the jargon.\", \"user\": {\"name\": \"Anonymous Student (4453)\", \"did\": \"did:pqc:f1cf3cb6ee74627c\"}}"
+  },
+  {
+    "timestamp": 1776048644.415567,
+    "session_id": "SID-771355",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 78559,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (4984)\", \"did\": \"did:pqc:98edee0c58f7b54b\"}}"
+  },
+  {
+    "timestamp": 1776052779.415567,
+    "session_id": "SID-856694",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 85407,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 1, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Ali Raza\", \"did\": \"did:pqc:650711e5860d1e3b\"}}"
+  },
+  {
+    "timestamp": 1776057374.415567,
+    "session_id": "SID-444784",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 104419,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Anonymous Student (7774)\", \"did\": \"did:pqc:d80a1c7e6502aeb4\"}}"
+  },
+  {
+    "timestamp": 1776059090.415567,
+    "session_id": "SID-191986",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 105558,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 1, \"onboard_clear\": 1, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (5098)\", \"did\": \"did:pqc:91406a8f4785b2af\"}}"
+  },
+  {
+    "timestamp": 1776064057.415567,
+    "session_id": "SID-644638",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 82845,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 1, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Maira Khan\", \"did\": \"did:pqc:85c13073b9c9b9f5\"}}"
+  },
+  {
+    "timestamp": 1776066304.415567,
+    "session_id": "SID-900757",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 107486,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 1, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (6035)\", \"did\": \"did:pqc:be956642211922d3\"}}"
+  },
+  {
+    "timestamp": 1776069085.415567,
+    "session_id": "SID-759737",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 89160,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 1, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Omer Farooq\", \"did\": \"did:pqc:3e9616d16017efbe\"}}"
+  },
+  {
+    "timestamp": 1776074004.415567,
+    "session_id": "SID-522277",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 111447,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"The vault window looks sleek and secure.\", \"user\": {\"name\": \"Hassan Mujtaba\", \"did\": \"did:pqc:3eb2e502254f3298\"}}"
+  },
+  {
+    "timestamp": 1776077104.415567,
+    "session_id": "SID-125227",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80662,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"What does PQC mean? I'm a bit confused by the jargon.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:68c1b9c25fe08dd2\"}}"
+  },
+  {
+    "timestamp": 1776081605.415567,
+    "session_id": "SID-683328",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 72011,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (2632)\", \"did\": \"did:pqc:1ccea3e5faebb9c\"}}"
+  },
+  {
+    "timestamp": 1776083366.415567,
+    "session_id": "SID-121011",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 113028,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 5, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Anonymous Student (2993)\", \"did\": \"did:pqc:89029b6b27d681b6\"}}"
+  },
+  {
+    "timestamp": 1776088063.415567,
+    "session_id": "SID-888720",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 103806,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 1}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Tariq Mahmood\", \"did\": \"did:pqc:62aa4b8df30fb623\"}}"
+  },
+  {
+    "timestamp": 1776090552.415567,
+    "session_id": "SID-889228",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 96410,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (2860)\", \"did\": \"did:pqc:55a74e918de6849f\"}}"
+  },
+  {
+    "timestamp": 1776094872.415567,
+    "session_id": "SID-791863",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 81995,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 2}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Anonymous Student (6865)\", \"did\": \"did:pqc:2546d5ad07f7f95e\"}}"
+  },
+  {
+    "timestamp": 1776098318.415567,
+    "session_id": "SID-385734",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 94656,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 2, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (4749)\", \"did\": \"did:pqc:8544c16208e9298b\"}}"
+  },
+  {
+    "timestamp": 1776102175.415567,
+    "session_id": "SID-545807",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 73521,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 1, \"bi_adopt\": 1, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (9017)\", \"did\": \"did:pqc:64de301c9f2dcfda\"}}"
+  },
+  {
+    "timestamp": 1776103962.415567,
+    "session_id": "SID-888217",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 53286,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 1, \"pin_effort\": 1, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (9356)\", \"did\": \"did:pqc:cd9a65cb4fea9820\"}}"
+  },
+  {
+    "timestamp": 1776108945.415567,
+    "session_id": "SID-637337",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 90250,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 4, \"bi_adopt\": 1, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Bilal Hassan\", \"did\": \"did:pqc:56f286ec432afc9a\"}}"
+  },
+  {
+    "timestamp": 1776111990.415567,
+    "session_id": "SID-637792",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 79183,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Anonymous Student (7222)\", \"did\": \"did:pqc:9b3077835648bbe\"}}"
+  },
+  {
+    "timestamp": 1776115895.415567,
+    "session_id": "SID-341439",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80343,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 5, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (3615)\", \"did\": \"did:pqc:d0f7171f5bd9d11a\"}}"
+  },
+  {
+    "timestamp": 1776118806.415567,
+    "session_id": "SID-457658",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80632,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (5312)\", \"did\": \"did:pqc:9a36a205494b7e03\"}}"
+  },
+  {
+    "timestamp": 1776121822.415567,
+    "session_id": "SID-149051",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 101357,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 1, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 3, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Omer Farooq\", \"did\": \"did:pqc:4593a26677907fc8\"}}"
+  },
+  {
+    "timestamp": 1776125750.415567,
+    "session_id": "SID-178045",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 96625,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 1, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"Very futuristic design for our university portal.\", \"user\": {\"name\": \"Ibrahim Khalil\", \"did\": \"did:pqc:550cff67e89962f0\"}}"
+  },
+  {
+    "timestamp": 1776130306.415567,
+    "session_id": "SID-208890",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 92785,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Anonymous Student (7656)\", \"did\": \"did:pqc:aed27378f4414e2f\"}}"
+  },
+  {
+    "timestamp": 1776134011.415567,
+    "session_id": "SID-564516",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 63533,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (2040)\", \"did\": \"did:pqc:79d05445e0a5526e\"}}"
+  },
+  {
+    "timestamp": 1776136716.415567,
+    "session_id": "SID-465360",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 105193,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 1, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Anonymous Student (1214)\", \"did\": \"did:pqc:b68c612e21d13350\"}}"
+  },
+  {
+    "timestamp": 1776139631.415567,
+    "session_id": "SID-896560",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 82344,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Ali Raza\", \"did\": \"did:pqc:64ef12cbba705704\"}}"
+  },
+  {
+    "timestamp": 1776144400.415567,
+    "session_id": "SID-236549",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 78288,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 1, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Tariq Mahmood\", \"did\": \"did:pqc:9aff2feb444d9321\"}}"
+  },
+  {
+    "timestamp": 1776146481.415567,
+    "session_id": "SID-677710",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 101624,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 5, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (3558)\", \"did\": \"did:pqc:1dbb1c2e8b998e38\"}}"
+  },
+  {
+    "timestamp": 1776151817.415567,
+    "session_id": "SID-561118",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 71722,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 1, \"trust_records\": 5}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Ibrahim Khalil\", \"did\": \"did:pqc:6d75c1cfd016787e\"}}"
+  },
+  {
+    "timestamp": 1776155442.415567,
+    "session_id": "SID-243579",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 100533,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Anonymous Student (3858)\", \"did\": \"did:pqc:ff11dff6640f4bbd\"}}"
+  },
+  {
+    "timestamp": 1776157106.415567,
+    "session_id": "SID-206547",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 96949,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 1, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Anonymous Student (9220)\", \"did\": \"did:pqc:755228ab58c4613f\"}}"
+  },
+  {
+    "timestamp": 1776161267.415567,
+    "session_id": "SID-222487",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80583,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 2, \"onboard_clear\": 5, \"perf_anch\": 1, \"bi_adopt\": 5, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Hassan Mujtaba\", \"did\": \"did:pqc:d3d3b25f0febbe2f\"}}"
+  },
+  {
+    "timestamp": 1776165364.415567,
+    "session_id": "SID-783917",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 43794,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (3319)\", \"did\": \"did:pqc:6fb4a2f05ddc4429\"}}"
+  },
+  {
+    "timestamp": 1776168744.415567,
+    "session_id": "SID-581070",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 91666,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 2, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Rehan Qureshi\", \"did\": \"did:pqc:5f68b5debede49df\"}}"
+  },
+  {
+    "timestamp": 1776171788.415567,
+    "session_id": "SID-430894",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 95279,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Noman Ijaz\", \"did\": \"did:pqc:e5574d77badad72c\"}}"
+  },
+  {
+    "timestamp": 1776176469.415567,
+    "session_id": "SID-716105",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 76230,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 1, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Kamran Akmal\", \"did\": \"did:pqc:2e469cb7f050437d\"}}"
+  },
+  {
+    "timestamp": 1776178670.415567,
+    "session_id": "SID-860407",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 89680,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 5, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Noman Ijaz\", \"did\": \"did:pqc:a101134b1c2247c0\"}}"
+  },
+  {
+    "timestamp": 1776182650.415567,
+    "session_id": "SID-595254",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 119427,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Ibrahim Khalil\", \"did\": \"did:pqc:483dd39fbcb6da59\"}}"
+  },
+  {
+    "timestamp": 1776184502.415567,
+    "session_id": "SID-834275",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 100560,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 2}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (3397)\", \"did\": \"did:pqc:afb4940e19c5721f\"}}"
+  },
+  {
+    "timestamp": 1776187510.415567,
+    "session_id": "SID-671750",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59336,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Rehan Qureshi\", \"did\": \"did:pqc:1b19df0696439c0a\"}}"
+  },
+  {
+    "timestamp": 1776193123.415567,
+    "session_id": "SID-625883",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 75186,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 1, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (6904)\", \"did\": \"did:pqc:91b7cc8157930b1a\"}}"
+  },
+  {
+    "timestamp": 1776194719.415567,
+    "session_id": "SID-165587",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 49178,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 1, \"pin_effort\": 1, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Hamza Ahmed\", \"did\": \"did:pqc:9dacf5a8ba3d675b\"}}"
+  },
+  {
+    "timestamp": 1776198999.415567,
+    "session_id": "SID-106975",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 95912,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Anonymous Student (1110)\", \"did\": \"did:pqc:c320a12ae78cabd7\"}}"
+  },
+  {
+    "timestamp": 1776203532.415567,
+    "session_id": "SID-841393",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 106103,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 1, \"trust_records\": 4}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (1927)\", \"did\": \"did:pqc:d814b08f26547e68\"}}"
+  },
+  {
+    "timestamp": 1776205356.415567,
+    "session_id": "SID-598437",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 107799,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 1, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Anonymous Student (2936)\", \"did\": \"did:pqc:93723b1bb00029e2\"}}"
+  },
+  {
+    "timestamp": 1776208690.415567,
+    "session_id": "SID-690095",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 66239,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 1, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 1}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:df5401b8d39025de\"}}"
+  },
+  {
+    "timestamp": 1776212158.415567,
+    "session_id": "SID-945747",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 54744,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 1}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Ibrahim Khalil\", \"did\": \"did:pqc:ca62a5d41d8a2f34\"}}"
+  },
+  {
+    "timestamp": 1776216105.415567,
+    "session_id": "SID-101685",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 109643,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Hamza Ahmed\", \"did\": \"did:pqc:10acfd66360a5693\"}}"
+  },
+  {
+    "timestamp": 1776219642.415567,
+    "session_id": "SID-335229",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 68721,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 2, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Saad Bin\", \"did\": \"did:pqc:4a4b3790ba0b2e6e\"}}"
+  },
+  {
+    "timestamp": 1776224752.415567,
+    "session_id": "SID-596346",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 74368,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (5358)\", \"did\": \"did:pqc:55cb57c815918ed1\"}}"
+  },
+  {
+    "timestamp": 1776226095.415567,
+    "session_id": "SID-671286",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 55203,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 1, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Sara Ahmed\", \"did\": \"did:pqc:55d016ee3df32929\"}}"
+  },
+  {
+    "timestamp": 1776231415.415567,
+    "session_id": "SID-939611",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80915,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 5, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Anonymous Student (1321)\", \"did\": \"did:pqc:931f8f2d3a7e6b9c\"}}"
+  },
+  {
+    "timestamp": 1776235295.415567,
+    "session_id": "SID-103760",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 108375,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"The vault window looks sleek and secure.\", \"user\": {\"name\": \"Fatima Zahra\", \"did\": \"did:pqc:220174d5f5921e86\"}}"
+  },
+  {
+    "timestamp": 1776236527.415567,
+    "session_id": "SID-233337",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 91371,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"No issues with the PIN entry.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:826aa83160356069\"}}"
+  },
+  {
+    "timestamp": 1776240202.415567,
+    "session_id": "SID-118549",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 103279,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (6186)\", \"did\": \"did:pqc:ddd192ce2aaa4e29\"}}"
+  },
+  {
+    "timestamp": 1776245581.415567,
+    "session_id": "SID-560328",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 104587,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 3, \"trust_records\": 5}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Maryam Sultan\", \"did\": \"did:pqc:8d0b979ba99b2fba\"}}"
+  },
+  {
+    "timestamp": 1776249859.415567,
+    "session_id": "SID-626670",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 84974,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Noman Ijaz\", \"did\": \"did:pqc:120c8e60306dc73b\"}}"
+  },
+  {
+    "timestamp": 1776251893.415567,
+    "session_id": "SID-865921",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 65017,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 2, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (7556)\", \"did\": \"did:pqc:5cbaf6330267404c\"}}"
+  },
+  {
+    "timestamp": 1776255249.415567,
+    "session_id": "SID-537994",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 41750,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 1, \"vault_pos\": 2, \"aesthetic\": 2, \"trust_records\": 4}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Junaid Jamshed\", \"did\": \"did:pqc:2a6af7d55e29ed9d\"}}"
+  },
+  {
+    "timestamp": 1776258804.415567,
+    "session_id": "SID-676247",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 110857,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"I like the top-right placement, it stays out of the way.\", \"user\": {\"name\": \"Fatima Zahra\", \"did\": \"did:pqc:1f9e1ffa619fd13a\"}}"
+  },
+  {
+    "timestamp": 1776263879.415567,
+    "session_id": "SID-860133",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 98337,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 2, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (6753)\", \"did\": \"did:pqc:aa0ffb2b50145a58\"}}"
+  },
+  {
+    "timestamp": 1776264936.415567,
+    "session_id": "SID-586878",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 50814,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 1, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 2, \"trust_records\": 3}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (6369)\", \"did\": \"did:pqc:4b5826f54cb426b2\"}}"
+  },
+  {
+    "timestamp": 1776268615.415567,
+    "session_id": "SID-204362",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 108102,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"The vault window looks sleek and secure.\", \"user\": {\"name\": \"Sara Ahmed\", \"did\": \"did:pqc:cde105630586ecdb\"}}"
+  },
+  {
+    "timestamp": 1776273516.415567,
+    "session_id": "SID-756147",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 75658,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Faiza Batool\", \"did\": \"did:pqc:8b27bce49eff1627\"}}"
+  },
+  {
+    "timestamp": 1776275581.415567,
+    "session_id": "SID-612400",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 123808,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 2, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Anonymous Student (7736)\", \"did\": \"did:pqc:b8c68d90181888a0\"}}"
+  },
+  {
+    "timestamp": 1776281341.415567,
+    "session_id": "SID-837243",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59162,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Arslan Ali\", \"did\": \"did:pqc:b25a70516b3e4d9e\"}}"
+  },
+  {
+    "timestamp": 1776284894.415567,
+    "session_id": "SID-543637",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 105315,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"No issues with the PIN entry.\", \"user\": {\"name\": \"Anonymous Student (8000)\", \"did\": \"did:pqc:6a093ca928fa40a6\"}}"
+  },
+  {
+    "timestamp": 1776287881.415567,
+    "session_id": "SID-916411",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 72491,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Sara Ahmed\", \"did\": \"did:pqc:9a7ae7b8376dab7e\"}}"
+  },
+  {
+    "timestamp": 1776291153.415567,
+    "session_id": "SID-772372",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 79558,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 5, \"pin_effort\": 1, \"onboard_clear\": 5, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"Very futuristic design for our university portal.\", \"user\": {\"name\": \"Anonymous Student (8717)\", \"did\": \"did:pqc:464df82392ee90e4\"}}"
+  },
+  {
+    "timestamp": 1776293981.415567,
+    "session_id": "SID-721367",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 58263,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 1, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Saad Bin\", \"did\": \"did:pqc:1431755079184582\"}}"
+  },
+  {
+    "timestamp": 1776297892.415567,
+    "session_id": "SID-835791",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 130682,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 3, \"pin_effort\": 1, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Anonymous Student (6898)\", \"did\": \"did:pqc:6501f249f96d6d9a\"}}"
+  },
+  {
+    "timestamp": 1776301712.415567,
+    "session_id": "SID-383172",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80395,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 5, \"perf_anch\": 4, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (8406)\", \"did\": \"did:pqc:f9fe1c481a418b5b\"}}"
+  },
+  {
+    "timestamp": 1776303480.415567,
+    "session_id": "SID-299215",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 74668,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 1, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Completed the signing in about 15 seconds.\", \"user\": {\"name\": \"Anonymous Student (5179)\", \"did\": \"did:pqc:e88c11c59e454c12\"}}"
+  },
+  {
+    "timestamp": 1776307840.415567,
+    "session_id": "SID-853557",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 105839,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Arslan Ali\", \"did\": \"did:pqc:924d6b26b1f1b020\"}}"
+  },
+  {
+    "timestamp": 1776309981.415567,
+    "session_id": "SID-160119",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 40481,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 1, \"onboard_clear\": 5, \"perf_anch\": 1, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Noman Ijaz\", \"did\": \"did:pqc:1d87b4510a53d472\"}}"
+  },
+  {
+    "timestamp": 1776314665.415567,
+    "session_id": "SID-887013",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 50685,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 3, \"bi_adopt\": 2, \"vault_pos\": 2, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"Institutional trust is okay, but I need more proof of security.\", \"user\": {\"name\": \"Maira Khan\", \"did\": \"did:pqc:f946af969daef1f4\"}}"
+  },
+  {
+    "timestamp": 1776317362.415567,
+    "session_id": "SID-329137",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 101247,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 3, \"trust_records\": 3}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Attaullah Shah\", \"did\": \"did:pqc:5a177a9cb9738daf\"}}"
+  },
+  {
+    "timestamp": 1776322156.415567,
+    "session_id": "SID-726228",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59524,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"No issues with the PIN entry.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:7368431e03d0a558\"}}"
+  },
+  {
+    "timestamp": 1776325866.415567,
+    "session_id": "SID-156696",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 54326,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 2, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Maryam Sultan\", \"did\": \"did:pqc:124ed93bd3a5214c\"}}"
+  },
+  {
+    "timestamp": 1776329410.415567,
+    "session_id": "SID-853998",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 39380,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 2, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Tariq Mahmood\", \"did\": \"did:pqc:231a01dd62151ca7\"}}"
+  },
+  {
+    "timestamp": 1776331141.415567,
+    "session_id": "SID-813671",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 124358,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"I prefer my old password, it's easier to remember.\", \"user\": {\"name\": \"Anonymous Student (2173)\", \"did\": \"did:pqc:c9a03f9c4a833e76\"}}"
+  },
+  {
+    "timestamp": 1776335615.415567,
+    "session_id": "SID-880816",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 88358,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 2, \"onboard_clear\": 5, \"perf_anch\": 2, \"bi_adopt\": 2, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"Why do we need this local key stuff? Seems complex.\", \"user\": {\"name\": \"Anonymous Student (4394)\", \"did\": \"did:pqc:a99d1cda2f6bff29\"}}"
+  },
+  {
+    "timestamp": 1776338232.415567,
+    "session_id": "SID-559542",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 81389,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 1, \"pin_effort\": 2, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"No issues with the PIN entry.\", \"user\": {\"name\": \"Anonymous Student (3130)\", \"did\": \"did:pqc:6522ce458196d559\"}}"
+  },
+  {
+    "timestamp": 1776342025.415567,
+    "session_id": "SID-149695",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 73438,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Rehan Qureshi\", \"did\": \"did:pqc:4861b03d50fbc8c0\"}}"
+  },
+  {
+    "timestamp": 1776345504.415567,
+    "session_id": "SID-921434",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 75964,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 4, \"pin_effort\": 1, \"onboard_clear\": 1, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Ayesha Noor\", \"did\": \"did:pqc:4184ea9813d584b9\"}}"
+  },
+  {
+    "timestamp": 1776350460.415567,
+    "session_id": "SID-351997",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 113835,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 1, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Setup was a bit fast, I missed the explanation part.\", \"user\": {\"name\": \"Attaullah Shah\", \"did\": \"did:pqc:2f0c33d435d3ba68\"}}"
+  },
+  {
+    "timestamp": 1776352239.415567,
+    "session_id": "SID-849816",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 96373,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Tariq Mahmood\", \"did\": \"did:pqc:9bb972d92a3fc609\"}}"
+  },
+  {
+    "timestamp": 1776357737.415567,
+    "session_id": "SID-179900",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 113000,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"Institutional trust is okay, but I need more proof of security.\", \"user\": {\"name\": \"Ali Raza\", \"did\": \"did:pqc:4e74a4adad0bef6f\"}}"
+  },
+  {
+    "timestamp": 1776359937.415567,
+    "session_id": "SID-670283",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 103922,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Sana Malik\", \"did\": \"did:pqc:b4094c9405117cff\"}}"
+  },
+  {
+    "timestamp": 1776362556.415567,
+    "session_id": "SID-182697",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 91553,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 5, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Bilal Hassan\", \"did\": \"did:pqc:95f83f276da44b3b\"}}"
+  },
+  {
+    "timestamp": 1776368339.415567,
+    "session_id": "SID-665082",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59407,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Anonymous Student (5003)\", \"did\": \"did:pqc:b9596e296c3bb531\"}}"
+  },
+  {
+    "timestamp": 1776371544.415567,
+    "session_id": "SID-333383",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 80180,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 3}, \"comment\": \"A bit laggy on the first load, but fine afterwards.\", \"user\": {\"name\": \"Hassan Mujtaba\", \"did\": \"did:pqc:ee5de4d4cbe49c79\"}}"
+  },
+  {
+    "timestamp": 1776373341.415567,
+    "session_id": "SID-628613",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 56908,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 2, \"vault_pos\": 1, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Bilal Hassan\", \"did\": \"did:pqc:38573cb627db327e\"}}"
+  },
+  {
+    "timestamp": 1776379233.415567,
+    "session_id": "SID-854501",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 52874,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Anonymous Student (3059)\", \"did\": \"did:pqc:ff0e29a2ae0611fa\"}}"
+  },
+  {
+    "timestamp": 1776380631.415567,
+    "session_id": "SID-688339",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 86008,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 1, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (9519)\", \"did\": \"did:pqc:a3b3f21257acc00d\"}}"
+  },
+  {
+    "timestamp": 1776385792.415567,
+    "session_id": "SID-240036",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59189,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 2, \"pin_effort\": 5, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"Why do we need this local key stuff? Seems complex.\", \"user\": {\"name\": \"Fatima Zahra\", \"did\": \"did:pqc:ce3747cdd376d461\"}}"
+  },
+  {
+    "timestamp": 1776388869.415567,
+    "session_id": "SID-718260",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 45061,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 2, \"onboard_clear\": 5, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 5}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Anonymous Student (8705)\", \"did\": \"did:pqc:48d09840d5bf83a1\"}}"
+  },
+  {
+    "timestamp": 1776392755.415567,
+    "session_id": "SID-810635",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 65362,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 1, \"trust_records\": 5}, \"comment\": \"What does PQC mean? I'm a bit confused by the jargon.\", \"user\": {\"name\": \"Saad Bin\", \"did\": \"did:pqc:223ff4a42b9a6384\"}}"
+  },
+  {
+    "timestamp": 1776396909.415567,
+    "session_id": "SID-194515",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 82649,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 3, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 5}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (9871)\", \"did\": \"did:pqc:5af7090ce8cacd3f\"}}"
+  },
+  {
+    "timestamp": 1776398618.415567,
+    "session_id": "SID-883587",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 100841,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 2, \"bi_adopt\": 2, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"The vault window looks sleek and secure.\", \"user\": {\"name\": \"Anonymous Student (3676)\", \"did\": \"did:pqc:5c39b88a45b6d08b\"}}"
+  },
+  {
+    "timestamp": 1776403848.415567,
+    "session_id": "SID-669522",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 49384,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Khurram Shehzad\", \"did\": \"did:pqc:8509e1107cd60ab9\"}}"
+  },
+  {
+    "timestamp": 1776406499.415567,
+    "session_id": "SID-266346",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 30376,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 1, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Maryam Sultan\", \"did\": \"did:pqc:cf21d30e6853455e\"}}"
+  },
+  {
+    "timestamp": 1776408205.415567,
+    "session_id": "SID-116635",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 82964,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Maryam Sultan\", \"did\": \"did:pqc:6155c30a7285fecc\"}}"
+  },
+  {
+    "timestamp": 1776412181.415567,
+    "session_id": "SID-333045",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 47231,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 5, \"pin_effort\": 2, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 1, \"aesthetic\": 4, \"trust_records\": 3}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Arslan Ali\", \"did\": \"did:pqc:25e411fc0076f202\"}}"
+  },
+  {
+    "timestamp": 1776416378.415567,
+    "session_id": "SID-243095",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 81718,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Kamran Akmal\", \"did\": \"did:pqc:4db13779aaa181ae\"}}"
+  },
+  {
+    "timestamp": 1776420010.415567,
+    "session_id": "SID-226676",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 120430,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 1, \"perf_anch\": 5, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Hamza Ahmed\", \"did\": \"did:pqc:9a4998adb2bcb55a\"}}"
+  },
+  {
+    "timestamp": 1776424740.415567,
+    "session_id": "SID-922246",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 61026,
+    "details": "{\"metrics\": {\"peou_easy\": 1, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 2, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 2, \"trust_records\": 2}, \"comment\": \"The wallet window is a bit small on my phone screen.\", \"user\": {\"name\": \"Sadia Perveen\", \"did\": \"did:pqc:6b9f4c71caccd327\"}}"
+  },
+  {
+    "timestamp": 1776426627.415567,
+    "session_id": "SID-842414",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 95857,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 2, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 1}, \"comment\": \"It was okay I guess.\", \"user\": {\"name\": \"Kamran Akmal\", \"did\": \"did:pqc:d30e3d355357f229\"}}"
+  },
+  {
+    "timestamp": 1776430282.415567,
+    "session_id": "SID-262472",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 55231,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 1, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"A bit laggy on the first load, but fine afterwards.\", \"user\": {\"name\": \"Anonymous Student (7187)\", \"did\": \"did:pqc:fbf5b3e4ffd07227\"}}"
+  },
+  {
+    "timestamp": 1776433464.415567,
+    "session_id": "SID-206979",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 31565,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 2, \"pin_effort\": 3, \"onboard_clear\": 2, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Had to enter my roll number twice because of a typo.\", \"user\": {\"name\": \"Tariq Mahmood\", \"did\": \"did:pqc:9dbe368d195b8540\"}}"
+  },
+  {
+    "timestamp": 1776436576.415567,
+    "session_id": "SID-522752",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 86776,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 5, \"bi_adopt\": 3, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 4}, \"comment\": \"Much faster than I expected for a post-quantum system.\", \"user\": {\"name\": \"Zainab Bibi\", \"did\": \"did:pqc:c060b83acabd56ae\"}}"
+  },
+  {
+    "timestamp": 1776439763.415567,
+    "session_id": "SID-801087",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 92787,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 2, \"pin_effort\": 5, \"onboard_clear\": 4, \"perf_anch\": 1, \"bi_adopt\": 2, \"vault_pos\": 4, \"aesthetic\": 1, \"trust_records\": 2}, \"comment\": \"Very futuristic design for our university portal.\", \"user\": {\"name\": \"Anonymous Student (7377)\", \"did\": \"did:pqc:f62a8d5e78e24f25\"}}"
+  },
+  {
+    "timestamp": 1776445356.415567,
+    "session_id": "SID-192221",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 47070,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 5, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 5, \"vault_pos\": 4, \"aesthetic\": 1, \"trust_records\": 2}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (5421)\", \"did\": \"did:pqc:9a350d86c0994168\"}}"
+  },
+  {
+    "timestamp": 1776449018.415567,
+    "session_id": "SID-949905",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 83451,
+    "details": "{\"metrics\": {\"peou_easy\": 4, \"conf_term\": 4, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Anonymous Student (7574)\", \"did\": \"did:pqc:4a22d4e8655beb77\"}}"
+  },
+  {
+    "timestamp": 1776452461.415567,
+    "session_id": "SID-219085",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 41533,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 1, \"pin_effort\": 4, \"onboard_clear\": 5, \"perf_anch\": 3, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Worked fine for me.\", \"user\": {\"name\": \"Rehan Qureshi\", \"did\": \"did:pqc:ab8ecd09617703c4\"}}"
+  },
+  {
+    "timestamp": 1776455498.415567,
+    "session_id": "SID-416252",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 72782,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 3, \"perf_anch\": 4, \"bi_adopt\": 4, \"vault_pos\": 3, \"aesthetic\": 5, \"trust_records\": 2}, \"comment\": \"No issues with the PIN entry.\", \"user\": {\"name\": \"Bilal Hassan\", \"did\": \"did:pqc:4322b772ac5785a4\"}}"
+  },
+  {
+    "timestamp": 1776458730.415567,
+    "session_id": "SID-996208",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 71594,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 4, \"pin_effort\": 3, \"onboard_clear\": 1, \"perf_anch\": 2, \"bi_adopt\": 4, \"vault_pos\": 5, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Institutional trust is okay, but I need more proof of security.\", \"user\": {\"name\": \"Maira Khan\", \"did\": \"did:pqc:798e83abd5992023\"}}"
+  },
+  {
+    "timestamp": 1776461157.415567,
+    "session_id": "SID-693249",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 46662,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 4, \"perf_anch\": 3, \"bi_adopt\": 1, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"The PIN fairness is okay, but 4 digits feels too short.\", \"user\": {\"name\": \"Khurram Shehzad\", \"did\": \"did:pqc:ce63cf2a9f58d4f9\"}}"
+  },
+  {
+    "timestamp": 1776465894.415567,
+    "session_id": "SID-193604",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 59866,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 5, \"pin_effort\": 3, \"onboard_clear\": 5, \"perf_anch\": 1, \"bi_adopt\": 3, \"vault_pos\": 2, \"aesthetic\": 4, \"trust_records\": 2}, \"comment\": \"The colors are nice but the text is small.\", \"user\": {\"name\": \"Rehan Qureshi\", \"did\": \"did:pqc:4773e619f5743e26\"}}"
+  },
+  {
+    "timestamp": 1776467483.415567,
+    "session_id": "SID-209239",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 24091,
+    "details": "{\"metrics\": {\"peou_easy\": 3, \"conf_term\": 3, \"pin_effort\": 4, \"onboard_clear\": 1, \"perf_anch\": 4, \"bi_adopt\": 3, \"vault_pos\": 5, \"aesthetic\": 4, \"trust_records\": 4}, \"comment\": \"Is it really safer than a password? I'm not sure.\", \"user\": {\"name\": \"Anonymous Student (6608)\", \"did\": \"did:pqc:f55e2187bd77602b\"}}"
+  },
+  {
+    "timestamp": 1776472929.415567,
+    "session_id": "SID-858250",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 115831,
+    "details": "{\"metrics\": {\"peou_easy\": 2, \"conf_term\": 3, \"pin_effort\": 3, \"onboard_clear\": 4, \"perf_anch\": 5, \"bi_adopt\": 4, \"vault_pos\": 4, \"aesthetic\": 3, \"trust_records\": 4}, \"comment\": \"Institutional trust is okay, but I need more proof of security.\", \"user\": {\"name\": \"Anonymous Student (8483)\", \"did\": \"did:pqc:c2dd765ce611bac5\"}}"
+  },
+  {
+    "timestamp": 1776475467.415567,
+    "session_id": "SID-167342",
+    "event_type": "lay_complete",
+    "status": "success",
+    "duration_ms": 74657,
+    "details": "{\"metrics\": {\"peou_easy\": 5, \"conf_term\": 4, \"pin_effort\": 5, \"onboard_clear\": 3, \"perf_anch\": 2, \"bi_adopt\": 5, \"vault_pos\": 5, \"aesthetic\": 5, \"trust_records\": 5}, \"comment\": \"Simple enough to use.\", \"user\": {\"name\": \"Anonymous Student (4711)\", \"did\": \"did:pqc:90942fa95db10701\"}}"
+  },
+  {
+    "timestamp": 1776669998.958077,
+    "session_id": "SID-UR0J5TKJV",
+    "event_type": "lay_complete",
+    "status": "pending",
+    "duration_ms": 25.79,
+    "details": "{\"metrics\":{\"peou_easy\":2,\"conf_term\":3,\"pin_effort\":1,\"onboard_clear\":3,\"perf_anch\":3,\"bi_adopt\":1,\"vault_pos\":3,\"aesthetic\":1},\"user\":{\"name\":\"Anonymous Student (TKJV)\",\"did\":\"ANON-6ZJEAF5B6U\"}}"
+  }
+]
