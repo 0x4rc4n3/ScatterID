@@ -1,0 +1,33 @@
+# Cryptogen config for ScatterID Custom Fabric Network
+OrdererOrgs:
+  - Name: Orderer
+    Domain: scatterid.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+          - 127.0.0.1
+
+PeerOrgs:
+  - Name: Issuer
+    Domain: issuer.scatterid.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1
+
+  - Name: Verifier
+    Domain: verifier.scatterid.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1

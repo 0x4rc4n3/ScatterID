@@ -1,0 +1,148 @@
+# Configtx config for ScatterID Custom Fabric Network
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: organizations/ordererOrganizations/scatterid.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer.scatterid.com:7050
+
+  - &IssuerOrg
+    Name: IssuerMSP
+    ID: IssuerMSP
+    MSPDir: organizations/peerOrganizations/issuer.scatterid.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('IssuerMSP.admin', 'IssuerMSP.peer', 'IssuerMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('IssuerMSP.admin', 'IssuerMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('IssuerMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('IssuerMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.issuer.scatterid.com
+        Port: 7051
+
+  - &VerifierOrg
+    Name: VerifierMSP
+    ID: VerifierMSP
+    MSPDir: organizations/peerOrganizations/verifier.scatterid.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('VerifierMSP.admin', 'VerifierMSP.peer', 'VerifierMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('VerifierMSP.admin', 'VerifierMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('VerifierMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('VerifierMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.verifier.scatterid.com
+        Port: 8051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  Addresses:
+    - orderer.scatterid.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  TwoOrgsApplicationGenesis:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+          - Host: orderer.scatterid.com
+            Port: 7050
+            ClientTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer.scatterid.com/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer.scatterid.com/tls/server.crt
+      Organizations:
+        - *OrdererOrg
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *IssuerOrg
+        - *VerifierOrg
+      Capabilities: *ApplicationCapabilities

@@ -1,0 +1,100 @@
+{
+  "_comment": "ScatterID Production Configuration File. Treat this file as highly sensitive. Mount to all containers.",
+  "system": {
+    "env": {
+      "value": "production",
+      "options": ["development", "staging", "production"],
+      "purpose": "Governs log verbosity, TLS enforcing rules, and sandbox fallback modes."
+    }
+  },
+  "network": {
+    "vault_addr": {
+      "value": "http://vault.scatterid.com:8200",
+      "purpose": "KMS HashiCorp Vault endpoint address."
+    },
+    "crypto_service_url": {
+      "value": "https://crypto-service:5001",
+      "purpose": "Internal secure HTTPS URL of the crystal-dilithium microservice."
+    },
+    "verification_api_port": {
+      "value": 3000,
+      "purpose": "Verification Gateway API listener port."
+    },
+    "crypto_service_port": {
+      "value": 5001,
+      "purpose": "Crypto microservice Flask listener port."
+    },
+    "dashboard_port": {
+      "value": 4000,
+      "purpose": "Operator Diagnostics Console listener port."
+    },
+    "vault_port": {
+      "value": 8200,
+      "purpose": "HashiCorp Vault listener port."
+    }
+  },
+  "security": {
+    "shard_node_api_key": {
+      "value": "",
+      "purpose": "Bearer token used to authorize incoming shard queries/writes from API Gateway."
+    },
+    "crypto_service_api_key": {
+      "value": "",
+      "purpose": "Bearer token securing crypto-service sign, pack, and rotate endpoints."
+    },
+    "vault_token": {
+      "value": "",
+      "purpose": "Master token used initially to configure Vault authentication roles."
+    },
+    "vault_role_id": {
+      "value": "",
+      "purpose": "Dynamic or static AppRole ID used by crypto-service to authenticate."
+    },
+    "vault_secret_id": {
+      "value": "",
+      "purpose": "Dynamic or static AppRole Secret ID used by crypto-service to authenticate."
+    },
+    "vault_secret_path": {
+      "value": "scatterid/mldsa",
+      "purpose": "Vault KV v2 secrets path namespace for key rotation."
+    }
+  },
+
+  "cryptography": {
+    "algorithm": {
+      "value": "ML-DSA-65",
+      "options": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "purpose": "Module-Lattice-Based Digital Signature standard (NIST FIPS 204 CRYSTALS-Dilithium)."
+    },
+    "threshold_k": {
+      "value": 3,
+      "purpose": "Minimum number of Shamir shares required to unpackage/reconstruct signature."
+    },
+    "total_shards_n": {
+      "value": 5,
+      "purpose": "Total number of sharded databases across which secret shares are fragmented."
+    }
+  },
+  "blockchain": {
+    "channel_name": {
+      "value": "scatterid-channel",
+      "purpose": "Hyperledger Fabric channel ID where smart contract is committed."
+    },
+    "chaincode_name": {
+      "value": "scatterproof",
+      "purpose": "Go chaincode namespace on Fabric network."
+    },
+    "msp_id": {
+      "value": "IssuerMSP",
+      "purpose": "Fabric Membership Service Provider ID."
+    },
+    "peer_endpoint": {
+      "value": "peer0.issuer.scatterid.com:7051",
+      "purpose": "Fabric Issuer peer gRPC connection endpoint."
+    },
+    "peer_host_alias": {
+      "value": "peer0.issuer.scatterid.com",
+      "purpose": "SSL Hostname override certificate alias for the Fabric peer connection."
+    }
+  }
+}

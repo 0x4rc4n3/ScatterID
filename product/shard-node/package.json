@@ -1,0 +1,14 @@
+{
+  "name": "scatterid-shard-node",
+  "version": "1.0.0",
+  "description": "ScatterID Isolated Shard Node Microservice",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

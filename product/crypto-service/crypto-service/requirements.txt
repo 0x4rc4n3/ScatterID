@@ -1,0 +1,4 @@
+flask
+hvac
+sslib
+liboqs-python

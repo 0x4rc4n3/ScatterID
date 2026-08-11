@@ -1,0 +1,64 @@
+# ScatterID Master GitIgnore Policy
+
+# Environment & Local Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Certificates & Cryptographic Keys (Do NOT commit keys/certs)
+*.pem
+*.key
+*.crt
+*.srl
+*.csr
+test_keys/
+
+# Explicitly track certificate generation scripts
+!components/crypto/certs/generate_certs.sh
+
+# Databases & Local Volume Storage
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+verification_data/
+shard_1_data/
+shard_2_data/
+shard_3_data/
+shard_4_data/
+shard_5_data/
+!data/.gitkeep
+!**/data/.gitkeep
+
+# Python Environments & Artifacts
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node.js Dependencies & Logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# IDE & OS System Junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local Development Scratch files
+scratch/
+
