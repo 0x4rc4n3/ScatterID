@@ -54,6 +54,8 @@ services:
     environment:
       VERIFICATION_API_URL: "http://verification-api:3000"
       SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
+      GATEWAY_API_KEY: "${GATEWAY_API_KEY:-scatterid-test-api-key-999}"
+
     volumes:
       - ./Progress.md:/app/Progress.md
       - ./components/project-dashboard:/app

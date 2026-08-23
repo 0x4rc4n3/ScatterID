@@ -2,12 +2,28 @@
 const sidebar = document.getElementById('main-sidebar');
 const mainContent = document.getElementById('main-content');
 const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 
 if (sidebar && sidebarToggleBtn) {
   sidebarToggleBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     if (mainContent) mainContent.classList.toggle('expanded');
     sidebarToggleBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+  });
+}
+
+// Mobile Hamburger Menu Toggle
+if (sidebar && mobileMenuBtn) {
+  mobileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sidebar.classList.toggle('mobile-open');
+  });
+
+  // Close mobile sidebar when clicking on main body content area
+  document.addEventListener('click', (e) => {
+    if (sidebar.classList.contains('mobile-open') && !sidebar.contains(e.target) && e.target !== mobileMenuBtn) {
+      sidebar.classList.remove('mobile-open');
+    }
   });
 }
 
@@ -42,6 +58,11 @@ navLinks.forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     
+    // Close sidebar on mobile upon tab selection
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+      sidebar.classList.remove('mobile-open');
+    }
+    
     // Set active link
     navLinks.forEach(l => l.classList.remove('active'));
     link.classList.add('active');
@@ -64,6 +85,8 @@ navLinks.forEach(link => {
       loadDatabaseExplorer();
     } else if (tabId === 'tab-logs') {
       fetchLogs();
+    } else if (tabId === 'tab-settings') {
+      loadSettingsTab();
     }
   });
 });
@@ -340,7 +363,7 @@ if (runDiagnosticBtn && diagnosticsConsole) {
       const res = await fetch('/api/diagnostics/run', { method: 'POST' });
       const data = await res.json();
 
-      if (data.success && data.logs) {
+      if (data.logs) {
         diagnosticsConsole.innerHTML = '';
         data.logs.forEach(log => {
           const div = document.createElement('div');
@@ -348,6 +371,9 @@ if (runDiagnosticBtn && diagnosticsConsole) {
           div.textContent = `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.step} - ${log.detail}`;
           diagnosticsConsole.appendChild(div);
         });
+        if (!data.success) {
+          diagnosticsConsole.innerHTML += `<div class="log-line error">[ERROR] ${data.error || 'Diagnostics run was unsuccessful'}</div>`;
+        }
       } else {
         diagnosticsConsole.innerHTML += `<div class="log-line error">[ERROR] ${data.error || 'Failed to run diagnostics'}</div>`;
       }
@@ -364,4 +390,80 @@ if (runDiagnosticBtn && diagnosticsConsole) {
 document.addEventListener('DOMContentLoaded', () => {
   fetchHealthStatus();
   loadShardMatrix();
+});
+
+// Settings tab logic
+async function loadSettingsTab() {
+  try {
+    const res = await fetch('/api/settings');
+    if (res.status === 204) {
+      document.getElementById('settings-plan-tier').textContent = 'INITIALIZING...';
+      return;
+    }
+    const data = await res.json();
+    if (!data.success) {
+      console.warn('Failed to load settings:', data.error);
+      return;
+    }
+
+    document.getElementById('settings-plan-tier').textContent = `${data.tier.toUpperCase()} TIER`;
+    document.getElementById('settings-quota-text').textContent = `${data.quotaUsed} / ${data.quotaLimit}`;
+    
+    const pct = data.quotaLimit > 0 ? (data.quotaUsed / data.quotaLimit) * 100 : 0;
+    document.getElementById('settings-quota-progress').style.width = `${pct}%`;
+    
+    const rateLimitText = data.tier === 'enterprise' ? '100 req / 10 sec' : '10 req / 10 sec';
+    document.getElementById('settings-rate-limit-tier').textContent = rateLimitText;
+    
+    document.getElementById('settings-storage-partition').textContent = `/app/data/${data.tenantId}_node_i.db`;
+    document.getElementById('settings-api-key-plaintext').value = '(hidden — this endpoint no longer returns the plaintext key; see server-side env config)';
+    document.getElementById('settings-api-key-hashed').textContent = data.apiKeyHashed;
+  } catch (err) {
+    console.error('Error fetching settings metrics:', err.message);
+  }
+}
+
+// Attach settings event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const btnRotate = document.getElementById('btn-rotate-gateway-key');
+  const btnCopy = document.getElementById('btn-copy-plaintext-key');
+  const keyInput = document.getElementById('settings-api-key-plaintext');
+
+  if (btnRotate) {
+    btnRotate.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to rotate the active gateway API key? Any existing SDK integrations using the old key will be immediately blocked.')) {
+        return;
+      }
+      btnRotate.disabled = true;
+      btnRotate.textContent = 'Rotating...';
+      try {
+        const res = await fetch('/api/settings/rotate', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          keyInput.value = data.newKeyPlaintext;
+          document.getElementById('settings-api-key-hashed').textContent = data.newKeyHashed;
+          alert('API key rotated successfully! Please copy the new plaintext key.');
+          loadSettingsTab();
+        } else {
+          alert('Failed to rotate API key: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error during key rotation: ' + err.message);
+      } finally {
+        btnRotate.disabled = false;
+        btnRotate.textContent = 'Rotate API Key';
+      }
+    });
+  }
+
+  if (btnCopy && keyInput) {
+    btnCopy.addEventListener('click', () => {
+      keyInput.select();
+      keyInput.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(keyInput.value).then(() => {
+        btnCopy.textContent = 'Copied!';
+        setTimeout(() => { btnCopy.textContent = 'Copy'; }, 2000);
+      });
+    });
+  }
 });

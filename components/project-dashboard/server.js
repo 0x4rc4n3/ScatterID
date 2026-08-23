@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +17,42 @@ const PORT = process.env.PORT || 4000;
 const VERIFICATION_API_URL = process.env.VERIFICATION_API_URL || 'http://verification-api:3000';
 const CRYPTO_SERVICE_HOST = process.env.CRYPTO_SERVICE_HOST || 'crypto-service';
 const VERIFICATION_API_HOST = process.env.VERIFICATION_API_HOST || 'verification-api';
+let GATEWAY_API_KEY = process.env.GATEWAY_API_KEY;
+if (!GATEWAY_API_KEY) {
+  console.error('FATAL: GATEWAY_API_KEY environment variable is not set. Refusing to start with a guessable default.');
+  process.exit(1);
+}
+
+// Canonicalize JSON utility to ensure consistent key ordering
+function canonicalizeJson(obj) {
+  if (obj === undefined) return '';
+  if (obj === null || typeof obj !== 'object') {
+    return JSON.stringify(obj);
+  }
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(canonicalizeJson).join(',') + ']';
+  }
+  const keys = Object.keys(obj).sort();
+  return '{' + keys.map(k => `${JSON.stringify(k)}:${canonicalizeJson(obj[k])}`).join(',') + '}';
+}
+
+function getSecureGatewayHeaders(body = {}, extraHeaders = {}) {
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const nonce = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  
+  const bodyStr = Object.keys(body || {}).length > 0 ? canonicalizeJson(body) : '';
+  const payload = `${timestamp}.${nonce}.${bodyStr}`;
+  const signature = createHmac('sha256', GATEWAY_API_KEY).update(payload).digest('hex');
+  
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${GATEWAY_API_KEY}`,
+    'X-Signature': signature,
+    'X-Timestamp': timestamp,
+    'X-Nonce': nonce,
+    ...extraHeaders
+  };
+}
 
 const validContainers = [
   'orderer.scatterid.com',
@@ -51,7 +87,7 @@ app.post('/api/verify', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getSecureGatewayHeaders({ credentialId }),
       body: JSON.stringify({ credentialId }),
     });
 
@@ -182,7 +218,7 @@ app.post('/api/shards/toggle-container', async (req, res) => {
         try {
           const healRes = await fetch(`${VERIFICATION_API_URL}/heal-shards`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getSecureGatewayHeaders({ nodeId }),
             body: JSON.stringify({ nodeId })
           });
           if (healRes.ok) {
@@ -203,6 +239,7 @@ app.post('/api/shards/toggle-container', async (req, res) => {
 app.get('/api/credentials', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/credentials`, {
+      headers: getSecureGatewayHeaders(),
       signal: AbortSignal.timeout(5000)
     });
     const data = await response.json();
@@ -225,7 +262,7 @@ app.post('/api/issue', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/issue`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getSecureGatewayHeaders({ claim: payload }),
       body: JSON.stringify({ claim: payload }),
     });
 
@@ -340,7 +377,7 @@ app.post('/api/diagnostics/run', async (req, res) => {
 
     const issueResponse = await fetch(`${VERIFICATION_API_URL}/issue`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getSecureGatewayHeaders({ claim }),
       body: JSON.stringify({ claim })
     });
 
@@ -359,7 +396,7 @@ app.post('/api/diagnostics/run', async (req, res) => {
     addLog('Credential Verification', `Sending POST request to ${VERIFICATION_API_URL}/verify for ${credId}`, 'info');
     const verifyResponse = await fetch(`${VERIFICATION_API_URL}/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getSecureGatewayHeaders({ credentialId: credId }),
       body: JSON.stringify({ credentialId: credId })
     });
 
@@ -387,6 +424,8 @@ app.post('/api/diagnostics/run', async (req, res) => {
 app.get('/api/progress', async (req, res) => {
   try {
     const candidatePaths = [
+      '/app/docs/system/Progress.md',
+      path.resolve(__dirname, '../../docs/system/Progress.md'),
       '/app/Progress.md',
       path.resolve(__dirname, 'Progress.md'),
       path.resolve(__dirname, '../../Progress.md'),
@@ -513,7 +552,61 @@ app.get('/api/logs/:container', async (req, res) => {
     content: logText
   });
 });
+// API: Settings & Key rotation
+app.get('/api/settings', (req, res) => {
+  try {
+    const dbPath = path.join(process.env.DB_DIR || '/app/data', 'gateway_system.db');
+    if (!fsSync.existsSync(dbPath)) {
+      return res.status(204).json({ success: false, error: 'System database not found yet.' });
+    }
+    const systemDb = new Database(dbPath);
+    
+    const hashed = createHash('sha256').update(GATEWAY_API_KEY).digest('hex');
+    const profile = systemDb.prepare('SELECT * FROM api_keys WHERE api_key_hash = ?').get(hashed);
+    
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Tenant profile not found for active API key.' });
+    }
+    
+    res.json({
+      success: true,
+      tenantId: profile.tenant_id,
+      tier: profile.tier,
+      quotaLimit: profile.quota_limit,
+      quotaUsed: profile.quota_used,
+      apiKeyHashed: profile.api_key_hash
+    });
+  } catch (err) {
+    console.error('Failed to get settings:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
+app.post('/api/settings/rotate', async (req, res) => {
+  try {
+    const response = await fetch(`${VERIFICATION_API_URL}/rotate-key`, {
+      method: 'POST',
+      headers: getSecureGatewayHeaders(),
+      body: JSON.stringify({})
+    });
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ success: false, error: errText });
+    }
+    
+    const data = await response.json();
+    if (data.success) {
+      GATEWAY_API_KEY = data.newKeyPlaintext;
+      console.log(`[Dashboard] API Key rotated dynamically. New Key: ${GATEWAY_API_KEY}`);
+    }
+    
+    res.json(data);
+  } catch (err) {
+    console.error('Failed to proxy key rotation:', err.stack || err.message);
+    res.status(500).json({ success: false, error: 'Verification API unreachable' });
+  }
+});
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ScatterID Project Dashboard running at http://0.0.0.0:${PORT}`);
 });
