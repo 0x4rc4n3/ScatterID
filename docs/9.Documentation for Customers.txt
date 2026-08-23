@@ -1,0 +1,236 @@
+# Crypto Project - Integration Case Study Template & Security Whitepaper
+
+## Overview
+
+This document combines the Integration Case Study Template and Security Whitepaper for Crypto Project, a post-quantum, reconstruction-less identity credential verification infrastructure.
+
+---
+
+# Part 1: Integration Case Study Template
+
+## Purpose
+
+A case study is one of the highest-leverage sales assets for a B2B security product — it converts an abstract security claim into a concrete, credible story. This template is ready to fill in once the first pilot (per the Roadmap's Phase 3) succeeds. Get the pilot customer's explicit written permission before publishing anything, including anonymized details.
+
+## Template Structure
+
+### Title
+
+[Customer name or "A leading [industry] provider" if anonymized] + outcome-focused subtitle, e.g. "How [Customer] Secured Credential Verification Against Future Quantum Threats"
+
+### At a Glance (Summary Box)
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Industry | [e.g. Higher Education / KYC Verification / Fintech] | |
+| Challenge | [One sentence — the core problem they had] | |
+| Solution | [One sentence — what Crypto Project provided] | |
+| Result | [One sentence, ideally with a number — credentials issued, integration time, etc.] | |
+
+### The Challenge
+
+[2-3 paragraphs: what problem was the customer facing before Crypto Project? Ground this in specifics — e.g. "X credentials verified manually per month," "liability concerns over storing Y type of data centrally." Pull language from the Target Customer & Use Case Document's relevant persona if helpful, but always ground the final version in the real customer's actual words/situation.]
+
+### The Solution
+
+[2-3 paragraphs: how was Crypto Project integrated? Reference the actual integration experience — how long did it take using the SDK, what did the technical team say about the process. Avoid overly technical jargon here; this is for a business/compliance audience, not engineers — save deep technical detail for the Security Whitepaper instead.]
+
+- [Specific technical highlight: e.g. "Integration completed in under a day using the JavaScript SDK" — only include if factually true and measured, per the SDK's Definition of Done target]
+
+- [Specific security highlight: e.g. "No single point of failure — credential data is never stored as a complete, reconstructable record"]
+
+### The Results
+
+[Quantify wherever possible — number of credentials processed, time saved, any compliance/audit benefit reported by the customer. If numbers aren't available or aren't impressive yet for a first pilot, focus on qualitative outcomes: reduced liability concern, faster verification turnaround, team's stated confidence in the approach.]
+
+### Customer Quote
+
+[Get a real, attributed quote if the customer is willing — this is often the single most persuasive element of a case study. If anonymized, a role-based attribution like "Head of Compliance, [Industry] Company" still carries real weight.]
+
+### Looking Ahead
+
+[Optional: any planned expansion of the integration, additional use cases the customer is considering]
+
+## Pre-Publication Checklist
+
+- [ ] Explicit written permission obtained from the customer to publish, including sign-off on the specific final draft
+
+- [ ] All technical claims verified against actual measured performance/results, not projections (cross-check against Test Coverage Standards and Security Testing Plan data where relevant)
+
+- [ ] No confidential details about the customer's own systems/data beyond what they've approved for public sharing
+
+- [ ] Reviewed against the Terms of Service and Privacy Policy to ensure no conflicting or inappropriate disclosures
+
+- [ ] If anonymized, confirm the level of anonymization actually prevents identification (e.g. "a major university in South Asia" may still be identifiable if there's only one plausible candidate)
+
+## Distribution Uses
+
+- Sales conversations with similar-profile prospects (e.g. use a university case study when pitching another university)
+
+- Website/landing page trust-building content
+
+- Supporting material alongside the Security Whitepaper for enterprise/compliance-focused buyers
+
+---
+
+# Part 2: Security Whitepaper
+
+## Header Note
+
+> **⚠ This whitepaper is written for a technical/compliance buyer audience — accurate enough to survive scrutiny from a customer's security team, but without disclosing operational details (exact node IPs, internal repo structure) that belong in internal-only documents. Update this whenever the underlying architecture changes — an outdated whitepaper is worse than none, since it damages credibility if a technical reviewer catches the discrepancy.**
+
+---
+
+## 1. Executive Summary
+
+Crypto Project provides post-quantum, reconstruction-less identity credential verification infrastructure. This document describes the security architecture, cryptographic choices, and operational practices underlying the platform, intended for security and compliance teams evaluating Crypto Project as a vendor.
+
+---
+
+## 2. The Problem We Solve
+
+Identity data is permanent, but the cryptography historically used to protect it is not future-proof. Classical public-key cryptography (RSA, ECC) is vulnerable to future quantum computers via Shor's algorithm, creating a "harvest now, decrypt later" risk: data intercepted today may be decrypted once sufficiently capable quantum computers exist. Additionally, most identity systems store complete credentials in a single location, creating a single point of failure.
+
+---
+
+## 3. Our Approach
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Post-quantum signatures | ML-DSA-65 (NIST FIPS 204), implemented via the audited, open-source liboqs library | No proprietary or unaudited cryptography — verifiable against public NIST standards |
+| Threshold secret-sharing | Shamir's Secret Sharing, k=3 of n=5 by default | No single storage node ever holds a complete, usable credential; information-theoretically secure below threshold |
+| Reconstruction-less verification | Exact-match identity data is verified via share-level comparison wherever possible, without full reconstruction | Minimizes the window during which any complete secret exists in a system's memory |
+| Private, permissioned ledger | Hyperledger Fabric, self-hosted and self-controlled | Tamper-evident proof anchoring with no dependency on any public blockchain's availability or governance |
+
+---
+
+## 4. What We Never Store
+
+- Raw identity claim data (names, ID numbers, biometric data) — exists only transiently in memory during the hashing/signing process, never persisted to disk or logs
+
+- Complete, reconstructable secret shares in a single location
+
+- Unhashed API keys or private signing keys in application code, logs, or version control
+
+---
+
+## 5. Fault Tolerance
+
+With the default k=3, n=5 configuration, the system tolerates the loss, compromise, or destruction of up to 2 storage nodes with zero data loss and zero downtime for that credential's verification. This is a mathematical property of the secret-sharing scheme, not an operational best-effort claim.
+
+---
+
+## 6. Security Testing & Assurance
+
+- Static analysis (SAST) run on every code change before merge
+
+- Dynamic analysis (DAST) run against staging before every release
+
+- Targeted fuzzing of cryptographic verification logic
+
+- [Once completed:] Independent third-party penetration testing conducted [frequency — fill in once established]
+
+- Dependency and supply-chain vulnerability scanning on every build, with a documented Software Bill of Materials (SBOM) generated per release
+
+> *Note: fill in specific dates/frequencies once your actual testing cadence (per the Security Testing Plan and Penetration Testing Plan) has real history to report — don't state a cadence you haven't yet established.*
+
+---
+
+## 7. Access Control & Operational Security
+
+- Mutual TLS between all internal network components
+
+- Role-scoped API authentication — issuer and verifier permissions are distinct and independently enforced
+
+- Access control enforced at the blockchain layer itself (via Fabric's Membership Service Provider), not solely at the application layer — a compromised API cannot forge chain-level authorization
+
+- Secrets and cryptographic keys managed via a dedicated secrets management system, never hardcoded or committed to source control
+
+---
+
+## 8. Incident Response
+
+Crypto Project maintains a documented incident response process with defined severity classifications and response time targets. [Once established, and appropriate to disclose publicly:] Security incidents affecting customer data are communicated within [X hours] of confirmed impact.
+
+---
+
+## 9. Vulnerability Disclosure
+
+Crypto Project maintains a responsible disclosure policy for external security researchers. [Insert public security contact once established, per the Vulnerability Disclosure & Bug Bounty Policy.]
+
+---
+
+## 10. Compliance Posture
+
+[To be completed with legal/compliance input once target certifications are pursued — e.g. SOC 2, ISO 27001. Do not claim a certification the company doesn't actually hold. For early-stage pilots, it's more credible to say "built with SOC 2-aligned practices, formal certification planned for [timeframe]" than to imply certification that hasn't been achieved.]
+
+---
+
+## 11. Explicit Limitations (Honesty Builds Trust)
+
+- The system is designed for exact-match identity data (ID numbers, credential status, document hashes) — biometric/fuzzy matching is a separate, not-yet-implemented research track, and should not be assumed to carry the same reconstruction-less guarantee.
+
+- Fault tolerance is bounded by the chosen k/n parameters — loss of more than n-k+1 nodes simultaneously would affect data availability, per the Secret-Sharing Scheme Specification.
+
+- As with any system, security depends on correct operational practices (node independence, credential hygiene) as much as the underlying cryptography — we document and enforce these practices internally, and are happy to discuss our operational security posture in more depth under NDA.
+
+---
+
+## 12. Contact
+
+[Security/compliance contact email, to be established before this document is shared externally]
+
+---
+
+# Key Information Summary
+
+## Product Name
+**Crypto Project**
+
+## Core Value Proposition
+Post-quantum, reconstruction-less identity credential verification infrastructure
+
+## Key Technologies
+| Technology | Details |
+|------------|---------|
+| Post-quantum signatures | ML-DSA-65 (NIST FIPS 204) via liboqs |
+| Secret sharing | Shamir's Secret Sharing, k=3 of n=5 (default) |
+| Ledger | Hyperledger Fabric (self-hosted, self-controlled) |
+| API authentication | Role-scoped (issuer/verifier permissions distinct) |
+
+## Security Guarantees
+- No single point of failure
+- Information-theoretically secure below threshold
+- Tamper-evident proof anchoring
+- Reconstruction-less verification
+
+## Never Stored
+- Raw identity claim data
+- Complete, reconstructable secret shares in a single location
+- Unhashed API keys or private signing keys
+
+## Fault Tolerance
+Tolerates loss/compromise/destruction of up to 2 storage nodes with zero data loss and zero downtime (default k=3, n=5)
+
+## Security Testing
+- SAST on every code change
+- DAST before every release
+- Targeted fuzzing
+- SBOM generated per release
+- (Future) Independent third-party penetration testing
+
+## Compliance Status
+- Built with SOC 2-aligned practices
+- Formal certification planned for [timeframe]
+
+## Target Audience
+- Enterprise buyers
+- Security teams
+- Compliance teams
+- B2B security product prospects
+
+## Use Cases
+- Higher Education
+- KYC Verification
+- Fintech
+- Identity credential verification

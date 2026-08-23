@@ -59,7 +59,6 @@
       "purpose": "Vault KV v2 secrets path namespace for key rotation."
     }
   },
-
   "cryptography": {
     "algorithm": {
       "value": "ML-DSA-65",

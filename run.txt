@@ -1,0 +1,16 @@
+# How to run the ScatterID services with secure KMS and HTTPS:
+
+# 1. Run Crypto Server (Python Flask)
+cd ~/ScatterID/components/crypto/crypto-service
+source venv/bin/activate
+source ../../../.env
+python3 app.py
+
+# 2. Run API Server (Node.js/Express)
+cd ~/ScatterID/components/verification-api
+source ../../.env
+npm run dev
+
+# 3. Run Control Dashboard (Node.js/Express)
+cd ~/ScatterID/components/project-dashboard
+npm start

@@ -1,0 +1,452 @@
+# ScatterID / Crypto Project - CI/CD & Operations Documentation
+
+---
+
+## CI/CD Pipeline Design Document
+
+### Pipeline Goals
+
+- Catch bugs, lint failures, and security issues before human review, not after
+- Make it impossible to merge code that breaks tests or fails security scans
+- Automate deployment consistently across Phase 1 → 2 → 3, reducing manual deployment error
+
+### Tooling
+
+| Function | Input | Output |
+|----------|-------|--------|
+| CI/CD Platform | GitHub Actions | Free for open-source/small private repos, integrates directly with the GitHub org already in use |
+| Container builds | Docker + GitHub Container Registry (or Docker Hub free tier) | Matches Phase 2/3 containerized deployment model |
+| Secrets in CI | GitHub Actions encrypted secrets | Never hardcode credentials in workflow YAML files |
+
+### Pipeline Stages (Per Module Repo)
+
+```
+on: pull_request → dev
+
+1. Checkout code
+2. Install dependencies (cached)
+3. Lint (per Coding Standards doc)
+4. Run unit tests
+5. Run SAST scan (see Security Testing Plan)
+6. Dependency vulnerability scan (see Supply Chain Policy)
+7. Build check (does it compile/build cleanly)
+
+→ All must pass before merge is allowed (branch protection rule)
+```
+
+### Pipeline Stages (Integration Repo, Founders-Only)
+
+```
+on: push → integration
+
+1. Pull latest from all module-sync branches
+2. Run full unit test suites (all modules)
+3. Run cross-module integration tests
+4. Build Docker images for each service
+5. Run container security scan (see Container Security Guidelines)
+6. Deploy to staging environment (Phase 2 containerized network)
+7. Run smoke tests against staging (issue → shard → sign → anchor → verify)
+
+on: tag v*.*.* on main
+
+8. Build production images
+9. Deploy to production (Phase 3 cloud)
+10. Post-deploy smoke test
+11. Notify founders (Discord webhook) of deploy status
+```
+
+### Branch Protection Rules
+
+- `main` and `dev`/`integration`: no direct pushes, PR required
+- Required status checks before merge: lint, tests, SAST scan, dependency scan
+- At least one approving review required (two for cryptographic-code PRs, per Code Review Checklist)
+
+### Failure Handling
+
+1. Any pipeline failure blocks merge automatically — no manual override without a founder's explicit sign-off, logged in the PR.
+2. Flaky tests are treated as bugs to fix, not disabled/skipped — a skipped test is a silent gap in your safety net.
+3. Security scan failures (SAST, dependency) are never silently ignored — triage each finding before deciding fix vs. accepted-risk, and document the decision either way.
+
+### What CI Does Not Replace
+
+- Manual code review — CI catches mechanical issues, not design or logic flaws
+- Manual penetration testing — automated scans are a floor, not a ceiling
+- Founder review of cryptographic code — no automated check substitutes for this per the Code Review Checklist
+
+---
+
+## Secrets Management Policy
+
+### Scope
+
+This policy covers all non-cryptographic-key secrets: API keys, database credentials, service tokens, CI/CD credentials. Signing key handling specifically is covered by the Key Management Policy — this document is broader operational secrets hygiene.
+
+### Secret Storage by Environment
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Local development | .env files, never committed (.gitignore enforced) | Use .env.example with placeholder values as the committed template |
+| CI/CD (GitHub Actions) | GitHub encrypted repository/organization secrets | Scoped per-repo where possible, not shared org-wide unless genuinely needed by all repos |
+| Staging (Phase 2) | Docker environment variables injected at container runtime, sourced from a local secrets file excluded from version control | Acceptable for staging; not for production |
+| Production (Phase 3+) | Dedicated secrets manager (cloud provider's secrets manager, or HashiCorp Vault) | Required — do not run production with only env-var secrets once real customer data is involved |
+
+### Never-Commit Rules
+
+**⚠ If a secret is ever committed to git history, rotate it immediately — removing it from a later commit does NOT remove it from history. Treat any committed secret as compromised, no exceptions.**
+
+1. Every repo includes a .gitignore covering .env, *.pem, *.key, and any other credential file patterns before the first commit is made.
+2. Use a pre-commit hook (e.g. gitleaks or truffleHog) to scan for accidentally staged secrets before they're committed.
+3. CI pipeline includes a secrets-scanning step on every PR as a second layer of defense (see CI/CD Pipeline Design Document).
+4. Never paste secrets into Discord, Slack, or any chat tool — including "temporarily" for debugging. Use the secrets manager's sharing mechanism instead.
+
+### Access Control
+
+- Interns never receive access to production or staging secrets — only to sandbox/testnet credentials scoped narrowly to their module (see module TODO docs).
+- Founders hold access to production secrets; access is logged where the secrets manager supports it (most cloud secrets managers do by default).
+- Rotate any secret immediately when a team member (founder or intern) with access to it leaves or is offboarded.
+
+### Secret Rotation Schedule
+
+| Function | Input | Output |
+|----------|-------|--------|
+| API keys (customer-facing) | On suspected compromise; otherwise annually | Coordinate rotation with active customers to avoid breaking their integrations |
+| Internal service credentials (DB, etc.) | On suspected compromise; otherwise every 6 months | Automate where the secrets manager supports scheduled rotation |
+| CI/CD credentials | On suspected compromise; otherwise annually or on team member offboarding | Review who has access to modify CI secrets periodically |
+
+### Incident Response — Secret Exposure
+
+1. Rotate the exposed secret immediately — do not wait to assess impact first.
+2. Audit logs/access history for any use of the secret during the suspected exposure window.
+3. Document the incident (what, when, how detected, response taken) for the team's incident log.
+4. If the secret was customer-facing, follow through on notification obligations per any applicable SLA or compliance requirement.
+
+---
+
+## Infrastructure as Code Documentation
+
+### Why IaC for This Project
+
+Given the phased rollout (local → container → cloud) and the requirement that node placement/security config be consistent and auditable (per the Network Topology document), infrastructure should be defined as code from Phase 2 onward — not manually clicked together in a cloud console. This also makes the "we own our infrastructure" pitch claim verifiable, not just asserted.
+
+### Tooling Choice
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Provisioning (create cloud resources) | Terraform | Cloud-agnostic, widely adopted, works whether you choose AWS, DigitalOcean, or a multi-provider setup |
+| Configuration (set up software on provisioned machines) | Ansible | Agentless, simpler learning curve than alternatives, well-suited to a small team configuring Fabric nodes and API servers |
+
+### Repository Structure
+
+```
+infra/
+├── terraform/
+│   ├── modules/
+│   │   ├── fabric-node/      # reusable peer/orderer VM definition
+│   │   └── shard-storage/    # reusable storage node VM definition
+│   ├── environments/
+│   │   ├── staging/          # Phase 2-equivalent cloud config
+│   │   └── production/       # Phase 3 config
+│   └── main.tf
+├── ansible/
+│   ├── playbooks/
+│   │   ├── setup-fabric-peer.yml
+│   │   ├── setup-shard-node.yml
+│   │   └── setup-api-server.yml
+│   ├── roles/
+│   └── inventory/
+│       ├── staging.ini
+│       └── production.ini
+└── README.md
+```
+
+### Access Control
+
+- Only founders have credentials to run `terraform apply` against production — interns may work with staging/local Terraform configs only, per module scope.
+- Terraform state files stored remotely (e.g. Terraform Cloud free tier, or a private cloud storage bucket) with state locking enabled — never committed to git, and never left only on one person's laptop.
+- Ansible inventory files for production hosts should not be committed with real IPs/hostnames in a public or intern-accessible repo — keep infra repo access founders-only, consistent with the compartmentalization model used elsewhere.
+
+### Change Process
+
+1. Infrastructure changes proposed via PR against the infra repo, same as application code.
+2. `terraform plan` output reviewed before any `apply` — never apply blind.
+3. Founder review required for any change touching production or the Network Topology document's defined firewall/TLS rules.
+4. After any infra change, update the Network Topology document if the change affects node placement, ports, or security controls — keep documentation and reality in sync.
+
+### What Gets Provisioned Where
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Phase 1 (local) | No IaC needed — manual local setup per Dev Environment Guide | Too small-scale to warrant automation overhead |
+| Phase 2 (containerized) | docker-compose (not full Terraform) for local multi-container network | Terraform reserved for actual cloud resource provisioning, not local containers |
+| Phase 3 (cloud) | Terraform provisions VMs/networking; Ansible configures Fabric, shard-storage, and API software on top | Full IaC coverage required before any real customer pilot |
+
+### Disaster Recovery Note
+
+Because infrastructure is code, a lost or compromised production environment can be rebuilt from the Terraform/Ansible definitions rather than requiring manual reconstruction — this is a meaningful advantage worth highlighting in the Rollback & Incident Response Runbook.
+
+---
+
+## Deployment Runbook
+
+### Phase 1 — Local Deployment
+
+1. Clone the relevant module repo(s).
+2. Follow module README setup steps (language runtime, dependencies).
+3. Start Fabric peer/orderer/CA as local processes bound to localhost, per Network Topology document Section 2.
+4. Start the Verification API locally, pointed at the local Fabric instance.
+5. Run smoke test: issue a test credential, verify it resolves correctly end-to-end.
+
+*Purpose: fastest iteration for chaincode/logic development. Not representative of real deployment conditions.*
+
+### Phase 2 — Containerized Deployment
+
+1. Ensure Docker and docker-compose are installed.
+2. Run `docker-compose up` from the infra repo's Phase 2 configuration — spins up multi-peer Fabric network + API + shard-storage containers on a local Docker bridge network.
+3. Verify all containers report healthy (`docker-compose ps`).
+4. Run the fault-tolerance smoke test: `docker-compose stop <node-container>` for one shard-storage node, confirm verification still succeeds using remaining nodes.
+5. Run full integration test suite against the containerized environment.
+
+*Purpose: first real multi-node testing environment. This is the required checkpoint before any cloud deployment — do not skip to Phase 3 without passing Phase 2 fault-tolerance tests.*
+
+### Phase 3 — Cloud Deployment
+
+1. Confirm Terraform state is current: `terraform plan` against the production environment, review output.
+2. Apply infrastructure changes: `terraform apply` (founders only, per Infrastructure as Code document access rules).
+3. Run Ansible playbooks to configure Fabric peers, orderer, shard-storage nodes, and API servers on the newly provisioned machines.
+4. Verify TLS is correctly configured node-to-node (per Network Topology document Section 5) before opening any firewall rules.
+5. Deploy application containers via the CI/CD pipeline's production deploy stage (see CI/CD Pipeline Design Document).
+6. Run post-deploy smoke test against the live public API endpoint.
+7. Monitor logs/metrics closely for the first 24 hours after any production deployment.
+
+### Pre-Deployment Checklist (Every Phase 3 Deploy)
+
+- [ ] All CI checks passed on the release tag
+- [ ] Definition of Done criteria met for everything included in this release
+- [ ] Secrets confirmed to be in the production secrets manager, not left in env-vars or Ansible plaintext
+- [ ] Firewall rules reviewed against the Network Topology document's port reference table
+- [ ] Rollback plan confirmed ready (see Rollback & Incident Response Runbook)
+
+### Deployment Windows
+
+Until a real pilot customer is live, deployments can happen any time. Once a pilot customer depends on uptime, establish a deployment window (e.g. outside customer's business hours) and communicate planned deployments in advance, consistent with any SLA agreed with that customer.
+
+### Post-Deployment Verification
+
+1. Confirm the full issue → shard → sign → anchor → verify flow works against production.
+2. Check monitoring dashboards for anomalies (error rate spike, latency increase) in the 30 minutes following deploy.
+3. Confirm the deployed version tag matches what was intended — verify via a version/health endpoint if the API exposes one.
+
+---
+
+## Rollback & Incident Response Runbook
+
+### Severity Classification
+
+| Function | Input | Output |
+|----------|-------|--------|
+| SEV-1 — Critical | Data exposure, key compromise, credential forgery possible, system fully down for customers | Immediate response, all founders alerted, hotfix process (see Branching & Release Strategy) |
+| SEV-2 — High | Partial outage, degraded verification accuracy, a single node compromised (but below threshold k) | Response within hours, not days |
+| SEV-3 — Medium | Non-critical bug, performance degradation, no security or data impact | Normal release cadence fix |
+| SEV-4 — Low | Cosmetic or minor issue, no functional impact | Backlog, fix in next regular release |
+
+### Rollback Procedure (Application Layer)
+
+1. Identify the last known-good release tag (per Branching & Release Strategy's versioning).
+2. Redeploy that tag through the standard CI/CD deploy pipeline — do not manually patch production directly.
+3. Verify rollback success with the same post-deployment smoke test used for normal deploys.
+4. Communicate rollback to the team and any affected pilot customer, with a brief explanation and expected resolution timeline.
+
+### Rollback Procedure (Infrastructure Layer)
+
+1. Because infrastructure is defined in Terraform (see Infrastructure as Code document), infrastructure-level issues can often be resolved by reverting the infra repo to the last known-good commit and re-applying.
+2. For Fabric-specific issues (e.g. a bad chaincode deployment), use Fabric's chaincode versioning to revert to the previous approved chaincode version rather than attempting a manual ledger edit — the ledger itself should never be manually altered.
+
+### Incident Response Process (SEV-1 / SEV-2)
+
+1. Declare the incident — whoever notices first alerts all founders immediately (Discord/phone, not just an async message that might be missed).
+2. Contain: if key compromise is suspected, begin emergency key rotation immediately per the Key Management Policy — don't wait for full root-cause analysis first.
+3. Assess: determine actual scope — which credentials, customers, or data are affected.
+4. Communicate: notify affected pilot customers as soon as scope is reasonably understood — do not wait for a full postmortem before initial disclosure.
+5. Resolve: apply the fix via the hotfix process (Branching & Release Strategy) or rollback (Sections 2-3 above), whichever is faster and safer.
+6. Verify: confirm the issue is actually resolved with explicit testing, not just "it looks fine now."
+
+### Post-Incident Review (Required for SEV-1/SEV-2, Recommended for SEV-3)
+
+Within a few days of resolution, write a blameless postmortem covering:
+
+- Timeline: when it started, when detected, when resolved
+- Root cause: what actually went wrong, not just the symptom
+- Impact: what/who was affected, and how severely
+- What went well: what limited the damage or sped up response
+- Action items: specific, owned, dated follow-ups to prevent recurrence — not vague "be more careful" notes
+
+### Communication Templates
+
+**Internal alert (Discord, SEV-1/2)**
+
+"[SEV-X] <short description>. Detected at <time>. <name> is investigating. Updates every 30 min until resolved."
+
+**Customer notification (if a pilot customer is affected)**
+
+"We identified an issue affecting <specific scope> starting at <time>. <Brief, honest description — avoid over-promising resolution time before you're confident>. We will update you by <specific time>."
+
+### Special Case — Suspected Node Compromise Below Threshold
+
+If a single shard-storage node (or up to k-1 nodes) is suspected compromised, this is a real incident but NOT a data breach in the traditional sense — no usable secret is exposed below threshold k, per the Secret-Sharing Scheme Specification. Treat it as SEV-2: rotate that node's infrastructure credentials, investigate how it was compromised, and re-provision the node from Infrastructure as Code rather than trusting a "cleaned" compromised machine.
+
+---
+
+## Container Security Guidelines
+
+### Base Image Selection
+
+- Use official, minimal base images (e.g. `python:3.12-slim`, `node:20-alpine`) — smaller images mean smaller attack surface and faster scans.
+- Avoid `:latest` tags in production Dockerfiles — pin specific versions, consistent with the library version-pinning rule in the Cryptographic Design Document.
+- Pull base images only from official/verified sources — never an unverified third-party image for anything handling cryptographic material.
+
+### Dockerfile Hardening Checklist
+
+- [ ] Run as a non-root user — add `USER appuser` after creating a dedicated non-root user, never run application processes as root inside the container
+- [ ] Multi-stage builds — build dependencies and tools should not exist in the final runtime image
+- [ ] No secrets baked into image layers — secrets are injected at runtime (see Secrets Management Policy), never via `COPY` or `ENV` in the Dockerfile itself
+- [ ] `.dockerignore` configured to exclude `.env`, `.git`, and any local secret files from the build context
+- [ ] Minimal installed packages — don't include debugging tools or unnecessary utilities in production images
+
+### Example Hardened Dockerfile Pattern
+
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+
+FROM node:20-alpine
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=builder /app /app
+USER appuser
+EXPOSE 3000
+CMD ["node", "src/server.js"]
+```
+
+### Image Scanning
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Tool | Trivy (open-source, free) | Scans for known CVEs in base images and dependencies |
+| When | On every image build in CI (see CI/CD Pipeline Design Document) | Catches vulnerable base images before they reach staging or production |
+| Policy | Block deploy on any Critical/High severity finding without an explicit, documented exception | Medium/Low findings tracked but don't block — avoid alert fatigue on genuinely low-risk items |
+
+### Runtime Security
+
+- Set resource limits (CPU/memory) on all containers — prevents a single compromised or misbehaving container from starving others.
+- Use read-only root filesystems where the application doesn't need to write to disk (`--read-only` flag or Compose equivalent).
+- Never mount the Docker socket into a container unless absolutely necessary — doing so effectively grants root on the host.
+- Network segmentation: shard-storage containers should not be able to reach the internet directly; only the API layer needs outbound + inbound access, per the trust boundaries in the System Architecture Diagram.
+
+### Fabric-Specific Container Notes
+
+- Fabric peer/orderer containers should use the official Hyperledger Fabric images, version-pinned to match the ADR's locked Fabric version.
+- MSP material (certificates) mounted as read-only volumes, never baked into the image itself.
+- Separate containers per node role (peer, orderer, CA) — don't combine multiple Fabric roles into a single container, which would undermine the node independence assumed in the Threat Model and Secret-Sharing Specification.
+
+### Secrets in Containers — Cross-Reference
+
+Full secrets handling rules live in the Secrets Management Policy. The container-specific rule to remember: environment variables passed to a container are visible via `docker inspect` to anyone with host access — for production, prefer mounting secrets from a secrets manager as files with restricted permissions over passing them as plain environment variables where the orchestration platform supports it.
+
+---
+
+## Environment Configuration Guide
+
+### Environment Overview
+
+| Function | Input | Output |
+|----------|-------|--------|
+| dev | Individual developer/intern local machines (Phase 1) | Test keys/credentials only; no real customer data ever |
+| staging | Containerized multi-node network (Phase 2), or early cloud deployment | Mirrors production topology for realistic testing; still uses test/sandbox credentials |
+| production | Cloud-hosted, public IP (Phase 3+) | Real customer data; full security controls required |
+
+### Configuration Management Approach
+
+- Environment-specific settings (URLs, node addresses, feature flags) live in environment variables, never hardcoded in application code.
+- Each environment has its own `.env.example` template (committed) documenting required variables, and its own actual `.env` or secrets-manager entries (never committed).
+- Configuration differences between environments should be minimal by design — the same codebase runs in all three; only config values change, not code paths, wherever possible (reduces "works in staging, breaks in production" risk).
+
+### Required Environment Variables (Verification API, Example)
+
+```bash
+# .env.example
+NODE_ENV=development|staging|production
+PORT=3000
+API_KEY_SECRET=<set via secrets manager in staging/prod>
+FABRIC_PEER_ENDPOINT=<node address, differs per environment>
+FABRIC_MSP_PATH=<path to MSP certs, differs per environment>
+DATABASE_URL=<connection string, differs per environment>
+LOG_LEVEL=debug|info|warn
+```
+
+### Environment-Specific Rules
+
+| Function | Input | Output |
+|----------|-------|--------|
+| dev | Verbose logging allowed (LOG_LEVEL=debug); test keys only; no real anchoring to any persistent chain (local Phase 1 instance only) | Optimized for fast iteration, not security |
+| staging | Moderate logging; sandbox/testnet credentials; full Phase 2 multi-node topology for realistic testing | Should catch integration issues before they ever reach production |
+| production | Minimal logging (no sensitive data, ever); production secrets manager; full TLS/firewall rules per Network Topology document | Any deviation from these rules requires explicit founder sign-off, logged |
+
+### Promoting Changes Between Environments
+
+1. Changes are developed and tested in dev first.
+2. Merged changes deploy to staging automatically via CI/CD (see CI/CD Pipeline Design Document).
+3. Staging is manually verified (smoke tests, and for larger changes, a founder review of behavior) before promotion.
+4. Only tagged releases deploy to production — never a direct dev-to-production promotion, regardless of urgency (hotfixes still go through the abbreviated hotfix process, not around environment promotion entirely).
+
+### Access Control by Environment
+
+- **dev:** all team members and interns, scoped to their assigned module only
+- **staging:** founders and track leads; interns may have read/observe access for testing their integrated module, but not deploy access
+- **production:** founders only
+
+### Data Handling by Environment
+
+**⚠ Real customer data must never be copied into dev or staging for debugging purposes, even temporarily. Use synthetic/generated test data that mimics the shape of real data instead.**
+
+---
+
+## Summary: CI/CD & Operations Quick Reference
+
+| Topic | Key Points |
+|-------|------------|
+| **CI/CD Platform** | GitHub Actions |
+| **Container Registry** | GitHub Container Registry or Docker Hub |
+| **Pipeline (Module)** | Checkout → Install → Lint → Unit Tests → SAST → Dependency Scan → Build |
+| **Pipeline (Integration)** | Pull modules → Full tests → Integration tests → Build images → Security scan → Deploy staging → Smoke tests |
+| **Pipeline (Production)** | Tag release → Build prod images → Deploy → Post-deploy smoke → Notify founders |
+| **Branch Protection** | No direct pushes; PR required; status checks must pass; review required |
+| **Failure Handling** | Blocks merge; flaky tests fixed not skipped; security findings triaged |
+| **Secrets (Dev)** | .env files, never committed, .gitignore enforced |
+| **Secrets (CI)** | GitHub encrypted secrets, per-repo scoped |
+| **Secrets (Staging)** | Docker env vars from local secrets file |
+| **Secrets (Production)** | Dedicated secrets manager (cloud or Vault) |
+| **Secret Rotation** | API keys: annually or on compromise; Internal: every 6 months; CI/CD: annually |
+| **IaC Tooling** | Terraform (provisioning) + Ansible (configuration) |
+| **IaC Access** | Founders only for production; interns for staging/local only |
+| **IaC State** | Remote storage with locking; never in git |
+| **Deployment Phases** | Phase 1 (local) → Phase 2 (containerized) → Phase 3 (cloud) |
+| **Phase 2 Checkpoint** | Must pass fault-tolerance tests before Phase 3 |
+| **Pre-Deploy Checklist** | CI passes, DoD met, secrets in manager, firewall reviewed, rollback ready |
+| **Severity Levels** | SEV-1 (Critical), SEV-2 (High), SEV-3 (Medium), SEV-4 (Low) |
+| **Rollback** | Redeploy last known-good tag; do not manually patch |
+| **Incident Response** | Declare → Contain → Assess → Communicate → Resolve → Verify |
+| **Post-Incident** | Blameless postmortem with action items |
+| **Container Base Images** | Official, minimal, version-pinned (slim/alpine) |
+| **Container Hardening** | Non-root user, multi-stage builds, no secrets in layers, .dockerignore |
+| **Image Scanning** | Trivy on every build; block Critical/High findings |
+| **Runtime Security** | Resource limits, read-only rootfs, no Docker socket, network segmentation |
+| **Environments** | dev (local), staging (containerized/cloud test), production (cloud live) |
+| **Config Management** | Environment variables; minimal differences between environments |
+| **Data in Dev/Staging** | Synthetic test data only — no real customer data ever |
+
+---
+
+*This document consolidates all CI/CD and operations specifications for ScatterID / Crypto Project.*

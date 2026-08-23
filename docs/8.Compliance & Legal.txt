@@ -1,0 +1,413 @@
+# Crypto Project - Legal & Compliance Documentation
+
+## Data Protection & Privacy Policy
+## Data Retention & Deletion Policy
+## Terms of Service (B2B)
+## SLA Template
+
+---
+
+# Part 1: Data Protection & Privacy Policy
+
+## Header Note
+
+> **⚠ This is a working draft to guide engineering and product decisions, not a finalized legal document. Have this reviewed by a qualified lawyer in your jurisdiction (and any jurisdiction your customers operate in) before publishing it publicly or relying on it contractually. I am not a lawyer and this is not legal advice.**
+
+---
+
+## 1. What Data Crypto Project Actually Touches
+
+Per the system design (see System Architecture Diagram and Database Schema Document), Crypto Project is deliberately built to minimize what personal data it directly holds:
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Raw identity claim data | Never persisted — exists only transiently in Issuance Layer memory during hashing/signing | The strongest privacy claim in this policy — keep the architecture honest to this promise |
+| Individual secret shares | Stored across distributed nodes; a share alone reveals zero information (see Secret-Sharing Scheme Specification) | Not "personal data" in a meaningful sense on its own, though jurisdictions may still classify it conservatively — confirm with counsel |
+| Hashes and metadata | Stored in the reference database (see Database Schema Document) | Hashes are one-way but may still be considered personal data under some regulations if linkable to an individual — treat conservatively |
+| API/account data | Issuer/verifier organization details, API key hashes | Standard B2B account data, not consumer PII in the traditional sense |
+
+---
+
+## 2. GDPR-Relevant Principles Applied
+
+1. **Data minimization**: the architecture is built around never holding raw personal data at rest — this isn't just a policy statement, it's an architectural property (see Cryptographic Design Document, Issuance Layer).
+
+2. **Purpose limitation**: data processed only for the specific credential issuance/verification purpose the issuer defined — no secondary use without separate consent/basis.
+
+3. **Storage limitation**: retention periods defined in the Data Retention & Deletion Policy, not indefinite by default.
+
+4. **Right to erasure**: since raw data isn't persisted, "erasure" for Crypto Project primarily means revoking/deleting the credential's shares and anchoring record — defined in the Data Retention & Deletion Policy.
+
+5. **Data subject access requests**: since Crypto Project is a B2B infrastructure provider, most data subject requests should route through the issuing customer (who holds the underlying relationship with the individual), with Crypto Project supporting technical fulfillment (e.g. confirming what references exist).
+
+---
+
+## 3. Roles Under Data Protection Law (To Confirm With Counsel)
+
+Crypto Project likely acts as a data processor (processing data on behalf of the issuer, who is the data controller) for most of its B2B relationships. This distinction has significant legal implications — processor agreements, sub-processor disclosures, etc. — confirm this classification and its requirements with legal counsel before any real customer contract.
+
+---
+
+## 4. Data Transfer Considerations
+
+If shard-storage nodes are distributed across multiple regions/countries (per the Network Topology document's fault-tolerance design), this may constitute an international data transfer under GDPR and similar regimes. Confirm appropriate transfer mechanisms (e.g. Standard Contractual Clauses) are in place before deploying nodes across borders with any customer whose data falls under such regulation.
+
+---
+
+## 5. Security Measures Statement (For the Public-Facing Policy)
+
+[Draft language — refine with counsel before publishing]: "Crypto Project employs post-quantum cryptographic signatures and threshold secret-sharing to ensure no single system component ever holds a complete, usable copy of protected data. Technical and organizational measures are documented in our internal Threat Model, Secure Coding Guidelines, and Key Management Policy."
+
+---
+
+## 6. Open Items Before This Can Be Published
+
+- Confirm data controller/processor roles with counsel
+
+- Confirm applicable regulations beyond GDPR based on actual target customer jurisdictions (e.g. CCPA if targeting US customers, local data protection law in Pakistan once operating there)
+
+- Define and publish a real data subject request handling process
+
+- Define breach notification timelines and process, consistent with the Rollback & Incident Response Runbook but written in customer-facing legal language
+
+---
+
+# Part 2: Data Retention & Deletion Policy
+
+## Header Note
+
+> **⚠ Draft for internal engineering/product alignment. Have a qualified lawyer review before publishing or including in any customer contract. I am not a lawyer and this is not legal advice.**
+
+---
+
+## 1. Retention Periods by Data Type
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Secret shares (shard_references + actual share data at nodes) | Retained for the credential's active lifetime, as defined by the issuer | Deletion here is the primary mechanism of "forgetting" a credential — core to the product's privacy design |
+| Credential records (hashes, references, status) | Retained for the credential's active lifetime + a defined grace period (default: 30 days post-revocation, adjustable per customer agreement) | Grace period allows for dispute resolution/audit before final deletion |
+| Audit logs | Default 1 year minimum, adjustable per compliance requirements once identified with counsel | Balances dispute-resolution/compliance needs against data minimization |
+| Fabric ledger entries (proof hashes) | Effectively permanent — blockchain ledgers are append-only by design | This is a deliberate tradeoff: immutability is the point of anchoring, but it means proof hashes cannot be "deleted" — make sure this is clearly disclosed, since no raw personal data is anchored, only hashes |
+| API/account data (issuers, verifiers) | Retained for the duration of the business relationship + standard business record retention period | Confirm exact period with counsel based on applicable commercial record-keeping law |
+
+---
+
+## 2. Deletion Process (Technical)
+
+1. Deletion request received (from issuer, or end-user request routed through issuer per the Privacy Policy's role clarification).
+
+2. Mark the credential as revoked in the credentials table (status field, per Database Schema Document) — immediate, reversible flag.
+
+3. After the grace period, trigger actual deletion: remove shard data from all storage nodes, remove the credential and shard_references rows from the database.
+
+4. The Fabric proof hash remains on the ledger (immutable by design) but becomes meaningless without the corresponding off-chain data — the credential cannot be reconstructed or meaningfully verified as "active" post-deletion.
+
+5. Log the deletion event in the audit log (the deletion event itself, not the deleted data).
+
+---
+
+## 3. Why the Blockchain Anchor Doesn't Violate Deletion Principles (Draft Reasoning — Confirm With Counsel)
+
+The anchored proof hash contains no personal data itself — only a cryptographic hash and non-identifying metadata (see Database Schema Document, Chaincode Design Document). Once the corresponding off-chain shares and database records are deleted, the hash is not reversible to recover the original data and serves only as a historical, non-personally-identifying record that a credential once existed. This reasoning should be explicitly validated by counsel, since regulatory interpretation of hashes as "personal data" varies by jurisdiction.
+
+---
+
+## 4. Backup Retention
+
+- Database backups follow the same retention schedule as primary data — a deletion request must also account for backup copies, not just the live database.
+
+- Define backup retention/rotation explicitly (e.g. 30-day rolling backups) so deleted data doesn't linger indefinitely in an overlooked backup archive.
+
+---
+
+## 5. Customer-Initiated vs. Individual-Initiated Deletion
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Issuer-initiated (customer deletes/revokes a credential they issued) | Direct API call or dashboard action — straightforward technical process per Section 2 | Primary expected deletion path in the B2B model |
+| Individual-initiated (a data subject requests deletion directly from Crypto Project, not through the issuer) | Route to the relevant issuer per the Privacy Policy's processor/controller role clarification; Crypto Project supports but doesn't unilaterally act without issuer involvement, pending legal confirmation of this process | Requires legal review before finalizing — flagged as an open item |
+
+---
+
+## 6. Open Items Before This Can Be Finalized
+
+- Confirm exact retention periods against any applicable regulation once target customer jurisdictions are known
+
+- Confirm the blockchain-immutability reasoning in Section 3 with counsel — this is the single most legally sensitive design property of the whole system
+
+- Build the actual deletion-request handling workflow (currently only specified at a technical level, not a customer support/process level)
+
+---
+
+# Part 3: Terms of Service (B2B)
+
+## Header Note
+
+> **⚠ This is a structural draft to guide what needs to be covered, using placeholder language. This must be drafted or reviewed by a qualified lawyer before use in any real customer agreement — ToS documents carry real legal weight and jurisdiction-specific requirements. I am not a lawyer and this is not legal advice.**
+
+---
+
+## 1. Structure Overview
+
+A B2B ToS for an API/SDK product like Crypto Project typically needs the sections below. Each includes placeholder guidance on what should go there — fill in with counsel, not with this draft's language verbatim.
+
+---
+
+## 2. Service Description
+
+[Define precisely what the service does and does not do — pull directly from the PRD's Goals/Non-Goals sections for accuracy. Be explicit that this is infrastructure (SDK/API), not a guarantee of any particular business outcome for the customer.]
+
+---
+
+## 3. Acceptable Use
+
+- [Prohibit use of the service for issuing fraudulent credentials, for identity data the customer isn't legally authorized to process, or for any unlawful purpose]
+
+- [Reserve the right to suspend access for abuse, security violations, or non-payment]
+
+---
+
+## 4. Customer Responsibilities (Data Controller Obligations)
+
+- [Customer confirms they have appropriate legal basis/consent to submit the identity data they issue credentials for — Crypto Project is not verifying this on the customer's behalf]
+
+- [Customer responsible for their own API key security — reference the Secrets Management Policy's principles in customer-facing language]
+
+- [Customer responsible for their own downstream compliance obligations to their end users]
+
+---
+
+## 5. Service Level Commitments
+
+[Reference the separate SLA Template document — don't duplicate SLA specifics inline in the ToS; link/incorporate by reference so they can be updated independently]
+
+---
+
+## 6. Limitation of Liability
+
+[Standard SaaS/API limitation of liability language — cap liability, exclude indirect/consequential damages, this section is highly jurisdiction-dependent and must be drafted by counsel]
+
+---
+
+## 7. Data Handling
+
+[Reference the Data Protection/Privacy Policy and Data Retention & Deletion Policy by incorporation — don't restate their content here, keep a single source of truth for those specifics]
+
+---
+
+## 8. Security Disclaimers & Representations
+
+[This section needs particular care given the product's security claims. Avoid absolute guarantees ("unbreakable," "100% secure") — describe the technical measures accurately (post-quantum signatures, threshold secret-sharing per the k=3/n=5 default) without over-promising. Overstating security claims in a ToS creates real legal exposure if a future incident occurs.]
+
+---
+
+## 9. Intellectual Property
+
+- [Crypto Project retains ownership of the underlying SDK/API/platform]
+
+- [Customer retains ownership of their own data/credentials issued through the platform]
+
+---
+
+## 10. Term & Termination
+
+[Define contract term, renewal, and termination conditions — including what happens to customer data/credentials upon termination, tying back to the Data Retention & Deletion Policy]
+
+---
+
+## 11. Governing Law & Dispute Resolution
+
+[To be determined once the company is formally registered — typically the jurisdiction of incorporation, but confirm with counsel especially if customers span multiple countries]
+
+---
+
+## 12. Amendments
+
+[Standard clause on how ToS updates are communicated and take effect — e.g. notice period before changes apply to existing customers]
+
+---
+
+## 13. Pre-Launch Checklist
+
+- [ ] Drafted or reviewed by a qualified lawyer in your jurisdiction
+
+- [ ] Reviewed against the actual, current PRD and architecture — don't let the ToS describe features that don't exist yet or omit limitations that do
+
+- [ ] Security claims reviewed against actual current implementation, not aspirational roadmap items
+
+- [ ] Cross-referenced correctly with the Privacy Policy, Data Retention Policy, and SLA Template so there's no contradiction between documents
+
+---
+
+# Part 4: SLA Template
+
+## Header Note
+
+> **⚠ Draft template for early pilot agreements. Have counsel review before signing with any real customer — SLA commitments are contractually binding and should reflect what the system can genuinely deliver, not aspirational targets. I am not a lawyer and this is not legal advice.**
+
+---
+
+## 1. Purpose of This Template
+
+For a first pilot customer, an honest, conservative SLA builds more trust than an aggressive one you might not meet. Under-promise relative to what Phase 3's actual tested capability supports, and tighten commitments in later agreements once you have real uptime/performance data.
+
+---
+
+## 2. Service Availability Commitment (Draft — Set Realistically)
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Pilot phase (first customer) | Best-effort, target 99% monthly uptime for the Verification API | Conservative; do not commit to 99.9%+ until you have Phase 3 production data supporting it |
+| Post-pilot / established customer | To be renegotiated based on actual demonstrated uptime history | Tighten only once you have evidence, not projections |
+
+**Uptime measured on**: Verification API availability (/verify, /status endpoints). **Excludes**: scheduled maintenance windows (communicated per Section 5), and outages caused by the customer's own integration issues.
+
+---
+
+## 3. Performance Commitments (Draft)
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| API response time | 95th percentile under 2 seconds for /verify requests | Reconstruction-less verification should be fast; validate this target against real Phase 2/3 testing before committing |
+| Issuance processing time | 95th percentile under 5 seconds (includes signing + sharding + anchor submission) | Anchoring confirmation on Fabric may take longer than the initial API response — clarify that anchorStatus may be 'pending' initially, this is expected, not a fault |
+
+---
+
+## 4. Support Commitments
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Critical issue (service down, security concern) | Response within [4 hours — adjust to what you can realistically staff as a 4-person team] | Be honest about current team size/capacity when setting this number |
+| High-priority issue (degraded functionality) | Response within [1 business day] | |
+| General support inquiry | Response within [2 business days] | |
+
+---
+
+## 5. Maintenance Windows
+
+[Define a standard maintenance window, e.g. "Scheduled maintenance communicated at least 48 hours in advance, performed outside customer's stated business hours where possible." Reference the Deployment Runbook's deployment window practices for internal consistency.]
+
+---
+
+## 6. Incident Communication
+
+In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response Runbook's classification) affecting this customer, Crypto Project will: notify the customer within [1 hour of confirmed impact], provide updates at [defined interval] until resolved, and provide a post-incident summary within [5 business days] of resolution.
+
+---
+
+## 7. Remedies for SLA Miss (Draft — Keep Simple for Pilot)
+
+[For a first pilot, consider service credits (e.g. a discount on the next billing period) rather than complex penalty structures — keeps the agreement simple and appropriate for an early-stage relationship. Escalate to more formal remedies only in later-stage contracts.]
+
+---
+
+## 8. Security & Compliance Commitments
+
+[Reference the Security Testing Plan, Penetration Testing Plan, and Vulnerability Disclosure Policy by incorporation — demonstrates a real security process to a compliance-conscious buyer without over-promising specific outcomes.]
+
+---
+
+## 9. Exclusions
+
+- Issues caused by the customer's own integration errors or misuse of the API
+
+- Force majeure events
+
+- Third-party infrastructure outages outside Crypto Project's control (e.g. underlying cloud provider outage) — though note your own multi-node/multi-region design should reduce this risk relative to competitors
+
+---
+
+## 10. Pre-Signing Checklist
+
+- [ ] Uptime/performance commitments validated against actual Phase 2/3 testing data, not aspirational numbers
+
+- [ ] Support response times reflect actual current team capacity
+
+- [ ] Reviewed by counsel before signing with a real customer
+
+- [ ] Consistent with the Terms of Service and Privacy Policy — no contradicting commitments across documents
+
+---
+
+# Key Information Summary - Legal & Compliance
+
+## Data Protection Principles
+
+| Principle | Implementation |
+|-----------|----------------|
+| Data minimization | Raw personal data never persisted at rest |
+| Purpose limitation | Data processed only for credential issuance/verification |
+| Storage limitation | Defined retention periods, not indefinite |
+| Right to erasure | Delete shares + records, blockchain proof hash remains (non-personal) |
+| Data subject access | Routed through issuing customer (controller) |
+
+## Data Types & Retention
+
+| Data Type | Retention Period | Deletion Process |
+|-----------|------------------|------------------|
+| Secret shares | Credential active lifetime | Delete all shares + shard_references |
+| Credential records | Active lifetime + 30-day grace period | Mark revoked → delete after grace |
+| Audit logs | 1 year minimum (adjustable) | Standard deletion |
+| Fabric ledger entries | Permanent (append-only) | Cannot delete — contains only hashes |
+| API/account data | Business relationship + standard record period | Per commercial record-keeping law |
+
+## GDPR Role Classification
+
+| Party | Role |
+|-------|------|
+| Crypto Project | Data Processor (likely — confirm with counsel) |
+| Issuing Customer | Data Controller |
+| Individual | Data Subject |
+
+## SLA Commitments (Pilot Phase)
+
+| Commitment | Target |
+|------------|--------|
+| API uptime | Best-effort, target 99% monthly |
+| API response time (95th percentile) | Under 2 seconds for /verify |
+| Issuance processing time (95th percentile) | Under 5 seconds |
+| Critical issue response | Within 4 hours |
+| High-priority response | Within 1 business day |
+| General support response | Within 2 business days |
+| Incident notification | Within 1 hour of confirmed SEV-1/SEV-2 |
+| Post-incident summary | Within 5 business days of resolution |
+
+## Open Items to Address
+
+| Item | Document |
+|------|----------|
+| Confirm data controller/processor roles | Privacy Policy |
+| Confirm applicable regulations (CCPA, local laws) | Privacy Policy |
+| Define data subject request handling process | Privacy Policy |
+| Define breach notification timelines | Privacy Policy |
+| Confirm blockchain-immutability reasoning with counsel | Retention Policy |
+| Build deletion-request handling workflow | Retention Policy |
+| Draft ToS with qualified lawyer | Terms of Service |
+| Review security claims against current implementation | Terms of Service |
+| Validate SLA targets against testing data | SLA Template |
+| Ensure consistency across all documents | All documents |
+
+## Document Cross-References
+
+| Document | Referenced By |
+|----------|---------------|
+| System Architecture Diagram | Privacy Policy |
+| Database Schema Document | Privacy Policy, Retention Policy |
+| Secret-Sharing Scheme Specification | Privacy Policy, Retention Policy |
+| Cryptographic Design Document | Privacy Policy |
+| Issuance Layer Design | Privacy Policy |
+| Network Topology Document | Privacy Policy |
+| Threat Model | Privacy Policy |
+| Secure Coding Guidelines | Privacy Policy |
+| Key Management Policy | Privacy Policy, Terms of Service |
+| Data Retention & Deletion Policy | Privacy Policy, Terms of Service, SLA |
+| Chaincode Design Document | Retention Policy |
+| Rollback & Incident Response Runbook | Privacy Policy, SLA |
+| Security Testing Plan | SLA |
+| Penetration Testing Plan | SLA |
+| Vulnerability Disclosure Policy | SLA |
+| Deployment Runbook | SLA |
+| SLA Template | Terms of Service |
+| PRD Goals/Non-Goals | Terms of Service |
+| Terms of Service | SLA |
+| Data Protection/Privacy Policy | Terms of Service, SLA |

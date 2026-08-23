@@ -59,6 +59,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Fabric cryptogen private key material (regenerated locally, never committed)
+**/priv_sk
+**/keystore/*_sk
+
 # Local Development Scratch files
 scratch/
 

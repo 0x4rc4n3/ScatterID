@@ -1,0 +1,299 @@
+# Crypto Project - Testing Documentation
+
+## Test Plan
+## Test Coverage Standards
+## Integration Test Plan (Cross-Module)
+
+---
+
+# Part 1: Test Plan
+
+## 1. Testing Philosophy
+
+Tests exist to catch mistakes before they reach a customer, not to hit a coverage number for its own sake. Given this is a cryptographic identity product, the cost of an undetected bug (a false "valid" verification, a silently corrupted share) is much higher than in most software — test the failure paths as rigorously as the success paths.
+
+---
+
+## 2. Test Pyramid for Crypto Project
+
+```
+                    ▲
+                   / ╲
+                  / E2E ╲           End-to-End (few, slow, highest confidence)
+                 /───────╲          issue → shard → sign → anchor → verify, full stack
+                /         ╲
+               / Integration ╲      Integration (moderate count)
+              /───────────────╲     cross-module: API ↔ Fabric, API ↔ shard nodes
+             /                 ╲
+            /      Unit          ╲  Unit (many, fast, run on every commit)
+           /───────────────────────╲ per-function: split_secret(), verify_signature(), etc.
+```
+
+---
+
+## 3. Unit Testing
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Scope | Individual functions within a single module, no external dependencies (mocked where needed) | Fastest feedback — run on every save/commit locally, every PR in CI |
+| Crypto module | keygen, sign/verify, split/reconstruct — see individual module TODO docs for exact test list | Must include adversarial cases: tampered data, insufficient shares, wrong keys |
+| Backend/API module | Route handlers, DB models, input validation logic | Mock the Fabric connection and DB for pure unit tests; test the real connections in integration tests |
+| Chaincode | Individual chaincode functions using Fabric's chaincode testing framework (mocked ledger stub) | Include access-control rejection cases explicitly |
+
+---
+
+## 4. Integration Testing
+
+Covered in depth by the separate Integration Test Plan document (cross-module specifically). At the module level, integration tests here mean: does this module correctly talk to its immediate real dependencies (e.g. does the API module correctly write to an actual test database, not just a mock).
+
+- Run against Phase 2 (containerized) environment, not Phase 1 local processes — more representative of real conditions.
+
+- Each module's integration tests run in CI as part of the module repo's pipeline (see CI/CD Pipeline Design Document).
+
+---
+
+## 5. End-to-End Testing
+
+Full-stack tests exercising the complete real flow: issue a credential → shard → sign → anchor on Fabric → verify via API → confirm correct valid/invalid result. These run against the integration repo's staging environment (Phase 2/3), not individual module repos.
+
+1. **Happy path**: full issuance and successful verification.
+
+2. **Fault tolerance**: kill one shard-storage node mid-flow, confirm verification still succeeds (k=3 of n=5).
+
+3. **Failure path**: kill enough nodes to drop below threshold, confirm the system fails cleanly with a clear error, not a silent wrong answer.
+
+4. **Tampering path**: attempt to verify a credential with a tampered signature, confirm it's correctly rejected.
+
+5. **Revocation path**: revoke a credential via chaincode, confirm subsequent verification reflects the revoked status.
+
+---
+
+## 6. Test Data Management
+
+- All test data is synthetic/generated — never real customer data, per the Environment Configuration Guide's data handling rules.
+
+- Maintain a small library of standard test fixtures (valid credential, tampered credential, expired credential, revoked credential) reused consistently across unit/integration/e2e tests rather than each test inventing its own.
+
+---
+
+## 7. Test Execution Cadence
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Unit tests | Every commit (local) + every PR (CI) | Fast, so no excuse to skip |
+| Module integration tests | Every PR (CI) | Slightly slower, still required before merge |
+| Cross-module integration tests | On merge to the integration repo's `integration` branch | See Integration Test Plan |
+| End-to-end tests | Before every release/deployment (Phase 2 and Phase 3) | Required gate per the Deployment Runbook's pre-deployment checklist |
+
+---
+
+# Part 2: Test Coverage Standards
+
+## Header Note
+
+> **⚠ A coverage percentage is a floor, not a goal. 100% line coverage with no adversarial/failure-path tests is worse than 70% coverage that includes every failure mode in the Threat Model. Use the numbers below as a minimum bar, and always prioritize the qualitative checklist in Section 3 over chasing a percentage.**
+
+---
+
+## 1. Minimum Coverage Targets by Module
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Fragmentation module (Crypto) | 90%+ line coverage | Highest bar — safety-critical, small enough codebase that this is achievable |
+| Verification API (Backend) | 80%+ line coverage | Slightly lower bar acceptable for glue/routing code, but core logic (validation, auth) should be near 100% |
+| Chaincode | 85%+ line coverage, 100% of access-control branches | Every access-control decision path must be tested, not just overall coverage |
+| SDK | 80%+ line coverage | Prioritize testing against the real sandbox API over pure unit coverage |
+
+**Measure with standard tooling**: `coverage.py` (Python), `nyc`/Jest coverage (Node.js), `go test -cover` (Go). Report coverage in CI on every PR, visible to reviewers.
+
+---
+
+## 2. What Coverage Numbers Don't Capture
+
+- Whether failure/edge cases are tested, not just the happy path (a function can be 100% "covered" by only testing normal input)
+
+- Whether tests actually assert meaningful things, versus just calling a function without checking its output
+
+- Whether integration between modules works, since coverage tools typically measure within a single codebase
+
+---
+
+## 3. Mandatory Test Categories (Regardless of Coverage %)
+
+Every module must have explicit tests for these categories before being considered done, cross-referenced from each module's Definition of Done:
+
+- **Happy path** — normal, expected input produces correct output
+
+- **Boundary conditions** — e.g. exactly k shares vs. k-1 shares, empty input, maximum-size input
+
+- **Adversarial input** — tampered data, malformed requests, unauthorized access attempts
+
+- **Failure modes fail safely** — when something goes wrong, does it fail closed (deny/reject) rather than failing open (silently allow)?
+
+---
+
+## 4. Coverage Enforcement
+
+1. CI reports coverage percentage on every PR; a drop below the module's minimum blocks merge (see CI/CD Pipeline Design Document).
+
+2. New code should not decrease overall module coverage — new functions need their own tests, not just reliance on existing test suite incidentally touching them.
+
+3. Coverage exceptions (e.g. genuinely untestable code, like certain error branches for OS-level failures) must be explicitly marked with a comment explaining why, not silently excluded.
+
+---
+
+## 5. Review Responsibility
+
+Reviewers check not just "did coverage stay above the threshold" but "do these tests actually verify the right things" — this is a required part of the Code Review Checklist's general checklist item on test inclusion, not a separate automated-only gate.
+
+---
+
+# Part 3: Integration Test Plan (Cross-Module)
+
+## 1. Why This Is a Separate Plan
+
+Each module team tests their own module in isolation, per their TODO doc's Definition of Done. But because interns are deliberately compartmentalized (per the PM Guide) and only see their own module's interface, no single team is positioned to test the *seams* between modules. This is exclusively founder-level responsibility, run on the integration repo.
+
+---
+
+## 2. Integration Points to Test
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| Fragmentation ↔ Verification API | Does the API's /issue endpoint correctly accept the exact SignedCredential shape the fragmentation module produces? | This is the seam most likely to drift — verify against the actual Interface Contract document, not against memory |
+| Verification API ↔ Fabric | Does anchoring actually succeed and become queryable? Does a failed anchor attempt get handled and surfaced correctly? | Test both the success path and Fabric being temporarily unreachable |
+| Verification API ↔ Shard Storage Nodes | Does share retrieval work correctly across the actual distributed nodes, including with a node down? | This is where the k-of-n fault tolerance claim gets proven or disproven for real |
+| SDK ↔ Verification API | Does the SDK's published methods actually match the API's real behavior, not just its documented behavior? | Catches SDK/API drift — the SDK team builds against a spec, but specs and reality can diverge |
+
+---
+
+## 3. Integration Test Scenarios
+
+1. **Full happy path**: SDK issues → API processes → fragmentation shards+signs → shares stored → anchor written → SDK verifies → correct valid result.
+
+2. **Node failure mid-flow**: kill 1-2 shard-storage nodes after issuance, confirm verification still succeeds (validates the Secret-Sharing Scheme Specification's k=3/n=5 promise against real infrastructure, not just unit-tested math).
+
+3. **Fabric unavailable during issuance**: simulate the anchoring layer being temporarily unreachable, confirm the API handles this gracefully (correct status, retry behavior, no data corruption) rather than silently proceeding as if anchored.
+
+4. **Interface drift detection**: deliberately test with a slightly malformed SignedCredential (e.g. missing a field) to confirm the API rejects it clearly rather than processing it incorrectly.
+
+5. **Concurrent issuance**: multiple credentials issued simultaneously, confirm no cross-contamination of shares/records between them.
+
+---
+
+## 4. Environment for Integration Testing
+
+Run against the Phase 2 containerized environment at minimum (see Network Topology document) — local Phase 1 testing isn't sufficient to validate real multi-node behavior. Before any Phase 3 deployment, these same scenarios should also pass in a Phase 3-equivalent staging environment.
+
+---
+
+## 5. When Integration Tests Run
+
+| **Function** | **Input** | **Output** |
+|--------------|-----------|------------|
+| On merge to `integration` branch | Full integration test suite (Section 3 scenarios) | Automated via CI/CD pipeline's integration repo stage |
+| Before any release tag | Full suite, plus manual founder verification of at least the happy path | Required gate per Deployment Runbook |
+| After any Interface Contract change | Full suite, with particular attention to the affected integration point | Interface Contract changes are exactly when drift risk is highest |
+
+---
+
+## 6. Ownership & Process
+
+1. A founder (ideally rotating across founders, not always the same person) owns running and triaging integration test results for each release.
+
+2. Failures here are treated as blocking, same severity as a failed unit test in CI — do not merge to `main` or deploy with failing integration tests.
+
+3. When an integration test reveals a module-level bug (not just a seam issue), route it back to the responsible module team with clear reproduction steps, rather than founders quietly patching around it in the integration repo.
+
+---
+
+# Key Information Summary - Testing
+
+## Test Pyramid Levels
+
+| Level | Scope | Execution Frequency |
+|-------|-------|---------------------|
+| Unit | Individual functions, no external dependencies | Every commit + every PR |
+| Module Integration | Module with real dependencies (DB, Fabric mocked) | Every PR |
+| Cross-Module Integration | Seams between modules | On merge to `integration` branch |
+| End-to-End | Full stack, real flow | Before every release/deployment |
+
+---
+
+## Minimum Coverage Targets
+
+| Module | Target | Notes |
+|--------|--------|-------|
+| Fragmentation (Crypto) | 90%+ line coverage | Safety-critical, highest bar |
+| Verification API (Backend) | 80%+ line coverage | Core logic should be near 100% |
+| Chaincode | 85%+ line coverage | 100% of access-control branches |
+| SDK | 80%+ line coverage | Prioritize real API testing |
+
+---
+
+## Mandatory Test Categories (Every Module)
+
+| Category | Description |
+|----------|-------------|
+| Happy path | Normal expected input produces correct output |
+| Boundary conditions | Edge cases (k vs. k-1, empty input, max size) |
+| Adversarial input | Tampered data, malformed requests, unauthorized access |
+| Failure modes fail safely | Must fail closed (deny/reject), not open (silently allow) |
+
+---
+
+## Integration Points to Test
+
+| Seam | What to Validate |
+|------|------------------|
+| Fragmentation ↔ API | /issue endpoint accepts correct SignedCredential shape |
+| API ↔ Fabric | Anchoring succeeds, failures handled correctly |
+| API ↔ Shard Nodes | Share retrieval works across distributed nodes |
+| SDK ↔ API | Published methods match real API behavior |
+
+---
+
+## Integration Test Scenarios
+
+| Scenario | Description |
+|----------|-------------|
+| Full happy path | Issue → shard → sign → anchor → verify → correct result |
+| Node failure | Kill 1-2 nodes, verification still succeeds (k=3/n=5) |
+| Fabric unavailable | Simulate unreachable anchoring, graceful handling |
+| Interface drift | Malformed credential → clear rejection |
+| Concurrent issuance | Multiple credentials, no cross-contamination |
+
+---
+
+## Enforcement Rules
+
+| Rule | Description |
+|------|-------------|
+| CI coverage reporting | Reported on every PR, visible to reviewers |
+| Coverage drop blocks merge | Drop below module minimum blocks merge |
+| New code maintains coverage | New functions need their own tests |
+| Exceptions require comment | Must explain why, not silently excluded |
+| Reviewer responsibility | Check qualitative test quality, not just coverage |
+
+---
+
+## Ownership
+
+| Level | Owner |
+|-------|-------|
+| Module unit/integration tests | Module team (interns) |
+| Cross-module integration tests | Founders (rotating) |
+| End-to-end tests | Founders |
+| Test triage for releases | Rotating founder |
+| Bug routing | Founder → responsible module team |
+
+---
+
+## Testing Philosophy Principles
+
+1. Tests catch mistakes before they reach customers
+2. Coverage is a floor, not a goal
+3. Failure paths are as important as success paths
+4. Cryptographic bugs have higher cost than typical software
+5. Interface drift is the highest risk between modules
+6. Integration tests prove fault tolerance claims in reality

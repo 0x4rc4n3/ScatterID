@@ -1,0 +1,375 @@
+# ScatterID / Crypto Project - Security & Compliance Documentation
+
+---
+
+## Secure Coding Guidelines
+
+### Framework
+
+These guidelines follow the OWASP Top 10 and OWASP Application Security Verification Standard (ASVS), adapted for Crypto Project's specific architecture. Every module team and reviewer should be familiar with this document, and the Security track team's testing (see Security Testing Plan) should verify adherence directly.
+
+### Injection Prevention
+
+- All database queries use parameterized queries/prepared statements — never string-concatenated SQL, ever, regardless of how "trusted" the input seems.
+- All API inputs validated against a strict schema (see API Specification) before being used anywhere — reject, don't sanitize-and-continue, on invalid input.
+- Chaincode inputs validated within the chaincode itself, not assumed to already be clean because the API validated them (defense in depth, per the Threat Model's access control principle).
+
+### Broken Access Control Prevention
+
+- Every API endpoint requires authentication — no accidental unauthenticated routes (checked explicitly in Code Review Checklist).
+- Role-scoped API keys: issuer keys and verifier keys are distinct, and each endpoint checks the caller has the correct role, not just "a valid key."
+- Chaincode functions enforce access control via MSP identity checks internally (see Chaincode Design Document) — never rely solely on the calling application to have already checked.
+
+### Cryptographic Failures Prevention
+
+- Only NIST-standardized, audited algorithms used (see Cryptographic Design Document) — no custom crypto, no deprecated algorithms (MD5, SHA-1, RSA/ECDSA for new signing).
+- All randomness from a CSPRNG (see Cryptographic Design Document Section 6).
+- TLS enforced for all network communication, including internal service-to-service traffic in Phase 3 (see Network Topology document).
+
+### Insecure Design Prevention
+
+- Threat modeling happens before implementation for any new significant feature, not retrofitted afterward (per the Security track's process in module TODOs).
+- Reconstruction-less verification is the default design pattern for exact-match data — any new feature requiring full secret reconstruction needs explicit founder sign-off and a documented justification.
+
+### Security Misconfiguration Prevention
+
+- No default credentials anywhere — all services require explicit credential configuration, with no functioning "out of the box" default password.
+- Error messages returned to clients are generic; detailed stack traces/errors only in internal logs (see API Specification error responses).
+- Unused ports, services, and debug endpoints disabled in staging and production builds.
+
+### Vulnerable & Outdated Components Prevention
+
+- Dependency versions pinned exactly, reviewed before updates (see Dependency & Supply Chain Security Policy).
+- Automated dependency vulnerability scanning in CI (see CI/CD Pipeline Design Document).
+
+### Identification & Authentication Failures Prevention
+
+- API keys are long, randomly generated, and stored hashed (never plaintext) in the database (see Database Schema Document).
+- No authentication bypass paths left in code for "testing convenience" in any build that could reach staging or production.
+
+### Software & Data Integrity Failures Prevention
+
+- CI/CD pipeline itself is protected — only founders can modify pipeline configuration; a compromised pipeline could otherwise inject malicious code undetected.
+- Signed commits encouraged for anything touching cryptographic modules, to strengthen provenance/integrity of the codebase itself.
+
+### Logging & Monitoring Failures Prevention
+
+- All authentication failures, access-control rejections, and cryptographic operation failures are logged — these are exactly the signals that indicate an attack in progress.
+- Logs never contain raw claim data, complete shares, or private keys (see Secure Coding rule, cross-referenced in Coding Standards).
+- Alerting configured for anomalous patterns (e.g. spike in failed verifications, repeated access-control rejections from one API key).
+
+### Server-Side Request Forgery (SSRF) Prevention
+
+- Any service that fetches URLs based on user/API input (if this pattern ever arises, e.g. a future webhook feature) must validate and restrict destinations — not currently a feature in v1, but flag for review if added later.
+
+---
+
+## Security Testing Plan
+
+### Testing Layers Overview
+
+| Function | Input | Output |
+|----------|-------|--------|
+| SAST (Static) | Scans source code without executing it | Runs on every PR in CI — fastest feedback loop |
+| DAST (Dynamic) | Tests the running application from the outside | Runs against staging before each release |
+| Fuzzing | Feeds malformed/random input to find crashes or unexpected behavior | Targeted at highest-risk functions (signature verification, share reconstruction) |
+| Dependency scanning | Checks for known CVEs in third-party libraries | See Dependency & Supply Chain Security Policy |
+| Manual penetration testing | Human-driven, creative attack simulation | See Penetration Testing Plan — periodic, not continuous |
+
+### SAST Configuration
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Python | Bandit | Flags common Python security issues — hardcoded passwords, weak randomness, unsafe deserialization |
+| Node.js/TypeScript | ESLint security plugin + Semgrep | Semgrep also supports custom rules — write project-specific rules for Interface Contract shape violations |
+| Go (chaincode) | gosec | Go-specific security linter, catches common chaincode pitfalls |
+
+SAST runs as a required CI check on every PR (see CI/CD Pipeline Design Document). Findings triaged: Critical/High block merge; Medium/Low tracked but don't block, reviewed weekly by the Security track.
+
+### DAST Configuration
+
+- **Tool:** OWASP ZAP (open-source, free) run against the staging environment before each release.
+- **Scope:** the Verification API's public endpoints (/issue, /verify, /status) — automated scan for common web vulnerabilities (injection, broken auth, misconfiguration).
+- DAST runs are logged and findings tracked the same way as SAST findings — Critical/High block release.
+
+### Fuzzing Strategy
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Target 1: verify_signature() | Malformed signatures, truncated data, mismatched keys | Must always fail closed — never crash, never return an ambiguous result |
+| Target 2: reconstruct_secret() / share comparison | Corrupted shares, wrong share count, duplicate share indices | Must reject cleanly below threshold k, and detect/reject corrupted shares via share_hash check |
+| Target 3: API input parsing | Malformed JSON, oversized payloads, unexpected types in required fields | Must return clean 400 errors, never crash the service or leak stack traces |
+
+- **Tooling:** Atheris (Python fuzzing, coverage-guided) for crypto/sharding modules; a fuzzing-aware HTTP client (e.g. restler-fuzzer or a custom script) for API endpoints.
+- Fuzzing runs are part of the Security track's ongoing responsibility (see Security module TODO doc), not a one-time pre-launch activity.
+
+### Testing Cadence
+
+| Function | Input | Output |
+|----------|-------|--------|
+| SAST | Every PR (automated, CI) | Continuous |
+| Dependency scan | Every PR + weekly scheduled scan | Catches newly disclosed CVEs in already-approved dependencies |
+| DAST | Before every release to staging/production | Pre-release gate |
+| Fuzzing | Ongoing during module development; full pass before each major release | Concentrated effort during Security track's dedicated review windows |
+| Manual penetration test | Before first real pilot customer, then periodically (recommend every 6-12 months) | See Penetration Testing Plan for full process |
+
+### Findings Triage Process
+
+1. Every finding logged with: description, severity, affected component, reproduction steps.
+2. Severity assessed using a consistent rubric (impact × likelihood), not gut feeling — align with the Threat Model's severity language where applicable.
+3. Critical/High: must be fixed before the next release, no exceptions without explicit founder-approved risk acceptance, documented in writing.
+4. Medium/Low: tracked in a backlog, addressed within a reasonable timeframe, reviewed weekly.
+5. Every fix is re-tested using the original reproduction steps before the finding is closed.
+
+---
+
+## Penetration Testing Plan & Report Template
+
+### When to Conduct a Penetration Test
+
+- Before onboarding the first real pilot customer with real data — mandatory, not optional.
+- Before any enterprise/government contract requiring formal security assurance.
+- Periodically thereafter — recommend every 6-12 months, or after any major architecture change.
+- After any SEV-1 security incident, as part of validating the fix (see Rollback & Incident Response Runbook).
+
+### Scope Definition (Confirm in Writing Before Testing Begins)
+
+| Function | Input | Output |
+|----------|-------|--------|
+| In scope | Verification API endpoints, authentication mechanisms, Fabric network access controls, shard-storage node access, chaincode logic | Core of the security model — must be tested |
+| Out of scope (v1) | Physical security of cloud provider data centers, social engineering of team members (unless separately authorized), third-party cloud provider infrastructure itself | Not within our control or authority to test |
+| Explicitly authorized targets | Staging environment by default; production only with explicit written authorization and a defined testing window | Never test production without this authorization — same rule the Security-track interns follow (see their TODO doc) |
+
+### Testing Approach
+
+1. **Reconnaissance:** map the attack surface — all public endpoints, exposed ports (cross-reference Network Topology document), and any information disclosure in error messages or headers.
+2. **Authentication/authorization testing:** attempt to bypass API key requirements, escalate a verifier-scoped key to issuer-level actions, test for IDOR (accessing another party's credential records).
+3. **Input validation testing:** attempt injection attacks, malformed payloads, boundary conditions on all API endpoints.
+4. **Cryptographic implementation review:** confirm signing/verification behaves correctly under adversarial input (complements automated fuzzing — manual testers often find logic issues fuzzers miss).
+5. **Access control testing on Fabric:** attempt unauthorized chaincode invocations, verify MSP-based access control actually blocks unauthorized identities.
+6. **Network-level testing:** confirm firewall rules actually restrict access as documented; attempt connections to ports that should be restricted.
+
+### Who Performs Testing
+
+Initial rounds can be performed by the internal Security track team (founders + security-track interns), consistent with the process already defined in their module TODO. Before the first real pilot customer, strongly consider commissioning at least one external/independent penetration test — internal teams reliably miss issues that a fresh perspective catches, and an external report also carries more credibility with security-conscious customers.
+
+### Report Template
+
+**Executive Summary**
+[2-3 sentences: overall risk posture, number of findings by severity, key recommendation]
+
+**Scope & Methodology**
+[What was tested, what wasn't, testing dates, tools/techniques used]
+
+**Findings**
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Finding ID / Title | Severity | Description |
+| [e.g. PT-001: API key not rate-limited] | [Critical/High/Medium/Low] | [What was found, how it was found, potential impact] |
+
+**Per-Finding Detail** (repeat per finding)
+- **Description:** what the issue is
+- **Reproduction steps:** exact steps to reproduce
+- **Impact:** what an attacker could actually achieve
+- **Evidence:** screenshots/logs/request-response pairs
+- **Recommended fix:** concrete remediation guidance
+
+**Overall Risk Assessment**
+[Summary judgment: is the system ready for the intended use case (e.g. pilot customer), or are there blocking issues]
+
+### Post-Test Process
+
+1. Triage findings using the same severity rubric as the Security Testing Plan.
+2. Fix Critical/High findings before any customer-facing use of the tested environment.
+3. Re-test fixed findings to confirm resolution.
+4. Archive the report — useful both for your own tracking and as evidence of due diligence for future compliance/customer security reviews.
+
+---
+
+## Vulnerability Disclosure & Bug Bounty Policy
+
+### Why This Matters Even Pre-Launch
+
+A public vulnerability disclosure policy is a credibility signal to security-conscious B2B buyers (your primary target customers) even before you have a bug bounty budget. It shows you take security seriously and gives good-faith researchers a clear, safe path to report issues instead of going public or doing nothing.
+
+### Scope (v1 — Responsible Disclosure, No Paid Bounty Yet)
+
+| Function | Input | Output |
+|----------|-------|--------|
+| In scope | Verification API (public endpoints), SDK code, publicly documented integration points | The parts of the system external researchers can realistically and legitimately reach |
+| Out of scope | Internal module repos not publicly accessible, denial-of-service testing against production, social engineering, physical security | Not appropriate for external testing without explicit separate authorization |
+
+### How to Report
+
+1. Email a dedicated security contact address (e.g. security@[domain]) — set this up before any public-facing launch.
+2. Include: description of the issue, steps to reproduce, potential impact, and any supporting evidence (screenshots, request/response logs).
+3. Do not include exploit code that could cause harm if the email were intercepted — a clear description and reproduction steps are sufficient for triage.
+
+### Our Commitment to Reporters
+
+- Acknowledge receipt within 3 business days.
+- Provide an initial severity assessment and expected timeline within 10 business days.
+- Keep the reporter reasonably updated on remediation progress for Critical/High findings.
+- Credit the reporter publicly (with permission) once fixed, if they'd like recognition — valuable even without a monetary bounty, especially for researchers building their own reputation.
+
+### What We Ask of Reporters (Safe Harbor)
+
+- Report privately first, allow reasonable time to fix before any public disclosure (recommend 90 days, adjustable by mutual agreement for complex issues).
+- Do not access, modify, or exfiltrate data beyond what's necessary to demonstrate the vulnerability.
+- Do not test against production without prior authorization if the vulnerability could cause service disruption — use staging where possible.
+- Good-faith research conducted under these guidelines will not result in legal action from us.
+
+### Severity-Based Response Targets
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Critical | Fix within days; emergency process if actively exploitable (see Rollback & Incident Response Runbook) | Matches internal SEV-1 handling |
+| High | Fix within 1-2 weeks | Matches internal SEV-2 handling |
+| Medium/Low | Fix in next regular release cycle | Matches internal SEV-3/4 handling |
+
+### Future: Paid Bug Bounty Program
+
+Once the company is registered and has revenue/funding, consider a paid bug bounty program (e.g. via HackerOne or Bugcrowd, or a self-managed program) to attract more sustained researcher attention, particularly once handling real customer identity data. This is a P2/future item — the responsible disclosure policy above is the appropriate v1 starting point given current resources.
+
+### Internal Handling of External Reports
+
+1. Route incoming reports directly to founders — do not let a report sit in a general inbox unnoticed.
+2. Treat a credible external report with the same urgency as an internally discovered issue of equivalent severity — follow the Rollback & Incident Response Runbook process.
+3. Log every report (even ones ultimately deemed not a valid vulnerability) for pattern-tracking over time.
+
+---
+
+## Dependency & Supply Chain Security Policy
+
+### Why This Matters Especially Here
+
+A cryptographic identity product is a high-value target for supply chain attacks — a compromised dependency could undermine every security guarantee in the Threat Model regardless of how well the core logic is written. Treat dependency hygiene as a first-class security control, not an afterthought.
+
+### Lockfile Discipline
+
+- Every language ecosystem uses a lockfile (`requirements.txt` with pinned versions or `poetry.lock` for Python; `package-lock.json` for Node.js; `go.sum` for Go) — committed to version control, never gitignored.
+- CI installs use the lockfile exactly (`npm ci`, not `npm install`; `pip install -r requirements.txt` with pinned versions) — ensures every environment (dev, CI, staging, production) runs identical dependency versions.
+- Dependency updates are a deliberate PR, reviewed like any other code change — never an automatic/silent bump, especially for cryptographic libraries (liboqs, secret-sharing libraries).
+
+### Software Bill of Materials (SBOM)
+
+1. Generate an SBOM for each module and the integrated product using an automated tool (e.g. `cyclonedx` for Python/Node, or `syft` as a general-purpose SBOM generator).
+2. Regenerate the SBOM on every release, and archive it alongside the release tag — this becomes essential evidence for future customer security reviews and compliance audits.
+3. SBOM should list: every direct and transitive dependency, version, license, and known vulnerability status at time of generation.
+
+### Vulnerability Scanning
+
+| Function | Input | Output |
+|----------|-------|--------|
+| Tool | GitHub Dependabot (free, built into GitHub) + `npm audit` / `pip-audit` / `govulncheck` | Layered approach — GitHub's native scanning plus ecosystem-specific tools catches more |
+| Frequency | On every PR (via CI) + a weekly scheduled scan against the full dependency tree | New CVEs are disclosed continuously — a dependency safe last week may not be safe today |
+| Response SLA | Critical/High vulnerability in a direct dependency: patch within 72 hours or document an accepted-risk justification | Aligns with the urgency standards in the Rollback & Incident Response Runbook |
+
+### New Dependency Approval Process
+
+1. Before adding any new dependency, check: is it actively maintained (recent commits/releases)? Does it have a reasonable security track record? Is it really necessary, or can existing dependencies/stdlib cover this?
+2. Cryptographic-adjacent dependencies specifically require founder/crypto-lead approval before being added, regardless of how small the addition seems — consistent with the Architecture Decision Record's locked library choices.
+3. Avoid dependencies with deep, sprawling transitive dependency trees where practical — more transitive dependencies means more supply chain surface area.
+
+### Handling a Compromised Dependency (Incident)
+
+1. If a dependency you use is disclosed as compromised (e.g. a malicious version was published to a package registry), immediately check if the compromised version range was ever installed in any environment via the lockfile history.
+2. If affected, treat as a security incident per the Rollback & Incident Response Runbook — pin to a known-safe version immediately, redeploy, and audit for any signs of exploitation during the exposure window.
+3. Report the incident internally even if ultimately no exploitation occurred — useful for tracking near-misses and refining the approval process.
+
+### License Compliance Note
+
+As part of SBOM generation, track dependency licenses. Avoid dependencies with licenses incompatible with commercial use (e.g. certain strong copyleft licenses) for anything shipped in the product — confirm with whoever handles legal/compliance once the company is registered, before shipping to a paying customer.
+
+---
+
+## Node/Peer Hardening Checklist
+
+### Purpose
+
+This checklist is specific to hardening the Hyperledger Fabric network components (peers, orderer, CA) — it complements the general Container Security Guidelines and Network Topology document with Fabric-specific controls that must be verified before any Phase 3 (public IP) deployment.
+
+### TLS Configuration Checklist
+
+- [ ] TLS enabled for all peer-to-peer communication (`CORE_PEER_TLS_ENABLED=true`)
+- [ ] TLS enabled for all peer-to-orderer communication
+- [ ] TLS enabled for client SDK connections to peers (application-layer connections from the Verification API's Fabric client)
+- [ ] Mutual TLS (mTLS) used, not just server-side TLS — both sides authenticate each other, not just encrypting the channel
+- [ ] TLS certificates issued through the Fabric CA, not self-signed ad-hoc certs, to maintain a consistent trust chain
+- [ ] Certificate expiry monitored — set alerts well before expiration, not discovered via an outage
+
+### MSP (Membership Service Provider) Configuration Checklist
+
+- [ ] Each organization (even if all orgs are internally run by us in early phases) has its own distinct MSP definition — don't collapse everything into one MSP even if operationally convenient, since this is what makes access control meaningful later when real customer orgs join
+- [ ] Admin identities are separate from regular operational identities — don't use an admin cert for routine transactions
+- [ ] Certificate Revocation List (CRL) process defined — know how to revoke a compromised identity's access before you need to do it under pressure
+- [ ] MSP private key material stored per the Key Management Policy's storage tiers (secrets manager in production, never committed to any repo)
+
+### Firewall / Network Access Checklist
+
+- [ ] Peer gossip/endorsement port (7051 default) restricted to known node IPs only — cross-reference Network Topology document's port table
+- [ ] Orderer port (7050 default) restricted to known peer/orderer IPs only
+- [ ] CA port (7054 default) restricted to admin/enrollment traffic only, never publicly open
+- [ ] Only the Verification API's public port (443) is genuinely internet-facing — confirm via an external port scan, don't just trust the configuration file
+- [ ] Default cloud provider firewall rules reviewed — many providers default to more permissive rules than expected; don't assume "private by default"
+
+### Endorsement Policy Checklist
+
+- [ ] Endorsement policy requires multiple organizations/peers to approve a transaction, not a single peer (see Chaincode Design Document Section 6)
+- [ ] Endorsement policy tested explicitly — confirm a transaction is actually rejected without sufficient endorsements, don't just assume the configuration is correct
+- [ ] Endorsement policy documented and reviewed before any change, since a misconfigured policy could either block legitimate transactions or, worse, allow insufficiently-endorsed ones through
+
+### Ordering Service Checklist
+
+- [ ] Raft consensus used (not the deprecated Solo/Kafka orderer) — provides crash fault tolerance
+- [ ] Multiple orderer nodes deployed by Phase 3, not a single orderer as a single point of failure
+- [ ] Orderer nodes distributed consistent with the Network Topology document's fault-tolerance placement principles
+
+### Logging & Monitoring Checklist
+
+- [ ] Peer and orderer logs collected centrally (not just left on individual node disks) so an incident can be investigated across nodes
+- [ ] Failed transaction/endorsement attempts logged and alertable — a spike here could indicate an attack or a misconfiguration
+- [ ] Chaincode invocation logs retained per the audit_log retention rules in the Database Schema Document
+
+### Pre-Production Sign-Off
+
+Before any Phase 3 deployment handling real customer data, a founder must explicitly confirm every checklist item above is satisfied — not assumed. Treat this as a formal gate, consistent with the Deployment Runbook's pre-deployment checklist, not an informal "probably fine."
+
+---
+
+## Summary: Security & Compliance Quick Reference
+
+| Topic | Key Points |
+|-------|------------|
+| **Secure Coding Framework** | OWASP Top 10 + ASVS adapted for Crypto Project |
+| **Injection Prevention** | Parameterized queries; strict schema validation; chaincode input validation |
+| **Access Control** | Every endpoint requires auth; role-scoped keys; MSP enforcement in chaincode |
+| **Cryptographic Failures** | NIST-standardized algorithms only; CSPRNG; TLS everywhere |
+| **Security Misconfiguration** | No default credentials; generic error responses; disabled unused services |
+| **Dependency Management** | Lockfiles committed; version-pinned; deliberate review before updates |
+| **SAST Tools** | Bandit (Python), ESLint+Semgrep (Node.js), gosec (Go) |
+| **SAST Cadence** | Every PR; Critical/High block merge |
+| **DAST Tool** | OWASP ZAP against staging before each release |
+| **Fuzzing Targets** | verify_signature(), reconstruct_secret()/share comparison, API input parsing |
+| **Fuzzing Tools** | Atheris (Python), restler-fuzzer or custom script (API) |
+| **Penetration Testing** | Before first pilot; every 6-12 months; after SEV-1 incidents |
+| **PT Scope** | API endpoints, auth, Fabric access, shard storage, chaincode |
+| **PT Environment** | Staging by default; production only with explicit authorization |
+| **Vulnerability Disclosure** | Email security@[domain]; acknowledge within 3 business days |
+| **Safe Harbor** | Private reporting; allow 90 days to fix; no data exfiltration |
+| **Severity Response** | Critical: days; High: 1-2 weeks; Medium/Low: next release |
+| **SBOM** | Generate on every release; archive with release tag |
+| **Dependency Scanning** | Dependabot + ecosystem tools; every PR + weekly scheduled scan |
+| **New Dependency Approval** | Check maintenance, security track record; crypto deps require founder approval |
+| **Compromised Dependency** | Check lockfile history; treat as security incident; pin to known-safe version |
+| **Fabric TLS** | Enabled everywhere; mTLS; issued through Fabric CA; monitor expiry |
+| **Fabric MSP** | Distinct per org; admin separate from ops; CRL process defined |
+| **Firewall** | 7051, 7050, 7054 restricted to known IPs; only 443 public |
+| **Endorsement Policy** | Multi-org required; tested explicitly; documented |
+| **Ordering Service** | Raft consensus; multiple orderer nodes by Phase 3 |
+| **Pre-Production Sign-Off** | Founder must confirm all checklist items |
+
+---
+
+*This document consolidates all security and compliance specifications for ScatterID / Crypto Project.*
