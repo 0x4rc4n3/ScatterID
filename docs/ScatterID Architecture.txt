@@ -25,9 +25,16 @@ The `POST /verify` endpoint ensures true cryptographic security without trusting
 - `crypto-service` validates the signature using the registry-resolved key.
 - The Hyperledger Fabric ledger is queried to confirm the `dataHash` hasn't been tampered with and that the credential's status remains 'active' (not revoked).
 
-## Verification & Execution Summary
-The ScatterID environment was booted and verified using the automated test suite:
-- PQC ML-DSA-65 signature generation & key rotation validated.
-- Trust boundary verification tests passed (preventing foreign public key injection).
-- SDK hashing conformity validated against static constants.
-- Verification API /issue, /status, and /verify endpoints fully operational.
+## Verification & Execution Summary (Last verified: 2026-08-26)
+Both test suites were executed and passed cleanly:
+
+**SDK test suite (sdk/, 3 tests passed):**
+- Smoke test: ScatterIDClient construction and computeHash import chain verified.
+- Hash constant test: SHA3-256(salt || RFC 8785 canonicalized claim) produces the expected static hex value (186193952f4b8c93f7d89a32cda305f8f50e136e25ad28c5419d01023df20808).
+- Idempotency dedup test: Two issue() calls with the same idempotencyKey both send the same key to the server.
+
+**Verification-API test suite (components/verification-api/, 4 tests passed):**
+- createCredential/getCredentialById: round-trip storage and retrieval.
+- statusRoute: returns correct field normalization for a stored credential.
+- issueRoute idempotency: two calls with the same idempotencyKey produce exactly one database row (first returns 201, second returns 200 with same credentialId).
+- verifyRoute trust boundary: attacker-supplied publicKeyId/publicKey fields in the request body are ignored; the route resolves the key exclusively from the stored record's publicKeyId field.

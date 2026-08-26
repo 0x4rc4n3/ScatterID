@@ -1,79 +1,64 @@
-# ScatterID Detailed Setup & Customer Operations Guide
+# ScatterID Setup & Usage Guide
 
-This guide provides step-by-step instructions for deploying, configuring, and operating the ScatterID post-quantum sharded credential verification infrastructure for custom enterprise deployments.
+This guide provides step-by-step instructions for deploying, configuring, and operating ScatterID's zero-knowledge, post-quantum credential verification infrastructure.
 
 ---
 
 ## 📋 Table of Contents
-1. [Prerequisites & System Audit](#1-prerequisites--system-audit)
-2. [Customer Environment Customization](#2-customer-environment-customization)
+1. [Prerequisites](#1-prerequisites)
+2. [Environment Configuration](#2-environment-configuration)
 3. [TLS & Certificate Management](#3-tls--certificate-management)
 4. [Stack Orchestration & Startup](#4-stack-orchestration--startup)
-5. [End-to-End Test Suite Execution](#5-end-to-end-test-suite-execution)
-6. [API Usage & Integration Examples](#6-api-usage--integration-examples)
-7. [5-Node Shard Matrix & Integrity Probing](#7-5-node-shard-matrix--integrity-probing)
+5. [End-to-End Test Suite](#5-end-to-end-test-suite)
+6. [API Usage & Integration](#6-api-usage--integration)
+7. [Operator Dashboard](#7-operator-dashboard)
 
 ---
 
-## 1. Prerequisites & System Audit
+## 1. Prerequisites
 
-ScatterID containerizes all language runtimes (Python 3.13, Node 24, Go 1.24) and native C/C++ compilation bindings (`liboqs`, `better-sqlite3`).
+ScatterID containerizes all runtimes (Python 3.13, Node 24, Go 1.24) and native bindings (`liboqs`, `better-sqlite3`).
 
-### Single Host Dependency:
-- **Docker Engine (v24.0+)** with **Docker Compose (v2.20+)**.
+**Single host dependency:** Docker Engine (v24.0+) with Docker Compose (v2.20+).
 
-### Run Automated Dependency Auditor & Auto-Installer:
 ```bash
 # Audit system dependencies
 ./check_deps.sh
 
-# Automatically install any missing host packages (Ubuntu / Debian / macOS / RHEL)
+# Auto-install missing host packages
 ./check_deps.sh --install
 ```
 
 ---
 
-## 2. Customer Environment Customization
+## 2. Environment Configuration
 
-Every customer-specific setting (API keys, custom domain URLs, exposed ports, Vault tokens, and Hyperledger Fabric parameters) is configured in `.env`.
+All deployment settings are configured in `.env`.
 
-### Step 1: Copy Environment Template
+### Step 1: Copy Template
 ```bash
 cp .env.example .env
 ```
 
-### Step 2: Configure Customer Parameters (`.env`)
+### Step 2: Configure Parameters (`.env`)
 
 ```ini
-# ==========================================================
-# 1. Security API Keys & Secrets (Customer Specific)
-# ==========================================================
-CRYPTO_SERVICE_API_KEY=customer-a-secret-bearer-key-999
-VAULT_TOKEN=customer-a-vault-token-123
+# Security API Keys & Secrets
+CRYPTO_SERVICE_API_KEY=<your-crypto-service-bearer-key>
+VAULT_TOKEN=<your-vault-root-token>
 
-# ==========================================================
-# 2. Custom Domain Endpoints & Ingress URLs
-# ==========================================================
-VERIFICATION_API_URL=https://api.customer-a.com
+# Service Endpoints
+VERIFICATION_API_URL=https://api.your-domain.com
 CRYPTO_SERVICE_URL=https://crypto-service:5001
 VAULT_ADDR=http://vault:8200
 
-# ==========================================================
-# 3. Exposed Host Port Mappings (Customer Configurable)
-# ==========================================================
+# Exposed Host Port Mappings
 PORT_VERIFICATION_API=3000
 PORT_CRYPTO_SERVICE=5001
 PORT_DASHBOARD=4000
 PORT_VAULT=8200
-PORT_SHARD_1=3001
-PORT_SHARD_2=3002
-PORT_SHARD_3=3003
-PORT_SHARD_4=3004
-PORT_SHARD_5=3005
 
-# ==========================================================
-# 4. Hyperledger Fabric Network & MSP Settings
-# ==========================================================
+# Hyperledger Fabric Network
 FABRIC_PEER_ENDPOINT=peer0.issuer.scatterid.com:7051
 FABRIC_PEER_HOST_ALIAS=peer0.issuer.scatterid.com
 FABRIC_CHANNEL_NAME=scatterid-channel
@@ -88,12 +73,11 @@ FABRIC_MSP_ID=IssuerMSP
 ScatterID requires internal mutual TLS between `verification-api` and `crypto-service`.
 
 ### Option A: Auto-Generated Self-Signed Certificates (Default)
-The startup script (`./start.sh`) automatically detects missing certificates and invokes `components/crypto/certs/generate_certs.sh` to generate SAN certificates for `crypto-service`, `verification-api`, `localhost`, and `127.0.0.1`.
+The startup script (`./start.sh`) auto-detects missing certs and invokes `components/crypto/certs/generate_certs.sh`.
 
 ### Option B: Custom Enterprise CA Certificates
-To install custom customer CA certificates:
-1. Copy your customer Root CA to `components/crypto/certs/ca.crt`.
-2. Copy your domain certificate and private key to:
+1. Copy your Root CA to `components/crypto/certs/ca.crt`.
+2. Copy your domain cert and key to:
    - `components/crypto/certs/crypto-service.crt`
    - `components/crypto/certs/crypto-service.key`
 
@@ -101,50 +85,46 @@ To install custom customer CA certificates:
 
 ## 4. Stack Orchestration & Startup
 
-To launch the full 14-container microservice stack:
-
 ```bash
 ./start.sh
 ```
 
-### What `start.sh` Performs:
-1. Loads `.env` customer configuration.
+**What `start.sh` performs:**
+1. Loads `.env` configuration.
 2. Checks Docker Daemon availability.
 3. Generates TLS certificates if missing.
-4. Starts Hyperledger Fabric Network (Orderer 7050, Issuer Peer 7051, Verifier Peer 8051).
-5. Invokes `docker compose up -d` to launch Vault, Crypto Service, Gateway, Control Dashboard, and 5 Shard Nodes.
-6. Performs health probes on all HTTP/HTTPS endpoints.
+4. Starts Hyperledger Fabric Network (Orderer, Issuer Peer, Verifier Peer).
+5. Launches Vault, Crypto Service, Verification API Gateway, and Control Dashboard via `docker compose up -d`.
+6. Performs health probes on all service endpoints.
 
 ---
 
-## 5. End-to-End Test Suite Execution
-
-To verify end-to-end cryptographic signing, Zero-Knowledge Verification fragmentation, Fabric ledger anchoring, and signature verification:
+## 5. End-to-End Test Suite
 
 ```bash
 ./test_all.sh
 ```
 
 ### Test Sequence:
-1. **[1/5] Stack Sync**: Syncs application code and restarts verification gateway.
-2. **[2/5] Crypto Service Audit**: Tests ML-DSA-65 `/package` signing and Vault `/rotate` key rotation.
-3. **[3/5] Verification Gateway Audit**: Submits `POST /issue` and `POST /verify`.
-4. **[4/5] Control Dashboard Audit**: Executes full E2E smoke test suite on port 4000.
-5. **[5/5] Python Unit Tests**: Runs `pytest` suite for fragmentation and secret sharing modules.
+1. **[1/4] Stack Sync**: Syncs application code and restarts verification gateway.
+2. **[2/4] Crypto Service**: Tests ML-DSA-65 `POST /sign_hash` and Vault key rotation.
+3. **[3/4] Verification Gateway**: Submits `POST /issue` (dataHash + idempotencyKey) and `POST /verify` (dataHash + credentialId).
+4. **[4/4] Control Dashboard**: Tests system status on port 4000.
 
 ---
 
-## 6. API Usage & Integration Examples
+## 6. API Usage & Integration
 
-### A. Issuing a Sharded Credential (`POST /issue`)
+### A. Issuing a Credential (`POST /issue`)
+
+The SDK computes `dataHash = SHA3-256(salt || RFC8785_canonicalize(claim))` client-side, then sends only the hash:
 
 ```bash
 curl -X POST http://localhost:3000/issue \
   -H "Content-Type: application/json" \
   -d '{
-    "student": "Alice Smith",
-    "degree": "Master of Science in Cybersecurity",
-    "timestamp": "2026-08-09T12:00:00Z"
+    "dataHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "idempotencyKey": "unique-request-id-123"
   }'
 ```
 
@@ -153,9 +133,16 @@ curl -X POST http://localhost:3000/issue \
 {
   "status": "anchored",
   "credentialId": "4bcf4279-b6db-48a4-bd73-d3050715da5a",
-  "anchorTxId": "0df0fa3b550aef3fd5c4c27dee7858e9cc8161a22f3059cb0c6a191db7d9e443"
+  "dataHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "algorithm": "ML-DSA-65",
+  "publicKeyId": "a1b2c3d4e5f6",
+  "signature": "...",
+  "anchorTxId": "0df0fa3b550aef3fd5c4c27dee7858e9cc8161a22f3059cb0c6a191db7d9e443",
+  "issuedAt": "2026-08-09T12:00:00.000Z"
 }
 ```
+
+> **Note:** The caller must store the `salt` used during hashing — ScatterID never sees or stores it.
 
 ---
 
@@ -165,6 +152,7 @@ curl -X POST http://localhost:3000/issue \
 curl -X POST http://localhost:3000/verify \
   -H "Content-Type: application/json" \
   -d '{
+    "dataHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "credentialId": "4bcf4279-b6db-48a4-bd73-d3050715da5a"
   }'
 ```
@@ -174,48 +162,50 @@ curl -X POST http://localhost:3000/verify \
 {
   "valid": true,
   "anchorStatus": "active",
-  "issuedAt": "2026-08-09T11:40:39.061633+00:00"
+  "issuedAt": "2026-08-09T12:00:00.000Z"
 }
 ```
 
+Verification resolves the public key from ScatterID's internal key registry (using the stored `publicKeyId`), checks the ML-DSA-65 signature, and confirms the ledger anchor status. It never trusts any `publicKey` or `publicKeyId` supplied in the request body.
+
 ---
 
-### C. Triggering Key Rotation (`POST /rotate`)
+### C. Checking Credential Status (`GET /status/:id`)
 
 ```bash
-curl -X POST https://localhost:5001/rotate \
-  --insecure \
-  -H "Authorization: Bearer dev-secret-key-123"
+curl http://localhost:3000/status/4bcf4279-b6db-48a4-bd73-d3050715da5a
 ```
 
 #### Response:
 ```json
 {
-  "message": "Keys rotated successfully",
-  "public_key_len": 1952
+  "id": "4bcf4279-b6db-48a4-bd73-d3050715da5a",
+  "dataHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "algorithm": "ML-DSA-65",
+  "anchorTxId": "0df0fa3b...",
+  "status": "anchored",
+  "issuedAt": "2026-08-09T12:00:00.000Z"
 }
 ```
 
 ---
 
-## 7. 5-Node Shard Matrix & Integrity Probing
-
-Inspect real-time health and SHA3-256 integrity across all 5 isolated database containers:
+### D. Triggering Key Rotation (`POST /rotate`)
 
 ```bash
-curl -s http://localhost:4000/api/shards/integrity
+curl -X POST https://localhost:5001/rotate \
+  --insecure \
+  -H "Authorization: Bearer $CRYPTO_SERVICE_API_KEY"
 ```
 
-#### Sample Response:
-```json
-{
-  "success": true,
-  "nodes": [
-    { "nodeId": 1, "dbName": "shard-node-1", "path": "http://shard-node-1:3000/health", "sizeBytes": 57344, "totalShares": 3, "status": "HEALTHY", "integrityCheck": "VALID" },
-    { "nodeId": 2, "dbName": "shard-node-2", "path": "http://shard-node-2:3000/health", "sizeBytes": 57344, "totalShares": 3, "status": "HEALTHY", "integrityCheck": "VALID" },
-    { "nodeId": 3, "dbName": "shard-node-3", "path": "http://shard-node-3:3000/health", "sizeBytes": 57344, "totalShares": 3, "status": "HEALTHY", "integrityCheck": "VALID" },
-    { "nodeId": 4, "dbName": "shard-node-4", "path": "http://shard-node-4:3000/health", "sizeBytes": 57344, "totalShares": 3, "status": "HEALTHY", "integrityCheck": "VALID" },
-    { "nodeId": 5, "dbName": "shard-node-5", "path": "http://shard-node-5:3000/health", "sizeBytes": 57344, "totalShares": 3, "status": "HEALTHY", "integrityCheck": "VALID" }
-  ]
-}
-```
+---
+
+## 7. Operator Dashboard
+
+The project dashboard (`http://localhost:4000`) provides:
+
+- **System Status**: Real-time health of Crypto Service, Verification API, and Fabric peers.
+- **Credentials Explorer**: Browse and inspect all issued credentials.
+- **E2E Diagnostics**: Run a smoke test that issues a credential and verifies it end-to-end.
+- **Container Logs**: Stream Docker container logs for any running service.
+- **Settings**: View tenant configuration and trigger API key rotation.

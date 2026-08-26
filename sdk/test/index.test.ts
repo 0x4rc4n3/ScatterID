@@ -1,9 +1,16 @@
 import { jest } from "@jest/globals";
-import { ScatterIDClient } from '../src/index';
+import { ScatterIDClient } from '../src/index.js';
 import { createHash } from 'crypto';
 import canonicalize from 'canonicalize';
 
 describe('ScatterIDClient', () => {
+    it('smoke test: constructs a client and computes a hash without import errors', () => {
+        const client = new ScatterIDClient({ apiKey: 'test' });
+        const hash = (client as any).computeHash({ a: 1 }, '00'.repeat(16));
+        expect(typeof hash).toBe('string');
+        expect(hash).toHaveLength(64);
+    });
+
     it('should compute consistent hash for a given claim and salt', () => {
         const client = new ScatterIDClient({ apiKey: 'test' });
         const claim = { subject: "John Doe", role: "Employee" };
@@ -19,12 +26,10 @@ describe('ScatterIDClient', () => {
         expect(hash).toEqual(expectedHash);
         expect(hash).toEqual("186193952f4b8c93f7d89a32cda305f8f50e136e25ad28c5419d01023df20808");
     });
-});
 
     it('should deduplicate issues with the same idempotency key', async () => {
         const client = new ScatterIDClient({ apiKey: 'test' });
         
-        // Mock global fetch
         const mockResponses: string[] = [];
         global.fetch = (jest.fn as any)().mockImplementation(async (url: any, options: any) => {
             const body = JSON.parse(options.body);
@@ -60,3 +65,4 @@ describe('ScatterIDClient', () => {
         expect(JSON.parse((calls[0][1] as any).body).idempotencyKey).toEqual(idKey);
         expect(JSON.parse((calls[1][1] as any).body).idempotencyKey).toEqual(idKey);
     });
+});

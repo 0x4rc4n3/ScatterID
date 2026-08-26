@@ -24,11 +24,7 @@ test_keys/
 *.sqlite3
 data/*.db
 verification_data/
-shard_1_data/
-shard_2_data/
-shard_3_data/
-shard_4_data/
-shard_5_data/
+
 !data/.gitkeep
 !**/data/.gitkeep
 

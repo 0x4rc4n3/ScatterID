@@ -127,9 +127,9 @@ fi
 echo ""
 
 # -------------------------------------------------------------
-# GROUP 5: Component 2 & 5 — Gateway, Shards & Dashboard Node Stack
+# GROUP 5: Component 2 & 5 — Gateway & Dashboard Node Stack
 # -------------------------------------------------------------
-echo -e "${BOLD}${YELLOW}--- Group 5: Component 2 & 5 (Gateway, Shard Nodes & Dashboard) ---${RESET}"
+echo -e "${BOLD}${YELLOW}--- Group 5: Component 2 & 5 (Gateway & Dashboard) ---${RESET}"
 TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 if [ -d "components/verification-api/node_modules" ] || [ -d "components/project-dashboard/node_modules" ]; then
     echo -e "  [${GREEN}PASS${RESET}] ${BOLD}Node.js Dependency Tree (express, better-sqlite3)${RESET}"

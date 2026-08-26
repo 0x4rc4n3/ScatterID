@@ -19,7 +19,6 @@ if (sidebar && mobileMenuBtn) {
     sidebar.classList.toggle('mobile-open');
   });
 
-  // Close mobile sidebar when clicking on main body content area
   document.addEventListener('click', (e) => {
     if (sidebar.classList.contains('mobile-open') && !sidebar.contains(e.target) && e.target !== mobileMenuBtn) {
       sidebar.classList.remove('mobile-open');
@@ -58,16 +57,13 @@ navLinks.forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     
-    // Close sidebar on mobile upon tab selection
     if (sidebar && sidebar.classList.contains('mobile-open')) {
       sidebar.classList.remove('mobile-open');
     }
     
-    // Set active link
     navLinks.forEach(l => l.classList.remove('active'));
     link.classList.add('active');
     
-    // Show active tab
     const tabId = link.getAttribute('data-tab');
     tabPanes.forEach(pane => {
       pane.classList.remove('active');
@@ -76,11 +72,9 @@ navLinks.forEach(link => {
       }
     });
 
-    // Update Header Title
     const titleText = link.querySelector('.nav-text') ? link.querySelector('.nav-text').textContent : link.textContent;
     if (pageTitle) pageTitle.textContent = titleText.trim();
     
-    // Tab Specific Actions
     if (tabId === 'tab-db') {
       loadDatabaseExplorer();
     } else if (tabId === 'tab-logs') {
@@ -90,22 +84,6 @@ navLinks.forEach(link => {
     }
   });
 });
-
-async function toggleNodeState(nodeName, action) {
-  try {
-    const res = await fetch('/api/shards/toggle-container', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodeName, action }),
-      signal: AbortSignal.timeout(8000)
-    });
-    const data = await res.json();
-    return data.success;
-  } catch (err) {
-    console.warn('Container state toggle notice:', err.message);
-    return true;
-  }
-}
 
 // Refresh Dashboard button
 const refreshAllBtn = document.getElementById('refresh-all-btn');
@@ -190,68 +168,8 @@ async function fetchLogs() {
   }
 }
 
-async function loadShardMatrix() {
-  if (!container) return;
-
-  try {
-    const res = await fetch('/api/shards/integrity', { signal: AbortSignal.timeout(6000) });
-    const data = await res.json();
-
-    if (!data.success || !data.nodes) {
-      container.innerHTML = `<div class="text-error p-3">Failed to query node shards: ${data.error || 'Unknown error'}</div>`;
-      return;
-    }
-
-    container.innerHTML = '';
-    data.nodes.forEach(node => {
-      const card = document.createElement('div');
-      const isHealthy = node.status === 'HEALTHY';
-      
-      const kbSize = (node.sizeBytes / 1024).toFixed(1);
-      const statusBadge = isHealthy 
-        ? '<span class="status-badge running">HEALTHY</span>'
-        : '<span class="status-badge offline">OFFLINE</span>';
-
-      const toggleAction = isHealthy ? 'stop' : 'start';
-      const toggleText = isHealthy ? 'Simulate Compromise' : 'Restore Node';
-      const buttonClass = isHealthy ? 'btn-outline' : 'btn-primary';
-
-      card.innerHTML = `
-          ${statusBadge}
-        </div>
-          <div>Shares: <span>${node.totalShares}</span></div>
-          <div>Size: <span>${kbSize} KB</span></div>
-          <div>SHA3: <span>${node.integrityCheck}</span></div>
-        </div>
-          ${toggleText}
-        </button>
-      `;
-
-      if (btn) {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          btn.disabled = true;
-          btn.innerHTML = toggleAction === 'stop' 
-            ? '<span class="spin-icon">⏳</span> Stopping Node...' 
-            : '<span class="spin-icon">⏳</span> Starting Node & Auto-Healing...';
-          
-          setTimeout(async () => {
-            await loadShardMatrix();
-          }, 600);
-        });
-      }
-
-      container.appendChild(card);
-    });
-  } catch (err) {
-    container.innerHTML = `<div class="text-error p-3">Matrix updating... (${err.message})</div>`;
-  }
-}
-
-// Load DB Explorer
+// Load DB Explorer (credentials table only)
 async function loadDatabaseExplorer() {
-  await loadShardMatrix();
-
   const tbody = document.getElementById('db-table-body');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" class="text-center">Loading database records...</td></tr>';
@@ -304,7 +222,6 @@ async function loadDatabaseExplorer() {
         <td>${new Date(row.issued_at).toLocaleString()}</td>
       `;
 
-      // Add click to toggle full/short view and copy to clipboard
       tr.querySelectorAll('.expandable-cell').forEach(cell => {
         const textSpan = cell.querySelector('.cell-text');
         const copyBtn = cell.querySelector('.btn-copy-sm');
@@ -380,7 +297,6 @@ if (runDiagnosticBtn && diagnosticsConsole) {
 // Initial Data Load
 document.addEventListener('DOMContentLoaded', () => {
   fetchHealthStatus();
-  loadShardMatrix();
 });
 
 // Settings tab logic
@@ -388,7 +304,8 @@ async function loadSettingsTab() {
   try {
     const res = await fetch('/api/settings');
     if (res.status === 204) {
-      document.getElementById('settings-plan-tier').textContent = 'INITIALIZING...';
+      const el = document.getElementById('settings-plan-tier');
+      if (el) el.textContent = 'INITIALIZING...';
       return;
     }
     const data = await res.json();
@@ -405,10 +322,6 @@ async function loadSettingsTab() {
     
     const rateLimitText = data.tier === 'enterprise' ? '100 req / 10 sec' : '10 req / 10 sec';
     document.getElementById('settings-rate-limit-tier').textContent = rateLimitText;
-    
-    document.getElementById('settings-storage-partition').textContent = `/app/data/${data.tenantId}_node_i.db`;
-    document.getElementById('settings-api-key-plaintext').value = '(hidden — this endpoint no longer returns the plaintext key; see server-side env config)';
-    document.getElementById('settings-api-key-hashed').textContent = data.apiKeyHashed;
   } catch (err) {
     console.error('Error fetching settings metrics:', err.message);
   }
@@ -422,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnRotate) {
     btnRotate.addEventListener('click', async () => {
-      if (!confirm('Are you sure you want to rotate the active gateway API key? Any existing SDK integrations using the old key will be immediately blocked.')) {
+      if (!confirm('Are you sure you want to rotate the active gateway API key?')) {
         return;
       }
       btnRotate.disabled = true;
@@ -431,9 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/settings/rotate', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          keyInput.value = data.newKeyPlaintext;
-          document.getElementById('settings-api-key-hashed').textContent = data.newKeyHashed;
-          alert('API key rotated successfully! Please copy the new plaintext key.');
+          if (keyInput) keyInput.value = data.newKeyPlaintext;
+          alert('API key rotated successfully!');
           loadSettingsTab();
         } else {
           alert('Failed to rotate API key: ' + data.error);

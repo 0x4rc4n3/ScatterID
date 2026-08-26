@@ -82,9 +82,7 @@
                 <span class="detail-label">Post-Quantum Algorithm</span>
                 <span class="detail-value mono text-purple" id="result-algo">ML-DSA-65 (FIPS 204)</span>
               </div>
-              <div class="detail-box">
-                <span class="detail-value mono text-cyan" id="result-shards">k = 3 of n = 5 Shards Validated</span>
-              </div>
+
               <div class="detail-box">
                 <span class="detail-label">Hyperledger Fabric Anchor</span>
                 <span class="detail-value mono text-green" id="result-anchor-status">Active (TxID Anchored)</span>
@@ -139,16 +137,7 @@
           </div>
         </div>
 
-        <div class="telemetry-block glass-panel mb-6">
-          <div class="block-header">
-            <div>
-              <p class="block-sub">Physical multi-container database fragmentation (3-of-5 threshold scheme)</p>
-            </div>
-            <button class="btn-refresh-sm" id="btn-refresh-shards">Refresh Matrix</button>
-          </div>
 
-          </div>
-        </div>
 
         <!-- Telemetry Details Grid -->
         <div class="grid grid-2">
@@ -230,16 +219,10 @@
             </div>
             <div class="guarantee-card">
               <div class="guarantee-title">
+                <span>🔒 Zero-Knowledge Claims Privacy</span>
               </div>
               <div class="guarantee-desc">
-                Information-theoretic security over Galois Field GF(2^256). Any adversary holding &lt; 3 secret shares gains strictly zero information regarding the raw identity claim (H(S | shares &lt; 3) = H(S)).
-              </div>
-            </div>
-            <div class="guarantee-card">
-              <div class="guarantee-title">
-                <span>⚡ Multi-Node Fault Tolerance & Auto-Healing</span>
-              </div>
-              <div class="guarantee-desc">
+                Raw identity claims never leave the client SDK context. Only cryptographic salted hashes (SHA3-256) are sent to the network for signature and ledger anchoring, preventing data leakage.
               </div>
             </div>
             <div class="guarantee-card">

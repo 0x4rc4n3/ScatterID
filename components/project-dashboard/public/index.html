@@ -21,6 +21,7 @@
     </div>
     <ul class="nav-links">
       <li><a href="#" class="nav-link active" data-tab="tab-demo"><span class="nav-icon-dot"></span><span class="nav-text">Sandbox</span></a></li>
+      <li><a href="#" class="nav-link" data-tab="tab-db"><span class="nav-icon-dot"></span><span class="nav-text">Credentials Explorer</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-overview"><span class="nav-icon-dot"></span><span class="nav-text">Health Status</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-logs"><span class="nav-icon-dot"></span><span class="nav-text">Fabric Logs</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-diagnostics"><span class="nav-icon-dot"></span><span class="nav-text">Diagnostics</span></a></li>
@@ -42,7 +43,7 @@
     <header class="top-header">
       <div class="header-left">
         <h2 id="page-title">Interactive Sandbox</h2>
-        <p class="subtitle">Post-Quantum Sharded Credential Verification Architecture</p>
+        <p class="subtitle">Post-Quantum Zero-Knowledge Credential Verification Architecture</p>
       </div>
       <div class="header-right">
         <button class="btn btn-outline" id="refresh-all-btn">Refresh Data</button>
@@ -105,9 +106,7 @@
                   <span class="detail-label">Post-Quantum Algorithm</span>
                   <span class="detail-value mono text-purple" id="tab-result-algo">ML-DSA-65 (FIPS 204)</span>
                 </div>
-                <div class="detail-box">
-                  <span class="detail-value mono text-cyan" id="tab-result-shards">k = 3 of n = 5 Shards Validated</span>
-                </div>
+
                 <div class="detail-box">
                   <span class="detail-label">Hyperledger Fabric Anchor</span>
                   <span class="detail-value mono text-green" id="tab-result-anchor-status">Active (TxID Anchored)</span>
@@ -123,16 +122,7 @@
 
         <!-- Embedded View B: Deep-Tech Telemetry -->
         <div id="demo-tab-telemetry" class="demo-subview" style="display: none;">
-          <div class="telemetry-block glass-panel mb-6">
-            <div class="block-header">
-              <div>
-                <p class="block-sub">Physical multi-container database fragmentation (3-of-5 threshold scheme)</p>
-              </div>
-              <button class="btn-refresh-sm" id="tab-btn-refresh-shards">Refresh Matrix</button>
-            </div>
 
-            </div>
-          </div>
 
           <div class="grid grid-2">
             <div class="telemetry-block glass-panel">
@@ -210,13 +200,6 @@
       </section>
 
       <section id="tab-db" class="tab-pane">
-        <div class="card mb-4">
-          <div class="card-header">
-            <p class="subtitle">Embedded Fault Tolerance Simulator: Click "Simulate Compromise" to take a node container offline and test 3-of-5 threshold resilience.</p>
-          </div>
-            <div class="text-center p-3">Scanning 5 isolated node databases...</div>
-          </div>
-        </div>
 
         <!-- Issued Credentials Table -->
         <div class="card">
@@ -283,7 +266,7 @@
               <span class="cursor">_</span>
             </div>
             <div class="console-body" id="diagnostics-console">
-              Click "Run E2E Smoke Test Suite" above to test complete issuance, sharding, anchoring, and verification flow...
+              Click "Run E2E Smoke Test Suite" above to test complete issuance, anchoring, and verification flow...
             </div>
           </div>
         </div>
@@ -318,7 +301,7 @@
                 <div class="arch-card">
                   <span class="badge green">Port 3000</span>
                   <h4>Verification API</h4>
-                  <p>Routes requests, manages 5-node DB shards, anchors proofs</p>
+                  <p>Routes requests, manages credential storage, and anchors proofs</p>
                 </div>
 
                 <div class="arch-card">
@@ -342,21 +325,23 @@
               <div class="arch-steps-list">
                 <div class="arch-step-item">
                   <span class="arch-step-num">1</span>
-                  <span class="arch-step-info"><strong>Client -> Gateway:</strong> <code>POST /issue</code> submits raw claim payload</span>
+                  <span class="arch-step-info"><strong>Client Hashing:</strong> Client SDK canonicalizes the claim (RFC 8785), generates a 16-byte CSPRNG salt, and computes the SHA3-256 hash.</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">2</span>
+                  <span class="arch-step-info"><strong>Client -> Gateway:</strong> <code>POST /issue</code> submits the `dataHash` and `idempotencyKey` to the Verification API.</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">3</span>
+                  <span class="arch-step-info"><strong>Gateway -> Crypto Service:</strong> Proxies the `dataHash` to generate a NIST ML-DSA-65 post-quantum signature (KMS Vault-backed).</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">4</span>
-                  <span class="arch-step-info"><strong>Gateway -> Fabric Network:</strong> Submits proof transaction via gRPC to <code>scatterproof</code> chaincode.</span>
+                  <span class="arch-step-info"><strong>Gateway -> Fabric Network:</strong> Commits the proof state to the Hyperledger Fabric ledger via gRPC.</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">5</span>
-                  <span class="arch-step-info"><strong>Verifier -> Gateway:</strong> <code>POST /verify</code> queries ledger anchor, retrieves >= 3 valid shares, and verifies signature.</span>
+                  <span class="arch-step-info"><strong>Verifier -> Gateway:</strong> <code>POST /verify</code> queries the blockchain anchor, retrieves the registry key, and validates the signature on the dataHash.</span>
                 </div>
               </div>
             </div>
@@ -377,7 +362,8 @@
                   <p>Implements NIST FIPS 204 post-quantum module-lattice-based digital signatures, offering Category 3 security (AES-192 equivalent) resistant to Shor's algorithm quantum attack vectors.</p>
                 </div>
                 <div class="boundary-item">
-                  <p>Identity claims are split into 5 polynomial secret shares across independent database containers. Any 3 shares can reconstruct the proof, while 2 or fewer reveal zero mathematical information.</p>
+                  <h4>2. Zero-Knowledge Claims Privacy</h4>
+                  <p>Raw identity claims never leave the client SDK context. Only cryptographic salted hashes (SHA3-256) are sent to the network for signature and ledger anchoring, preventing data leakage.</p>
                 </div>
               </div>
               <div class="boundary-list">

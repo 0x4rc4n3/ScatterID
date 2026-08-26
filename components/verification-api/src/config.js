@@ -15,7 +15,7 @@ try {
  * Retrieves a configuration value from the global configuration file.
  * Falls back to the provided fallback value if the key is not present.
  * 
- * @param {string} pathStr Dot-separated path to the configuration key (e.g. 'security.shard_node_api_key')
+ * @param {string} pathStr Dot-separated path to the configuration key (e.g. 'security.crypto_service_api_key')
  * @param {*} fallback Fallback value
  * @returns {*} Configured value or fallback
  */
