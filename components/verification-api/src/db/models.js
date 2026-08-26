@@ -25,7 +25,7 @@ db.exec(`
 `);
 
 // Index for efficient lookup by data_hash (used in /verify without credentialId)
-db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_credentials_data_hash ON credentials(data_hash);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_credentials_data_hash ON credentials(data_hash);`);
 
 /**
  * Converts a raw SQLite row (snake_case columns) into a canonical camelCase API shape.

@@ -26,6 +26,8 @@ if not API_KEY:
 
 @app.before_request
 def enforce_api_key():
+    if request.path == "/healthz":
+        return None
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return jsonify({"error": "Unauthorized: Missing Bearer Token", "code": "UNAUTHORIZED"}), 401
@@ -33,6 +35,10 @@ def enforce_api_key():
     token = auth_header.split(" ")[1]
     if not hmac.compare_digest(token, API_KEY):
         return jsonify({"error": "Unauthorized: Invalid API Key", "code": "UNAUTHORIZED"}), 401
+
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return jsonify({"status": "ok", "service": "crypto-service"}), 200
 
 @app.route("/sign_hash", methods=["POST"])
 def sign_hash_route():

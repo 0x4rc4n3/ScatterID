@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScatterID SDK — Visual Explorer & Playground</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-badge">
+          <span class="logo-icon">⚛</span>
+          <span class="logo-title">ScatterID <span class="accent">SDK Playground</span></span>
+        </div>
+        <span class="header-sub">Zero-Knowledge Post-Quantum Credential Infrastructure</span>
+      </div>
+      <div class="header-badges">
+        <span class="chip chip-pqc">ML-DSA-65 (NIST FIPS 204)</span>
+        <span class="chip chip-zk">RFC 8785 JCS + SHA3-256</span>
+        <span class="chip chip-ledger">Hyperledger Fabric Anchor</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-issue">
+        <span class="tab-icon">⚡</span> 1. Issue Credential (SDK)
+      </button>
+      <button class="nav-tab" data-tab="tab-verify">
+        <span class="tab-icon">🛡</span> 2. Verify & Tamper Test
+      </button>
+      <button class="nav-tab" data-tab="tab-update">
+        <span class="tab-icon">🔄</span> 3. Lifecycle & Updates (Supersede)
+      </button>
+    </nav>
+
+    <!-- TAB 1: ISSUANCE -->
+    <main class="tab-content active" id="tab-issue">
+      <div class="split-view">
+        <!-- Left Panel: Input & Presets -->
+        <section class="panel panel-input">
+          <div class="panel-header">
+            <h3>Credential Claim Input</h3>
+            <span class="badge-hint">Raw claim stays local</span>
+          </div>
+
+          <div class="presets-section">
+            <label class="section-label">Load Sample Claim (10 Real-World Presets):</label>
+            <div class="presets-grid" id="presets-container">
+              <!-- Dynamically populated from /api/samples -->
+              <span class="loading-text">Loading 10 sample claims...</span>
+            </div>
+          </div>
+
+          <div class="editor-section">
+            <label class="section-label" for="claim-editor">Claim Payload (JSON):</label>
+            <textarea id="claim-editor" class="code-editor" spellcheck="false" rows="12"></textarea>
+          </div>
+
+          <button id="btn-issue" class="btn btn-primary">
+            <span class="btn-icon">⚡</span> Issue Credential via SDK
+          </button>
+        </section>
+
+        <!-- Right Panel: Cryptographic Telemetry -->
+        <section class="panel panel-telemetry">
+          <div class="panel-header">
+            <h3>SDK Execution Pipeline</h3>
+            <span class="status-indicator" id="pipeline-status">Awaiting Input</span>
+          </div>
+
+          <div class="pipeline-steps">
+            <!-- Step 1 -->
+            <div class="pipeline-step" id="step-canon">
+              <div class="step-badge">1</div>
+              <div class="step-body">
+                <div class="step-title">RFC 8785 Deterministic Canonicalization (JCS)</div>
+                <div class="step-desc">Normalizes JSON keys alphabetized & removes whitespace across platforms.</div>
+                <div class="step-output" id="out-canon">Pending...</div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="pipeline-step" id="step-salt">
+              <div class="step-badge">2</div>
+              <div class="step-body">
+                <div class="step-title">CSPRNG 16-Byte Random Salt Generation</div>
+                <div class="step-desc">High-entropy salt guarantees unlinkability and defeats dictionary attacks.</div>
+                <div class="step-output mono" id="out-salt">Pending...</div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="pipeline-step" id="step-hash">
+              <div class="step-badge">3</div>
+              <div class="step-body">
+                <div class="step-title">Zero-Knowledge Hash Commitment (SHA3-256)</div>
+                <div class="step-desc"><code>dataHash = SHA3-256(salt || canonicalClaim)</code>. Only this hash leaves the client.</div>
+                <div class="step-output mono" id="out-hash">Pending...</div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="pipeline-step" id="step-sig">
+              <div class="step-badge">4</div>
+              <div class="step-body">
+                <div class="step-title">ML-DSA-65 Post-Quantum Signature (Vault KMS)</div>
+                <div class="step-desc">NIST FIPS 204 Dilithium3 lattice signature generated by Vault.</div>
+                <div class="step-output mono" id="out-sig">Pending...</div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="pipeline-step" id="step-anchor">
+              <div class="step-badge">5</div>
+              <div class="step-body">
+                <div class="step-title">Hyperledger Fabric Ledger Anchor</div>
+                <div class="step-desc">Proof committed on-chain via smart contract (scatterproof).</div>
+                <div class="step-output mono" id="out-anchor">Pending...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB 2: VERIFICATION & TAMPER TESTING -->
+    <main class="tab-content" id="tab-verify">
+      <div class="split-view">
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Active Credential to Verify</h3>
+            <span class="badge-hint">Client-Side Presentation</span>
+          </div>
+
+          <div class="credential-card">
+            <div class="card-row">
+              <span class="card-key">Credential ID:</span>
+              <span class="card-val mono" id="verify-cred-id">None selected (Issue one in Tab 1)</span>
+            </div>
+            <div class="card-row">
+              <span class="card-key">Stored Salt:</span>
+              <span class="card-val mono" id="verify-salt">—</span>
+            </div>
+            <div class="card-row">
+              <span class="card-key">Algorithm:</span>
+              <span class="card-val mono">ML-DSA-65 (NIST FIPS 204)</span>
+            </div>
+          </div>
+
+          <div class="editor-section">
+            <div class="editor-header-row">
+              <label class="section-label" for="verify-claim-editor">Presented Claim Data:</label>
+              <button id="btn-tamper-data" class="btn btn-sm btn-danger">⚠️ Simulate Tampering (Corrupt 1 Field)</button>
+            </div>
+            <textarea id="verify-claim-editor" class="code-editor" spellcheck="false" rows="10"></textarea>
+          </div>
+
+          <button id="btn-run-verify" class="btn btn-primary">
+            <span class="btn-icon">🛡</span> Verify Cryptographic Proof via SDK
+          </button>
+        </section>
+
+        <section class="panel panel-telemetry">
+          <div class="panel-header">
+            <h3>Verification Inspection Result</h3>
+            <span class="status-indicator" id="verify-status-badge">Idle</span>
+          </div>
+
+          <div class="result-box" id="verification-result-box">
+            <div class="result-banner idle" id="result-banner">
+              <span class="result-icon">ℹ</span>
+              <div class="result-text">Click "Verify Cryptographic Proof" to execute the verification pipeline.</div>
+            </div>
+
+            <div class="verify-details" id="verify-details">
+              <div class="detail-row">
+                <span class="detail-label">Recomputed Client Hash:</span>
+                <span class="detail-value mono" id="res-recomputed-hash">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Hash Commitment Match:</span>
+                <span class="detail-value" id="res-hash-match">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">ML-DSA-65 PQC Signature Check:</span>
+                <span class="detail-value" id="res-sig-check">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Hyperledger Fabric Anchor:</span>
+                <span class="detail-value" id="res-anchor-status">—</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB 3: LIFECYCLE & UPDATES -->
+    <main class="tab-content" id="tab-update">
+      <section class="panel panel-full">
+        <div class="panel-header">
+          <h3>Credential Lifecycle Management: The "Revoke & Supersede" Pattern</h3>
+          <span class="badge-hint">Long-Term Validity Architecture</span>
+        </div>
+
+        <p class="panel-desc">
+          Because cryptographic signatures are mathematically bound to specific data and blockchain history is immutable,
+          credentials cannot be "edited in-place." Instead, ScatterID uses the industry-standard <strong>Revoke & Supersede</strong> pattern:
+          a new Version 2 credential is generated, cryptographically linked to Version 1 via <code>replacesCredentialId</code>, and Version 1 is marked <code>revoked</code> on the Fabric ledger.
+        </p>
+
+        <div class="lifecycle-grid">
+          <div class="lifecycle-card">
+            <h4>Version 1 (Existing Credential)</h4>
+            <div class="card-row">
+              <span class="card-key">Target ID:</span>
+              <input type="text" id="lifecycle-old-id" class="input-text mono" placeholder="Enter Credential ID to update...">
+            </div>
+            <div class="status-box" id="lifecycle-v1-status">Status: Active on Ledger</div>
+          </div>
+
+          <div class="lifecycle-arrow">➔ Superseded by ➔</div>
+
+          <div class="lifecycle-card">
+            <h4>Version 2 (Updated Credential)</h4>
+            <label class="section-label">Updated Attributes:</label>
+            <textarea id="lifecycle-updated-claim" class="code-editor" rows="6" placeholder='{"subject": "did:scatterid:user:alice", "role": "Principal Security Director (PROMOTED)"}'></textarea>
+            <button id="btn-supersede" class="btn btn-warning" style="margin-top: 12px; width: 100%;">
+              🔄 Issue Version 2 & Supersede Version 1
+            </button>
+          </div>
+        </div>
+
+        <div class="output-console" id="lifecycle-console">
+          Ready to demonstrate credential lifecycle updates.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

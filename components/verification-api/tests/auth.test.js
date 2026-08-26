@@ -12,7 +12,7 @@
  * so the startup key-presence check passes.
  */
 
-import test from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 // Set the key before the app module is imported so the fail-fast check passes.
@@ -74,7 +74,9 @@ function stopServer() {
 }
 
 // Boot the server once before all tests
-await startServer();
+before(async () => {
+  await startServer();
+});
 
 // ── Auth enforcement tests ────────────────────────────────────────────────────
 
@@ -157,4 +159,6 @@ test('GET /status/:id — 200 with correct Bearer token', async () => {
 });
 
 // Shut down the test server after all tests
-await stopServer();
+after(async () => {
+  await stopServer();
+});

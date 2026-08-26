@@ -35,28 +35,40 @@ ScatterID containerizes all runtimes (Python 3.13, Node 24, Go 1.24) and native 
 
 All deployment settings are configured in `.env`.
 
-### Step 1: Copy Template
+### Recommended: Automated 1-Command Bootstrap
+```bash
+# Automatically generates secure keys, certificates, config files, and launches stack
+./quickstart.sh
+```
+
+### Manual Configuration
+If configuring manually:
+
+#### Step 1: Copy Template
 ```bash
 cp .env.example .env
 ```
 
-### Step 2: Configure Parameters (`.env`)
+#### Step 2: Configure Parameters (`.env`)
 
 ```ini
-# Security API Keys & Secrets
+# Security API Keys & Secrets (generate using: openssl rand -hex 32)
 CRYPTO_SERVICE_API_KEY=<your-crypto-service-bearer-key>
-VAULT_TOKEN=<your-vault-root-token>
+VERIFICATION_API_KEY=<your-verification-api-bearer-key>
+GATEWAY_API_KEY=<your-dashboard-bearer-key>
+VAULT_TOKEN=scatterid-vault-root-token
 
 # Service Endpoints
-VERIFICATION_API_URL=https://api.your-domain.com
+VERIFICATION_API_URL=http://verification-api:3000
 CRYPTO_SERVICE_URL=https://crypto-service:5001
-VAULT_ADDR=http://vault:8200
+VAULT_ADDR=http://vault.scatterid.com:8200
 
 # Exposed Host Port Mappings
 PORT_VERIFICATION_API=3000
 PORT_CRYPTO_SERVICE=5001
 PORT_DASHBOARD=4000
 PORT_VAULT=8200
+```
 
 # Hyperledger Fabric Network
 FABRIC_PEER_ENDPOINT=peer0.issuer.scatterid.com:7051

@@ -29,7 +29,8 @@ export function getConfig(pathStr, fallback) {
     }
   }
   if (current && typeof current === 'object' && 'value' in current) {
-    return current.value;
+    const val = current.value;
+    return val !== '' && val !== undefined && val !== null ? val : fallback;
   }
-  return current !== undefined ? current : fallback;
+  return current !== undefined && current !== '' && current !== null ? current : fallback;
 }

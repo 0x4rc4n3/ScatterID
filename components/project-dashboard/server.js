@@ -61,6 +61,10 @@ app.use('/api/', apiLimiter);
 // Static files and demo page — no auth required (serves the frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', service: 'project-dashboard' });
+});
+
 app.get('/demo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/demo.html'));
 });

@@ -27,5 +27,6 @@ def get_config(path_str, fallback=None):
         else:
             return fallback
     if isinstance(current, dict) and 'value' in current:
-        return current['value']
-    return current if current is not None else fallback
+        val = current['value']
+        return val if (val is not None and val != "") else fallback
+    return current if (current is not None and current != "") else fallback

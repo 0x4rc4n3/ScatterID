@@ -14,7 +14,8 @@ EXPOSE 3000
 
 # Run as a non-root user for container isolation
 RUN addgroup --system --gid 1001 nodeapp \
- && adduser  --system --uid 1001 --ingroup nodeapp --no-create-home nodeapp
+ && adduser  --system --uid 1001 --ingroup nodeapp --no-create-home nodeapp \
+ && chown -R nodeapp:nodeapp /app
 USER nodeapp
 
 CMD ["node", "src/server.js"]

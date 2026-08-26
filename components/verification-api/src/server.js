@@ -67,6 +67,9 @@ function requireBearerAuth(req, res, next) {
   next();
 }
 
+// Health check endpoint for container orchestrators and quickstart scripts (unauthenticated)
+app.get('/healthz', (req, res) => res.json({ status: 'ok', service: 'verification-api' }));
+
 // /verify is intentionally left open to unauthenticated callers —
 // verification is a read-only operation on already-public proofs and
 // is meant to be callable by third-party verifiers without a key.

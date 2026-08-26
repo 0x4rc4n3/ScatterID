@@ -1,3 +1,3 @@
 flask==3.0.0
 hvac==2.1.0
-liboqs-python==0.8.0
+liboqs-python==0.16.0

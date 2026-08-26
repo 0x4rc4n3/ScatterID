@@ -92,3 +92,15 @@ jobs:
           # Fail on any known vulnerability. To suppress a false-positive use:
           # pip-audit --ignore-vuln <VULN-ID>
           pip-audit
+
+  secret-scan:
+    name: Gitleaks Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

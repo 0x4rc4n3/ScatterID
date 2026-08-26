@@ -149,7 +149,7 @@ echo -e "${BOLD}${CYAN}=========================================================
 
 if [ ${#MISSING_DEPS[@]} -eq 0 ]; then
     echo -e "${GREEN}${BOLD}SUCCESS: All required system dependencies are satisfied!${RESET}"
-    echo -e "You can now run: ${CYAN}./start.sh${RESET} or ${CYAN}./test_all.sh${RESET}"
+    echo -e "You can now run: ${CYAN}./quickstart.sh${RESET} or ${CYAN}./test_all.sh${RESET}"
 else
     echo -e "${RED}${BOLD}ATTENTION: Missing dependencies detected:${RESET}"
     for dep in "${MISSING_DEPS[@]}"; do

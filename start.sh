@@ -82,9 +82,9 @@ docker compose restart verification-api project-dashboard >/dev/null 2>&1 || tru
 echo "[+] Performing multi-point health check..."
 sleep 2
 
-CRYPTO_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://localhost:5001/package || echo "000")
-VERIFY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/status/health || echo "000")
-DASHBOARD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api/status || echo "000")
+CRYPTO_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://localhost:5001/healthz || echo "000")
+VERIFY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/healthz || echo "000")
+DASHBOARD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/healthz || echo "000")
 
 echo ""
 echo "=========================================================="

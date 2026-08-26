@@ -116,7 +116,7 @@ test('issueRoute deduplicates identical idempotency keys', async () => {
     assert.equal(firstId, secondId, 'Both calls should return the same credential ID');
     
     const credentials = await getAllCredentials();
-    const count = credentials.filter(c => c.idempotency_key === idKey).length;
+    const count = credentials.filter(c => (c.idempotencyKey || c.idempotency_key) === idKey).length;
     assert.equal(count, 1, 'Only one row should be created in the database for the given idempotency key');
   } finally {
     global.fetch = originalFetch;

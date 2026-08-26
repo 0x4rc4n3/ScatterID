@@ -16,7 +16,8 @@ EXPOSE 4000
 # Docker socket (removed in prior security pass). There is no Docker CLI here
 # by design; use `docker logs <container>` from the host instead.
 RUN addgroup --system --gid 1001 nodeapp \
- && adduser  --system --uid 1001 --ingroup nodeapp --no-create-home nodeapp
+ && adduser  --system --uid 1001 --ingroup nodeapp --no-create-home nodeapp \
+ && chown -R nodeapp:nodeapp /app
 USER nodeapp
 
 CMD ["npm", "start"]
