@@ -10,7 +10,6 @@
 - **Explicitly Denied Inbound:** 
   - All other external integrations.
 - **Allowed Outbound (Who this file can talk TO):** 
-  - `keygen.py`, `pq_sign.py`, and `shamir.py` local module dependencies.
 - **Explicitly Denied Outbound:** 
   - All external network connections.
 

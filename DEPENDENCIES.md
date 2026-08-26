@@ -12,7 +12,6 @@ Dependencies are structured from basic low-level operating system toolchains up 
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 5: Microservice & Container Stack (Docker Compose)   │
 ├─────────────────────────────────────────────────────────────┤
-│  Layer 4: Cryptographic & Storage Libraries (liboqs, sslib) │
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 3: Language Runtimes (Python 3.13, Node 24, Go 1.24) │
 ├─────────────────────────────────────────────────────────────┤
@@ -60,7 +59,6 @@ Required if running microservices natively outside Docker containers.
 
 ## 3. Group 3: Container Engine & Orchestration (Required for Full Stack)
 
-ScatterID uses Docker Compose to orchestrate 14 isolated microservice containers (Vault, Crypto Service, Verification API Gateway, Control Dashboard, 5 Shard Nodes, 2 Fabric Peers, 1 Orderer, 2 Chaincode containers).
 
 | Tool | Minimum Version | Installation Hint |
 |---|---|---|
@@ -76,7 +74,6 @@ ScatterID uses Docker Compose to orchestrate 14 isolated microservice containers
 - **System Dependencies**: `git`, `cmake`, `build-essential`, `libssl-dev`
 - **Python Libraries**:
   - `liboqs-python` (0.16.0) — NIST FIPS 204 ML-DSA-65 post-quantum signatures
-  - `sslib` (0.2.0) — Zero-Knowledge Verification ($k=3, n=5$)
   - `hvac` — HashiCorp Vault REST client
   - `flask` — Microservice REST server over TLS (port 5001)
 
@@ -89,7 +86,6 @@ ScatterID uses Docker Compose to orchestrate 14 isolated microservice containers
   - `@hyperledger/fabric-gateway` — gRPC Fabric client
   - `@grpc/grpc-js` — Mutual TLS gRPC transport
 
-### Component 3: Isolated Shard Node Microservices (`shard-node-1` .. `shard-node-5`)
 - **Base Image**: `node:24`
 - **Node Modules**: `express`, `better-sqlite3`
 - **Ports**: 3001, 3002, 3003, 3004, 3005

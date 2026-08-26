@@ -22,7 +22,6 @@
     <ul class="nav-links">
       <li><a href="#" class="nav-link active" data-tab="tab-demo"><span class="nav-icon-dot"></span><span class="nav-text">Sandbox</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-overview"><span class="nav-icon-dot"></span><span class="nav-text">Health Status</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-db"><span class="nav-icon-dot"></span><span class="nav-text">Shard Matrix</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-logs"><span class="nav-icon-dot"></span><span class="nav-text">Fabric Logs</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-diagnostics"><span class="nav-icon-dot"></span><span class="nav-text">Diagnostics</span></a></li>
       <li><a href="#" class="nav-link" data-tab="tab-architecture"><span class="nav-icon-dot"></span><span class="nav-text">Architecture</span></a></li>
@@ -107,7 +106,6 @@
                   <span class="detail-value mono text-purple" id="tab-result-algo">ML-DSA-65 (FIPS 204)</span>
                 </div>
                 <div class="detail-box">
-                  <span class="detail-label">Zero-Knowledge Verification Secret Threshold</span>
                   <span class="detail-value mono text-cyan" id="tab-result-shards">k = 3 of n = 5 Shards Validated</span>
                 </div>
                 <div class="detail-box">
@@ -128,14 +126,11 @@
           <div class="telemetry-block glass-panel mb-6">
             <div class="block-header">
               <div>
-                <h3>5-Node Isolated SQLite Shard Matrix</h3>
                 <p class="block-sub">Physical multi-container database fragmentation (3-of-5 threshold scheme)</p>
               </div>
               <button class="btn-refresh-sm" id="tab-btn-refresh-shards">Refresh Matrix</button>
             </div>
 
-            <div class="shard-grid" id="tab-telemetry-shard-matrix">
-              <div class="shard-card skeleton">Probing 5 isolated container shard nodes...</div>
             </div>
           </div>
 
@@ -214,15 +209,11 @@
         </div>
       </section>
 
-      <!-- TAB 3: Shard Matrix & Ledger -->
       <section id="tab-db" class="tab-pane">
-        <!-- 5-Node Multi-Database Shard Matrix with Embedded Controls -->
         <div class="card mb-4">
           <div class="card-header">
-            <h3>5-Node Multi-Database Shard Matrix</h3>
             <p class="subtitle">Embedded Fault Tolerance Simulator: Click "Simulate Compromise" to take a node container offline and test 3-of-5 threshold resilience.</p>
           </div>
-          <div class="shard-matrix-grid" id="shard-matrix-cards">
             <div class="text-center p-3">Scanning 5 isolated node databases...</div>
           </div>
         </div>
@@ -268,11 +259,6 @@
                 <option value="scatterid-verification">scatterid-verification</option>
                 <option value="scatterid-crypto">scatterid-crypto</option>
                 <option value="scatterid-vault">scatterid-vault</option>
-                <option value="scatterid-shard-1">scatterid-shard-1</option>
-                <option value="scatterid-shard-2">scatterid-shard-2</option>
-                <option value="scatterid-shard-3">scatterid-shard-3</option>
-                <option value="scatterid-shard-4">scatterid-shard-4</option>
-                <option value="scatterid-shard-5">scatterid-shard-5</option>
               </select>
               <button class="btn btn-primary" id="refresh-logs-btn">Fetch Container Logs</button>
             </div>
@@ -338,7 +324,6 @@
                 <div class="arch-card">
                   <span class="badge green">Port 5001</span>
                   <h4>Crypto Service</h4>
-                  <p>ML-DSA-65 signatures & Zero-Knowledge Verification 3-of-5 secret sharing</p>
                 </div>
 
                 <div class="arch-card">
@@ -361,11 +346,9 @@
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">2</span>
-                  <span class="arch-step-info"><strong>Gateway -> Crypto Service:</strong> <code>POST /package</code> signs via ML-DSA-65 and splits into 3-of-5 Zero-Knowledge Verification secret shares.</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">3</span>
-                  <span class="arch-step-info"><strong>Gateway -> Shard Matrix:</strong> Distributes share 1..5 across 5 isolated SQLite containers (<code>scatterid-shard-1..5</code>).</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">4</span>
@@ -394,7 +377,6 @@
                   <p>Implements NIST FIPS 204 post-quantum module-lattice-based digital signatures, offering Category 3 security (AES-192 equivalent) resistant to Shor's algorithm quantum attack vectors.</p>
                 </div>
                 <div class="boundary-item">
-                  <h4>2. Zero-Knowledge Verification 3-of-5 Threshold Secret Sharing</h4>
                   <p>Identity claims are split into 5 polynomial secret shares across independent database containers. Any 3 shares can reconstruct the proof, while 2 or fewer reveal zero mathematical information.</p>
                 </div>
               </div>

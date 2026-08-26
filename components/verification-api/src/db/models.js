@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = process.env.SQLITE_DB_PATH || path.resolve('/app/data/credentials.db');
+const DB_PATH = process.env.SQLITE_DB_PATH || path.resolve('./data/credentials.db');
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });

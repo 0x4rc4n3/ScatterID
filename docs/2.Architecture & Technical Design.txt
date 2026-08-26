@@ -80,7 +80,6 @@ Owned by: verification-api (Backend team). Never includes raw data or full share
 CredentialRecord {
   id: string             // UUID, generated at issuance
   dataHash: string       // matches SignedCredential.data_hash
-  shardRefs: string[]    // storage references to shares, NOT the raw share values
   anchorTxId: string     // testnet transaction id
   status: "pending" | "anchored" | "failed"
   issuedAt: string       // ISO 8601 timestamp
@@ -91,7 +90,6 @@ CredentialRecord {
 
 | Function | Input | Output |
 |----------|-------|--------|
-| POST /issue | {credentialId, dataHash, signature, shardRefs[]} | 201 → {status:"issued", anchorTxId} |
 | POST /verify | {credentialId} | 200 → {valid: bool, anchorStatus, issuedAt} |
 | GET /status/:id | url param: id | 200 → CredentialRecord (as defined above) |
 
@@ -137,16 +135,13 @@ Do not hand this full document to intern teams — it reveals the whole system s
 │   hash (SHA3-256)      │     │   signature check           │
 │   sign (ML-DSA-65)     │     │   anchor check              │
 └───────────┬────────────┘     │   share-comparison          │
-            │                  │   (no reconstruction,       │
             ▼                  │    exact-match data)        │
 ┌───────────────────────┐     └───────────────┬─────────────┘
-│    SHARDING LAYER      │                     │
 │   Zero-Knowledge Verification k=3,n=5 split │                     │
 └───────────┬────────────┘                     │
             │                                   │
             ▼                                   │
 ┌─────────────────────────────────────────┐     │
-│      DISTRIBUTED SHARD STORAGE NODES    │◄────┘
 │   Node 1  Node 2  Node 3  Node 4  Node 5│
 │ (self-hosted, independent, no full copy)│
 └─────────────────────────────────────────┘
@@ -164,16 +159,12 @@ Do not hand this full document to intern teams — it reveals the whole system s
 | Client/SDK Layer | JS/Python SDK wrapping the API | Never touches raw cryptographic material — calls the API only |
 | Verification API Layer | Node.js/Express REST service | Public-facing entrypoint; enforces auth and input validation |
 | Issuance Layer | Python service using liboqs | Hashes and signs claims; never persists raw PII |
-| Sharding Layer | Python service using Zero-Knowledge Verification | Splits signed credential into k-of-n shares |
-| Distributed Shard Storage Nodes | Independent storage instances (self-hosted) | Each holds a different, incomplete fragment — no single node is ever "complete" |
-| Verification Logic | Signature check + anchor check + share-comparison | Reconstruction-less path for exact-match data types |
 | Anchoring Layer | Hyperledger Fabric (private, permissioned) | Tamper-evident proof hash storage; no identity data on-chain |
 
 ### Data Flow Summary (Issuance Path)
 
 1. Issuer submits claim data via SDK → API's POST /issue
 2. API forwards to Issuance Layer → hash (SHA3-256) → sign (ML-DSA-65)
-3. Signed credential passed to Sharding Layer → split into 5 shares (k=3 threshold)
 4. Shares distributed to 5 independent storage nodes
 5. Proof hash of the credential written to Hyperledger Fabric via chaincode transaction
 6. API returns credentialId + anchorTxId to the issuer
@@ -182,14 +173,11 @@ Do not hand this full document to intern teams — it reveals the whole system s
 
 1. Verifier submits credentialId via SDK → API's POST /verify
 2. API retrieves anchor status from Fabric (is the proof hash valid/present)
-3. For exact-match data: API retrieves threshold shares and performs share-level comparison (no full reconstruction)
 4. API returns {valid: bool, anchorStatus, issuedAt} — never the raw underlying data
 
 ### Trust Boundaries
 
 - **Boundary 1:** Client SDK ↔ API — authenticated via API key, all traffic over HTTPS
-- **Boundary 2:** API ↔ Sharding/Issuance services — internal network only, not publicly exposed
-- **Boundary 3:** Sharding service ↔ Storage nodes — each node independently authenticated, no node trusts another implicitly
 - **Boundary 4:** API ↔ Fabric network — mutual TLS between peer nodes and API's Fabric client (Phase 3 requirement)
 
 ---
@@ -198,7 +186,6 @@ Do not hand this full document to intern teams — it reveals the whole system s
 
 ### Scope
 
-This threat model covers the full system: Client/SDK, Verification API, Issuance Layer, Sharding Layer, distributed shard storage nodes, and the Hyperledger Fabric anchoring layer. It uses STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) applied per component.
 
 ### Assets Being Protected
 
@@ -223,7 +210,6 @@ This threat model covers the full system: Client/SDK, Verification API, Issuance
 | Function | Input | Output |
 |----------|-------|--------|
 | Spoofing | Forged requests without valid auth | Mandatory API key on every route, rejected requests logged |
-| Tampering | Malformed or crafted payloads to corrupt downstream logic | Strict input validation and schema enforcement (see API Specification) before forwarding to Issuance/Sharding layers |
 | Repudiation | Issuer denies having issued a credential | Every issuance logged with timestamp and anchored on Fabric — immutable audit trail |
 | Information Disclosure | Verbose error messages leak internal details | Generic error responses to clients; detailed errors only in internal logs |
 | Denial of Service | Flood of requests exhausts API capacity | Rate limiting per API key; separate scaling for issuance vs. verification endpoints |
@@ -237,11 +223,9 @@ This threat model covers the full system: Client/SDK, Verification API, Issuance
 | Information Disclosure | Raw PII persisted or logged during processing | Design rule: this layer holds raw data only in memory, never writes it to disk or logs |
 | Elevation of Privilege | Compromised issuance service used to forge signatures for arbitrary claims | Signing keys stored in a restricted-access secret store, not in application code or general-purpose logs |
 
-#### Sharding Layer
 
 | Function | Input | Output |
 |----------|-------|--------|
-| Tampering | A malicious node returns a modified share during reconstruction/comparison | Each share includes an integrity check (e.g. a hash of the share) verified before use |
 | Information Disclosure | Attacker gains access to k or more nodes simultaneously | Nodes hosted with independent credentials, ideally across separate providers/regions — no shared compromise path |
 | Denial of Service | Enough nodes taken offline that fewer than k remain available | n and k values chosen with margin (default k=3/n=5); monitoring/alerting on node health |
 
@@ -258,7 +242,6 @@ This threat model covers the full system: Client/SDK, Verification API, Issuance
 
 | Function | Input | Output |
 |----------|-------|--------|
-| Reconstruction-moment exposure | The brief window during any full reconstruction (if ever required) is a temporary single point of failure | Minimize/avoid reconstruction wherever possible (see reconstruction-less design); if unavoidable, use a restricted, audited execution environment and never persist the result |
 | Supply chain risk | A compromised dependency (npm/pip package) introduces a backdoor | Lockfile-pinned dependencies, periodic dependency audits, avoid unnecessary third-party packages |
 | Insider risk | A team member or intern with legitimate access misuses it | Compartmentalized repo access (see PM Guide), audit logging on all administrative actions, prompt offboarding |
 
@@ -315,7 +298,6 @@ Issuer ──▶ [1.0 Receive Claim] ──▶ [2.0 Hash Claim (SHA3-256)]
                          Hyperledger Fabric Ledger
 ```
 
-### Level 1 DFD — Verification Process (Reconstruction-less)
 
 ```
 Verifier ──▶ [1.0 Receive credentialId] ──▶ [2.0 Lookup CredentialRecord]
@@ -327,7 +309,6 @@ Verifier ──▶ [1.0 Receive credentialId] ──▶ [2.0 Lookup CredentialRe
                                     [4.0 Retrieve k Threshold Shares]
                                                │
                                                ▼
-                            [5.0 Share-Level Comparison - NO full reconstruction]
                                                │
                                                ▼
                                    [6.0 Return {valid, anchorStatus, issuedAt}]
@@ -340,8 +321,6 @@ Verifier ──▶ [1.0 Receive credentialId] ──▶ [2.0 Lookup CredentialRe
 
 | Function | Input | Output |
 |----------|-------|--------|
-| D1 — Shard Storage Nodes | Individual secret shares (Zero-Knowledge Verification output) | Distributed across 5 independent nodes; no single store holds a complete credential |
-| D2 — CredentialRecord DB (PostgreSQL) | References only — id, dataHash, shardRefs, anchorTxId, status | Never stores raw claim data or full shares |
 | D3 — Hyperledger Fabric Ledger | Proof hashes, transaction metadata | Append-only, tamper-evident, no PII |
 
 ### Data Classification Note
@@ -416,9 +395,7 @@ Cloud Provider(s)
 | Required security controls | Mutual TLS between all peer/orderer nodes; firewall rules allowing only known node IPs on Fabric ports; API layer separated from direct node access | Non-negotiable before any real customer data touches this deployment |
 | Node distribution decision | Same cloud provider/different regions (simpler, weaker provider-outage resilience) vs. multiple providers (stronger fault tolerance, more ops complexity) | Lock this choice in the ADR before Phase 3 begins — flagged as an open decision there |
 
-### Shard Storage Node Placement (Separate from Fabric Nodes)
 
-Note: the 5 shard-storage nodes (Zero-Knowledge Verification k=3/n=5) are logically and physically separate from the Fabric blockchain nodes. Do not co-locate a shard-storage node and a Fabric peer on the same machine in Phase 3 — compromising one machine should never expose both a share and ledger-write access.
 
 ### Firewall & Port Reference (Phase 3 Baseline)
 
@@ -435,7 +412,6 @@ Note: the 5 shard-storage nodes (Zero-Knowledge Verification k=3/n=5) are logica
 
 ### Design Principle
 
-**⚠ This database never stores raw claim data, private keys, or full secret shares. It stores references, hashes, and metadata only — the actual sensitive material lives in the shard storage nodes and the Fabric ledger, not here.**
 
 ### Table: credentials
 
@@ -458,10 +434,8 @@ CREATE INDEX idx_credentials_status ON credentials(status);
 CREATE INDEX idx_credentials_issuer ON credentials(issuer_id);
 ```
 
-### Table: shard_references
 
 ```sql
-CREATE TABLE shard_references (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     credential_id UUID NOT NULL REFERENCES credentials(id),
     node_id VARCHAR(64) NOT NULL,            -- identifies which storage node
@@ -472,7 +446,6 @@ CREATE TABLE shard_references (
     UNIQUE(credential_id, share_index)
 );
 
-CREATE INDEX idx_shard_refs_credential ON shard_references(credential_id);
 ```
 
 *Note: storage_location points to WHERE a share lives (e.g. an opaque node/bucket reference), never the share value itself. The actual share bytes never enter this database.*
@@ -512,19 +485,16 @@ CREATE INDEX idx_audit_created ON audit_log(created_at);
 | Function | Input | Output |
 |----------|-------|--------|
 | issuers → credentials | One-to-many | One issuer can issue many credentials |
-| credentials → shard_references | One-to-many (exactly n rows) | Each credential has exactly n share references (default n=5) |
 | credentials → audit_log | One-to-many | Every issuance/verification event logged against its credential |
 
 ### Data Retention & Deletion Rules
 
 - **audit_log entries:** retain per compliance requirement (define with legal counsel before handling real customer data) — default assumption: 1 year minimum for dispute resolution.
-- **credentials/shard_references:** retained for the credential's operational lifetime; deletion process must also trigger deletion of the actual shares at each storage node, not just the reference row.
 - **api_key_hash:** rotated/invalidated immediately on issuer offboarding — never soft-deleted only.
 
 ### What This Schema Deliberately Excludes
 
 - No column anywhere stores raw claim data (names, ID numbers, biometric data).
-- No column stores a complete or reconstructable secret share.
 - No column stores a raw, unhashed API key or private key.
 
 ---
@@ -579,7 +549,6 @@ Default recommendation for MVP: require endorsement from a majority of participa
 
 - Does not store raw claim data, secret shares, or any PII
 - Does not perform cryptographic signing or verification itself — that happens off-chain in the Issuance/Verification layers; the chaincode only records that an anchoring event occurred
-- Does not perform secret reconstruction or comparison — entirely out of scope for on-chain logic
 
 ### Testing Requirements Before Any Deployment
 
@@ -604,7 +573,6 @@ openapi: 3.0.3
 info:
   title: Crypto Project Verification API
   description: >
-    Post-quantum, reconstruction-less identity credential issuance and
     verification API. This service never accepts or returns raw claim data,
     private keys, or complete secret shares.
   version: 1.0.0
@@ -622,7 +590,6 @@ security:
 paths:
   /issue:
     post:
-      summary: Issue a new signed, sharded credential
       operationId: issueCredential
       requestBody:
         required: true
@@ -646,7 +613,6 @@ paths:
 
   /verify:
     post:
-      summary: Verify a credential's validity without reconstructing the underlying secret
       operationId: verifyCredential
       requestBody:
         required: true
@@ -712,7 +678,6 @@ components:
   schemas:
     IssueRequest:
       type: object
-      required: [credentialId, dataHash, signature, shardRefs]
       properties:
         credentialId:
           type: string
@@ -724,7 +689,6 @@ components:
         signature:
           type: string
           description: Hex-encoded ML-DSA-65 signature
-        shardRefs:
           type: array
           items:
             type: string

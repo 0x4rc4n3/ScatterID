@@ -20,10 +20,8 @@ Tests exist to catch mistakes before they reach a customer, not to hit a coverag
                     ▲
                    / ╲
                   / E2E ╲           End-to-End (few, slow, highest confidence)
-                 /───────╲          issue → shard → sign → anchor → verify, full stack
                 /         ╲
                / Integration ╲      Integration (moderate count)
-              /───────────────╲     cross-module: API ↔ Fabric, API ↔ shard nodes
              /                 ╲
             /      Unit          ╲  Unit (many, fast, run on every commit)
            /───────────────────────╲ per-function: split_secret(), verify_signature(), etc.
@@ -36,7 +34,6 @@ Tests exist to catch mistakes before they reach a customer, not to hit a coverag
 | **Function** | **Input** | **Output** |
 |--------------|-----------|------------|
 | Scope | Individual functions within a single module, no external dependencies (mocked where needed) | Fastest feedback — run on every save/commit locally, every PR in CI |
-| Crypto module | keygen, sign/verify, split/reconstruct — see individual module TODO docs for exact test list | Must include adversarial cases: tampered data, insufficient shares, wrong keys |
 | Backend/API module | Route handlers, DB models, input validation logic | Mock the Fabric connection and DB for pure unit tests; test the real connections in integration tests |
 | Chaincode | Individual chaincode functions using Fabric's chaincode testing framework (mocked ledger stub) | Include access-control rejection cases explicitly |
 
@@ -54,11 +51,9 @@ Covered in depth by the separate Integration Test Plan document (cross-module sp
 
 ## 5. End-to-End Testing
 
-Full-stack tests exercising the complete real flow: issue a credential → shard → sign → anchor on Fabric → verify via API → confirm correct valid/invalid result. These run against the integration repo's staging environment (Phase 2/3), not individual module repos.
 
 1. **Happy path**: full issuance and successful verification.
 
-2. **Fault tolerance**: kill one shard-storage node mid-flow, confirm verification still succeeds (k=3 of n=5).
 
 3. **Failure path**: kill enough nodes to drop below threshold, confirm the system fails cleanly with a clear error, not a silent wrong answer.
 
@@ -162,16 +157,13 @@ Each module team tests their own module in isolation, per their TODO doc's Defin
 |--------------|-----------|------------|
 | Fragmentation ↔ Verification API | Does the API's /issue endpoint correctly accept the exact SignedCredential shape the fragmentation module produces? | This is the seam most likely to drift — verify against the actual Interface Contract document, not against memory |
 | Verification API ↔ Fabric | Does anchoring actually succeed and become queryable? Does a failed anchor attempt get handled and surfaced correctly? | Test both the success path and Fabric being temporarily unreachable |
-| Verification API ↔ Shard Storage Nodes | Does share retrieval work correctly across the actual distributed nodes, including with a node down? | This is where the k-of-n fault tolerance claim gets proven or disproven for real |
 | SDK ↔ Verification API | Does the SDK's published methods actually match the API's real behavior, not just its documented behavior? | Catches SDK/API drift — the SDK team builds against a spec, but specs and reality can diverge |
 
 ---
 
 ## 3. Integration Test Scenarios
 
-1. **Full happy path**: SDK issues → API processes → fragmentation shards+signs → shares stored → anchor written → SDK verifies → correct valid result.
 
-2. **Node failure mid-flow**: kill 1-2 shard-storage nodes after issuance, confirm verification still succeeds (validates the Secret-Sharing Scheme Specification's k=3/n=5 promise against real infrastructure, not just unit-tested math).
 
 3. **Fabric unavailable during issuance**: simulate the anchoring layer being temporarily unreachable, confirm the API handles this gracefully (correct status, retry behavior, no data corruption) rather than silently proceeding as if anchored.
 
@@ -248,7 +240,6 @@ Run against the Phase 2 containerized environment at minimum (see Network Topolo
 |------|------------------|
 | Fragmentation ↔ API | /issue endpoint accepts correct SignedCredential shape |
 | API ↔ Fabric | Anchoring succeeds, failures handled correctly |
-| API ↔ Shard Nodes | Share retrieval works across distributed nodes |
 | SDK ↔ API | Published methods match real API behavior |
 
 ---
@@ -257,7 +248,6 @@ Run against the Phase 2 containerized environment at minimum (see Network Topolo
 
 | Scenario | Description |
 |----------|-------------|
-| Full happy path | Issue → shard → sign → anchor → verify → correct result |
 | Node failure | Kill 1-2 nodes, verification still succeeds (k=3/n=5) |
 | Fabric unavailable | Simulate unreachable anchoring, graceful handling |
 | Interface drift | Malformed credential → clear rejection |

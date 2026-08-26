@@ -6,7 +6,6 @@ The `project-dashboard` microservice serves the ScatterID Operator Presentation 
 
 ## 🎨 UI Architecture & Features
 
-1. **Shard Telemetry Matrix**:
    - Live status monitoring of Nodes 1..5.
    - Interactive **Simulate Fault (Stop)** and **Recover Node (Auto-Heal)** controls backed by real Docker container execution (`docker stop` / `docker start`).
    - Animated spinner loading indicators during container state transitions.
@@ -18,4 +17,3 @@ The `project-dashboard` microservice serves the ScatterID Operator Presentation 
    - Full-height static log window with internal scrolling for real-time Peer & Orderer log output (`calc(100vh - 200px)`).
 
 4. **Issue & Anchor Control Section**:
-   - Low-level claim issuance interface reporting per-node shard dispatch telemetry (`WRITTEN` vs `OFFLINE_FAILED`).

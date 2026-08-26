@@ -2,7 +2,6 @@
 
 ## Overview
 
-This document combines the Integration Case Study Template and Security Whitepaper for Crypto Project, a post-quantum, reconstruction-less identity credential verification infrastructure.
 
 ---
 
@@ -37,7 +36,6 @@ A case study is one of the highest-leverage sales assets for a B2B security prod
 
 - [Specific technical highlight: e.g. "Integration completed in under a day using the JavaScript SDK" — only include if factually true and measured, per the SDK's Definition of Done target]
 
-- [Specific security highlight: e.g. "No single point of failure — credential data is never stored as a complete, reconstructable record"]
 
 ### The Results
 
@@ -83,7 +81,6 @@ A case study is one of the highest-leverage sales assets for a B2B security prod
 
 ## 1. Executive Summary
 
-Crypto Project provides post-quantum, reconstruction-less identity credential verification infrastructure. This document describes the security architecture, cryptographic choices, and operational practices underlying the platform, intended for security and compliance teams evaluating Crypto Project as a vendor.
 
 ---
 
@@ -99,7 +96,6 @@ Identity data is permanent, but the cryptography historically used to protect it
 |--------------|-----------|------------|
 | Post-quantum signatures | ML-DSA-65 (NIST FIPS 204), implemented via the audited, open-source liboqs library | No proprietary or unaudited cryptography — verifiable against public NIST standards |
 | Threshold secret-sharing | Zero-Knowledge Verification, k=3 of n=5 by default | No single storage node ever holds a complete, usable credential; information-theoretically secure below threshold |
-| Reconstruction-less verification | Exact-match identity data is verified via share-level comparison wherever possible, without full reconstruction | Minimizes the window during which any complete secret exists in a system's memory |
 | Private, permissioned ledger | Hyperledger Fabric, self-hosted and self-controlled | Tamper-evident proof anchoring with no dependency on any public blockchain's availability or governance |
 
 ---
@@ -108,7 +104,6 @@ Identity data is permanent, but the cryptography historically used to protect it
 
 - Raw identity claim data (names, ID numbers, biometric data) — exists only transiently in memory during the hashing/signing process, never persisted to disk or logs
 
-- Complete, reconstructable secret shares in a single location
 
 - Unhashed API keys or private signing keys in application code, logs, or version control
 
@@ -168,7 +163,6 @@ Crypto Project maintains a responsible disclosure policy for external security r
 
 ## 11. Explicit Limitations (Honesty Builds Trust)
 
-- The system is designed for exact-match identity data (ID numbers, credential status, document hashes) — biometric/fuzzy matching is a separate, not-yet-implemented research track, and should not be assumed to carry the same reconstruction-less guarantee.
 
 - Fault tolerance is bounded by the chosen k/n parameters — loss of more than n-k+1 nodes simultaneously would affect data availability, per the Secret-Sharing Scheme Specification.
 
@@ -188,7 +182,6 @@ Crypto Project maintains a responsible disclosure policy for external security r
 **Crypto Project**
 
 ## Core Value Proposition
-Post-quantum, reconstruction-less identity credential verification infrastructure
 
 ## Key Technologies
 | Technology | Details |
@@ -202,11 +195,9 @@ Post-quantum, reconstruction-less identity credential verification infrastructur
 - No single point of failure
 - Information-theoretically secure below threshold
 - Tamper-evident proof anchoring
-- Reconstruction-less verification
 
 ## Never Stored
 - Raw identity claim data
-- Complete, reconstructable secret shares in a single location
 - Unhashed API keys or private signing keys
 
 ## Fault Tolerance

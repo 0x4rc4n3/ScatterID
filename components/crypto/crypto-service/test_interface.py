@@ -7,10 +7,9 @@ import hashlib
 class TestInterface(unittest.TestCase):
     def test_verify_rejects_foreign_public_key(self):
         # We test that the verification function uses only the provided key 
-        # and doesn't get tricked. (Wait, the /verify_hash endpoint handles the registry logic, 
+        # The verify_hash endpoint handles registry lookup. We simulate that by
         # while verify_credential only takes the key passed to it by the endpoint).
-        # Let's test the endpoint logic by mocking it or just testing the function directly.
-        # Actually, let's write a test that simulates the endpoint logic.
+        # verifying the credential purely against the expected valid key.
         
         # Key 1: Genuine ScatterID Key
         public_key_1, private_key_1 = generate_keypair("ML-DSA-65")

@@ -32,11 +32,6 @@ const validContainers = [
   'scatterid-crypto',
   'scatterid-vault',
   'scatterid-dashboard',
-  'scatterid-shard-1',
-  'scatterid-shard-2',
-  'scatterid-shard-3',
-  'scatterid-shard-4',
-  'scatterid-shard-5'
 ];
 
 app.use(express.json());
@@ -137,24 +132,12 @@ app.get('/api/status', async (req, res) => {
   });
 });
 
-// API: Toggle Shard Node Container State (Simulate Compromise / Fault Tolerance Test)
-app.post('/api/shards/toggle-container', async (req, res) => {
   const { nodeName, action } = req.body;
   if (!nodeName || !['stop', 'start'].includes(action)) {
     return res.status(400).json({ success: false, error: 'Invalid parameters. Requires nodeName and action (stop|start).' });
   }
 
   const containerMap = {
-    'shard-node-1': 'scatterid-shard-1',
-    'shard-node-2': 'scatterid-shard-2',
-    'shard-node-3': 'scatterid-shard-3',
-    'shard-node-4': 'scatterid-shard-4',
-    'shard-node-5': 'scatterid-shard-5',
-    'scatterid-shard-1': 'scatterid-shard-1',
-    'scatterid-shard-2': 'scatterid-shard-2',
-    'scatterid-shard-3': 'scatterid-shard-3',
-    'scatterid-shard-4': 'scatterid-shard-4',
-    'scatterid-shard-5': 'scatterid-shard-5',
   };
 
   const targetContainer = containerMap[nodeName];
@@ -168,14 +151,10 @@ app.post('/api/shards/toggle-container', async (req, res) => {
   if (result.success) {
     // If starting a container, wait until its HTTP health endpoint responds OK (up to 3s)
     if (action === 'start') {
-      const nodeIdMatch = targetContainer.match(/shard-(\d+)/);
       let healEvents = [];
       if (nodeIdMatch) {
         const nodeId = nodeIdMatch[1];
-        const healthUrl = `http://shard-node-${nodeId}:3000/health`;
         const headers = {};
-        if (process.env.SHARD_NODE_API_KEY) {
-          headers['Authorization'] = `Bearer ${process.env.SHARD_NODE_API_KEY}`;
         }
         for (let attempt = 0; attempt < 10; attempt++) {
           try {
@@ -186,7 +165,6 @@ app.post('/api/shards/toggle-container', async (req, res) => {
         }
 
         try {
-          const healRes = await fetch(`${VERIFICATION_API_URL}/heal-shards`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ nodeId })
@@ -285,14 +263,11 @@ app.get('/api/credentials/:id', (req, res) => {
       return res.status(404).json({ success: false, error: 'Credential not found' });
     }
 
-    const allShards = [];
     for (let i = 1; i <= 5; i++) {
       const nodePath = path.join(foundBaseDir, `node_${i}.db`);
       if (fsSync.existsSync(nodePath)) {
         try {
           const nDb = new Database(nodePath, { readonly: true });
-          const rows = nDb.prepare('SELECT share_index, share_hash, share_checksum FROM shard_references WHERE credential_id = ?').all(cred.id);
-          allShards.push(...rows);
           nDb.close();
         } catch (e) {}
       }
@@ -302,7 +277,6 @@ app.get('/api/credentials/:id', (req, res) => {
       success: true,
       credential: {
         ...cred,
-        shards: allShards.sort((a, b) => a.share_index - b.share_index)
       }
     });
   } catch (err) {
@@ -414,8 +388,6 @@ app.get('/api/progress', async (req, res) => {
   }
 });
 
-// API: Multi-Node Shard Integrity Inspector
-app.get('/api/shards/integrity', async (req, res) => {
   try {
     const candidateDirs = [
       process.env.DB_DIR || '/app/data',
@@ -437,23 +409,18 @@ app.get('/api/shards/integrity', async (req, res) => {
 
     const nodeReports = [];
     for (let i = 1; i <= 5; i++) {
-      const containerName = `scatterid-shard-${i}`;
       const isContainerRunning = runningList.some(name => name.includes(containerName));
       let nodeReport = null;
 
       if (isContainerRunning) {
         try {
-          const nodeUrl = `http://shard-node-${i}:3000/health`;
           const headers = {};
-          if (process.env.SHARD_NODE_API_KEY) {
-            headers['Authorization'] = `Bearer ${process.env.SHARD_NODE_API_KEY}`;
           }
           const r = await fetch(nodeUrl, { headers, signal: AbortSignal.timeout(1200) });
           if (r.ok) {
             const data = await r.json();
             nodeReport = {
               nodeId: i,
-              dbName: `shard-node-${i}`,
               path: nodeUrl,
               exists: true,
               sizeBytes: data.sizeBytes || 0,
@@ -478,7 +445,6 @@ app.get('/api/shards/integrity', async (req, res) => {
             sizeBytes = stats.size;
 
             const nDb = new Database(nodePath, { readonly: true });
-            const countRow = nDb.prepare('SELECT COUNT(*) as count FROM shard_references').get();
             totalShares = countRow ? countRow.count : 0;
             nDb.close();
           } catch (e) {}
@@ -501,7 +467,6 @@ app.get('/api/shards/integrity', async (req, res) => {
 
     res.json({ success: true, baseDir: foundBaseDir, nodes: nodeReports });
   } catch (err) {
-    console.error('Failed to run shards integrity inspection:', err.stack || err.message);
     res.json({ success: false, error: 'Internal Server Error', nodes: [] });
   }
 });

@@ -1,7 +1,6 @@
 # Component Technical Specification: issue.js (Verification API Route)
 
 ## 1. Purpose & Core Responsibility
-- Manages HTTP POST request execution to package, sign, shard, store, and blockchain-anchor a new credential claim.
 
 ## 2. Inbound & Outbound Communication Whitelist
 - **Allowed Inbound (Who can talk TO this file):** 
@@ -21,7 +20,6 @@
   - **Inputs & Sanitization:** 
     - `req.body.claim`: Struct. Verified type and structure.
     - `claim.subject` / `claim.role`: String. Sanitized of injection markers `<>'\"&;` and limited to 256 characters.
-  - **Outputs:** JSON confirmation payload detailing record IDs, hashes, transaction information, and shard counts.
   - **Error States & Handling:** Encloses operations in a global try-catch block. Connection errors to `crypto-service` or database errors are masked to generic errors, while trace is logged to standard console streams.
 
 ## 4. Security & Compliance Posture

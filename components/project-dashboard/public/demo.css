@@ -507,13 +507,11 @@ body {
   border-color: var(--border-hover);
 }
 
-.shard-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 
-.telemetry-shard-card {
   background: rgba(7, 9, 14, 0.7);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -524,16 +522,12 @@ body {
   transition: border-color 0.2s ease;
 }
 
-.telemetry-shard-card.healthy { border-top: 3px solid var(--accent-green); }
-.telemetry-shard-card.offline { border-top: 3px solid var(--accent-red); }
 
-.shard-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.shard-name {
   font-weight: 700;
   font-size: 0.82rem;
 }
@@ -547,7 +541,6 @@ body {
 .status-badge-sm.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
 .status-badge-sm.red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
 
-.shard-metrics {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -555,7 +548,6 @@ body {
   color: var(--text-muted);
 }
 
-.shard-metrics span { font-family: var(--font-mono); color: var(--text-secondary); }
 
 .tech-spec-list {
   display: flex;
@@ -706,7 +698,6 @@ body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .grid-2 { grid-template-columns: 1fr; }
-  .shard-grid { grid-template-columns: repeat(2, 1fr); }
   .result-details-grid { grid-template-columns: 1fr; }
   .detail-box.col-span-2 { grid-column: span 1; }
   .demo-header { flex-direction: column; gap: 16px; align-items: flex-start; }

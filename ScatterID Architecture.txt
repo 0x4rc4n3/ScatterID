@@ -1,238 +1,33 @@
-  ScatterID Architecture Analysis & Solution Report: Node Failure Recovery & State Synchronization 
+# ScatterID Architecture Overview
 
-  ## System Architecture Context
+## Zero-Knowledge Post-Quantum Architecture
+ScatterID implements a decentralized, zero-knowledge, post-quantum identity verification system. It leverages NIST FIPS 204 ML-DSA-65 signatures, a client-side RFC 8785 canonicalization and hashing process with CSPRNG salts, and immutable ledger anchoring via Hyperledger Fabric.
 
-  ScatterID implements a decentralized, fault-tolerant identity architecture combining Post-Quantum Cryptography (PQC ML-DSA-65), Zero-Knowledge Verification’s Secret Sharing (SSS (k = 3,n = 5)), isolated SQLite storage nodes (node_1.db through node_5.db),
-  and immutable transaction anchoring via Hyperledger Fabric.
+## 1. Zero-Knowledge Hashing Model
+Unlike traditional systems that transmit raw claims, the ScatterID SDK guarantees that claim data never leaves the organization's backend. 
+- The client SDK canonicalizes the JSON claim using RFC 8785.
+- The SDK generates a 16-byte cryptographically secure random salt.
+- A `dataHash` is computed locally via SHA3-256(salt || canonicalizedClaim).
+- Only the `dataHash` and an `idempotencyKey` are transmitted to the ScatterID issuance API.
 
-                        +-------------------------------------------------+
-                        |             Verification Gateway API            |
-                        +-------------------------------------------------+
-                          /         |            |            |         \
-                         /          |            |            |          \
-                        v           v            v            v           v
-                   +--------+  +--------+   +--------+   +--------+  +--------+
-                   | Node 1 |  | Node 2 |   | Node 3 |   | Node 4 |  | Node 5 |
-                   | (S_1)  |  | (S_2)  |   | (S_3)  |   | (S_4)  |  | (S_5)  |
-                   +--------+  +--------+   +--------+   +--------+  +--------+
-                        \           |            |            |          /
-                         +----------+------------+------------+---------+
-                                                 |
-                                                 v
-                                 +-------------------------------+
-                                 | Hyperledger Fabric Chaincode  |
-                                 |  (Immutable Anchor Ledger)    |
-                                 +-------------------------------+
-    ──────
-  ## 1. Write-Path Resilience During Partial Node Unavailability
+## 2. Secure Issuance Protocol
+The `POST /issue` endpoint receives the `dataHash` and deduplicates requests using the `idempotencyKey`. 
+- The verification-api proxies the `dataHash` to the secure, isolated `crypto-service`.
+- `crypto-service` signs the hash using the active ML-DSA-65 private key sourced from HashiCorp Vault.
+- `crypto-service` assigns a `publicKeyId` indicating which public key was used for the signature.
+- The signed hash is subsequently anchored to the Hyperledger Fabric blockchain.
+- The ScatterID database strictly retains the UUID, `dataHash`, signature, `publicKeyId`, algorithm, and ledger anchor info. It explicitly NEVER stores raw claim data, salts, or reconstructable fragments.
 
-  ### Threshold Guarantee Mechanics (k = 3,n = 5)
+## 3. Trust-Boundary Verification Protocol
+The `POST /verify` endpoint ensures true cryptographic security without trusting caller inputs.
+- The client SDK transmits only the `dataHash` and `credentialId`.
+- Verification logic resolves the issuer's public key exclusively from ScatterID's internal trusted key registry, completely ignoring any `public_key` values provided by potential attackers in the payload.
+- `crypto-service` validates the signature using the registry-resolved key.
+- The Hyperledger Fabric ledger is queried to confirm the `dataHash` hasn't been tampered with and that the credential's status remains 'active' (not revoked).
 
-  When 2 out of 5 storage nodes are offline (e.g., Node 4 and Node 5), the system maintains full operational availability for issuing and verifying credentials without degrading cryptographic security.
-
-                            n = 5 Total Shards Generated
-                          /    |     |      \        \
-                        S_1   S_2   S_3     [S_4]   [S_5]
-                         |     |     |       OFFLINE OFFLINE
-                         v     v     v
-               +-------------------------------+
-               | Written to Online Nodes 1-3   |  => Reconstructable (3 >= k=3)
-               +-------------------------------+
-    
-  1. Shard Dispatch Protocol:
-      • The Verification API dispatches shard i to node i via POST http://shard-node-i:3000/shard.
-      • Simultaneously, credential metadata (excluding secret shares) is replicated across active nodes to preserve record metadata visibility.
-  2. Threshold Verification:
-      • Write acknowledgment succeeds as long as at least k = 3 nodes successfully store their assigned Zero-Knowledge Verification share Sᵢ = (i,yᵢ).
-      • Failure to reach 2 offline nodes generates a warning log without aborting credential issuance or blockchain anchoring.
-  3. Hyperledger Fabric Anchoring:
-      • After ≥3 shards are stored, the SHA3-256 hash of the credential payload (
-
-
-    H
-     data
-    
-  ) is committed to Hyperledger Fabric via AnchorProof(credentialId, dataHash, issuerId, timestamp).
-  ──────
-  ## 2. Ledger-Driven State Auditing via Hyperledger Fabric
-
-  When offline nodes reconnect (e.g., Node 4 and Node 5), Hyperledger Fabric serves as the immutable source of truth to detect missing credentials and state gaps.
-
-      +-----------------------+              +-----------------------+
-      |  Reconnected Node i   |              |  Hyperledger Fabric   |
-      +-----------------------+              +-----------------------+
-                  |                                      |
-                  |--- 1. Fetch Local Max Block/Time --->|
-                  |                                      |
-                  |<-- 2. Return Transaction Stream -----|
-                  |      (Anchored Credential IDs)       |
-                  |                                      |
-                  |--- 3. Compare Local vs Ledger ID ----|
-                  |      => Identify Missing Shards      |
-    
-  ### Audit & Delta Resolution Protocol
-
-  1. Block Range Determination:
-      • Upon container startup or receiving a health probe, the node queries its local SQLite database for the latest issued_at timestamp:
-
-
-    τ      = max ({ issued\_at|shard\_references ∈ Nodeᵢ })
-     local
-    
-  2. Ledger Delta Querying:
-      • The node invokes QueryProofByRange or evaluates transactions on the scatterproof chaincode starting from
-
-
-    τ
-     local
-    
-  to
-
-    τ
-     current
-    
-  .
-  3. Difference Set Identification:
-
-  • The reconciliation engine computes the missing credential set Δᵢ:
-
-    Δᵢ = { id ∈ Ledger|id ∉ Nodeᵢ.shard\_references }
-    ──────
-  ## 3. Automated State-Reconstruction and Backfilling Protocol
-
-  Once Δᵢ is computed, the auto-healing mechanism (healShards) executes in-memory reconstruction to generate and backfill the missing i-th share without exposing raw credentials to persistent disk storage outside the node boundary.
-
-    +-----------------------------------------------------------------------------------+
-    |                            Auto-Healing Workflow                                  |
-    +-----------------------------------------------------------------------------------+
-    
-    [ Step 1: Query 3 Active Nodes ]
-        Fetch Shards (S_1, S_2, S_3) for credential_id in Delta_i from online nodes.
-    
-    [ Step 2: In-Memory Secret Recovery ]
-        Recover Secret (raw_bytes) using Lagrange Interpolation over Finite Field GF(2^256):
-            f(x) = Sum_{j=1}^3 ( y_j * Product_{m != j} (-x_m / (x_j - x_m)) )
-    
-    [ Step 3: Re-evaluate Zero-Knowledge Verification Polynomial ]
-        Calculate missing share S_i = (i, f(i)) for target Node i.
-    
-    [ Step 4: Local Write & Checksum Generation ]
-        Calculate SHA3-256 hash H(S_i) and append SHA-256 checksum (S_i : Checksum_i).
-        Execute SQLite Transaction:
-            INSERT INTO shard_references (id, credential_id, share_index, share_value, share_hash, share_checksum)
-    
-  ### Protocol Execution Details
-
-  1. Active Share Retrieval:
-      • The healing worker queries k = 3 available nodes holding valid shares for credential id ∈ Δᵢ.
-  2. Lagrange Interpolation over Finite Field:
-      • Reconstruction evaluates polynomial f(x) at x = 0 using the 3 retrieved shares (x₁,y₁),(x₂,y₂),(x₃,y₃):
-
-
-               k      -xₘ
-    Lⱼ(0) =    ∏    ─────── pmod p
-            m=1,m≠j xⱼ - xₘ
-    
-              k
-    Secret =  ∑  yⱼ·Lⱼ(0) pmod p
-             j=1
-    
-  3. Target Share Re-generation:
-      • Once the secret payload is reconstructed in memory, the polynomial f(x) is evaluated at target index x = i:
-
-
-                 k        k    i - xₘ
-    yᵢ = f(i) =  ∑  yⱼ·   ∏    ─────── pmod p
-                j=1    m=1,m≠j xⱼ - xₘ
-    
-  4. Atomic Database Insertion:
-      • The recovered share Sᵢ = (i,yᵢ) and its computed SHA3-256 hash are written to Node_i.db inside an atomic transaction:
-        BEGIN TRANSACTION;
-        INSERT OR IGNORE INTO credentials (id, data_hash, algorithm, signature, prime_mod, required_shares, status, issued_at)
-        VALUES (@id, @dataHash, @algorithm, @signature, @primeMod, @requiredShares, @status, @issuedAt);
-        
-        INSERT OR REPLACE INTO shard_references (id, credential_id, share_index, share_value, share_hash, share_checksum)
-        VALUES (@id, @credentialId, @shareIndex, @shareValue, @shareHash, @shareChecksum);
-        COMMIT;
-        
-
-  ──────
-  ## 4. Post-Synchronization Cryptographic Integrity Verification
-
-  After backfilling missing shard rows, the node performs strict cryptographic verification against both local constraints and the Hyperledger Fabric ledger anchor before marking itself HEALTHY.
-
-                      +-----------------------------------------+
-                      |           Recovered Node i              |
-                      +-----------------------------------------+
-                         /                                   \
-                        /                                     \
-                       v                                       v
-         +---------------------------+           +---------------------------+
-         |   Local Integrity Check   |           |  Blockchain Ledger Audit  |
-         +---------------------------+           +---------------------------+
-         | SHA3-256(share_value)     |           | Fabric QueryProof(id)     |
-         |   == share_hash           |           |   == local.data_hash      |
-         | SHA-256(index-value)      |           | Status == 'active'        |
-         |   == share_checksum       |           +---------------------------+
-         +---------------------------+                         |
-                       \                                       /
-                        \                                     /
-                         v                                   v
-                      +-----------------------------------------+
-                      |         Integrity Status: VALID         |
-                      +-----------------------------------------+
-    
-  ### Integrity Verification Pipeline
-
-  1. Local Hash Checksum Validation:
-      • Re-calculate SHA3-256 over share_value:
-
-    H         = SHA3-256 (share\_value)
-     computed
-
-     Assert 
-
-    H         ≡ share\_hash
-     computed
-
-  .
-
-  • Re-calculate SHA-256 checksum over ${share\_index}-${share\_value}:
-
-    C         = SHA-256 (share\_index parallel "-" parallel share\_value)
-     computed
-
-     Assert 
-
-    C         ≡ share\_checksum
-     computed
-
-  .
-
-  2. Blockchain Ledger Hash Verification:
-      • Evaluate QueryProof(credentialId) against Hyperledger Fabric:
-
-
-    FabricRecord = chaincode.QueryProof (credentialId)
-
-  • Assert FabricRecord.dataHash ≡ node.data_hash.
-  • Assert FabricRecord.status ≡ "active".
-
-  3. Status Metric Transition:
-      • If all cryptographic checks pass, the node status is updated from SYNCING to HEALTHY via /health endpoint telemetry.
-
-  ──────
-  ## Verification & Execution Summary
-
-  The ScatterID environment was booted and verified using the automated test suite:
-
-  • Stack Startup: Managed via start.sh across Hyperledger Fabric, Vault, Verification Gateway, and Shard Nodes 1–5.
-  • End-to-End Test Suite: test_all.sh executed with 100% pass rate:
-      • PQC ML-DSA-65 signature generation & key rotation validated.
-      • Zero-Knowledge Verification secret share reconstruction validated under multi-node failure conditions.
-      • Verification API /issue, /status, and /verify endpoints fully operational.
-
-
-  The ScatterID stack is up, fully operational, and verified against the complete test suite. The architectural analysis and solution report for node failure recovery and state synchronization is presented above.
-
-
+## Verification & Execution Summary
+The ScatterID environment was booted and verified using the automated test suite:
+- PQC ML-DSA-65 signature generation & key rotation validated.
+- Trust boundary verification tests passed (preventing foreign public key injection).
+- SDK hashing conformity validated against static constants.
+- Verification API /issue, /status, and /verify endpoints fully operational.

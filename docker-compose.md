@@ -18,9 +18,7 @@
 - **Service Configuration Schema:**
   - **`scatterid-vault`**: Provisioned on port 8200. Mounts persistent storage directories.
   - **`scatterid-crypto`**: Active Flask KMS gateway. Exposed on port 5001. Relies on TLS certificates mount and is dependent on `scatterid-vault`.
-  - **`scatterid-verification`**: Active Express gateway. Exposed on port 3000. Relies on network proxy variables and is dependent on `scatterid-crypto` and shard nodes.
   - **`scatterid-dashboard`**: React console exposed on port 4000.
-  - **`scatterid-shard-1` to `scatterid-shard-5`**: Five separate Node.js SQLite storage nodes, each exposed on separate containers with isolated data volumes.
 
 ## 4. Security & Compliance Posture
 - Mounts global `config.json` configuration file as read-only (`:ro`) to prevent running containers from mutating orchestration mappings.

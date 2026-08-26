@@ -9,8 +9,6 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 ### Goals
 
 1. Issue and verify identity credentials signed with NIST-standardized post-quantum algorithms (ML-DSA-65)
-2. Ensure no single storage node or breach can reconstruct a usable credential, using k-of-n threshold secret-sharing (Zero-Knowledge Verification)
-3. Verify exact-match identity claims (KYC status, credential validity, ID numbers) without reconstructing the underlying secret wherever the data type allows it
 4. Run on our own private, permissioned blockchain (Hyperledger Fabric) for tamper-evident anchoring — fully self-owned infrastructure, no third-party chain dependency
 5. Provide a working SDK that a third-party developer can integrate in under a day
 6. Validate the approach with at least one real design-partner pilot (target: a university or small KYC vendor) within the roadmap's Phase 3
@@ -25,9 +23,7 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 
 ### Core User Stories
 
-**As an identity issuer** (e.g. a university or KYC provider), I want to issue a sharded, quantum-safe credential via API so that my stored identity data is never a single point of breach.
 
-**As a verifier** (e.g. an employer or fintech app), I want to verify a credential's validity without holding or reconstructing the full underlying data, so that I minimize my own liability.
 
 **As a business evaluating this product**, I want confidence that no homegrown cryptography is involved — only audited, standardized libraries — so that I can defend this choice to my own compliance/security team.
 
@@ -35,8 +31,6 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 
 **P0 (Must-Have):**
 - PQ-signed credential issuance (ML-DSA-65 via liboqs)
-- k-of-n shard generation and distributed storage (Zero-Knowledge Verification, k=3/n=5 default)
-- Reconstruction-less verification for exact-match data types
 - Anchoring on our private Hyperledger Fabric network
 - Basic audit logging
 
@@ -57,14 +51,11 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 | Function | Input | Output |
 |----------|-------|--------|
 | Issuance Layer | Accept credential claims, hash (SHA3-256), sign (ML-DSA-65) | Never stores raw PII — hashes and claims only |
-| Sharding Layer | Split signed credential into k-of-n shares, distribute across independent storage nodes | No single node ever holds a complete credential |
 | Anchoring Layer | Write proof hash to private Fabric network | Tamper-evident, timestamped, no identity data on-chain |
-| Verification Layer | Confirm validity via signature + anchor check, without reconstruction where possible | Relying parties never receive raw underlying data |
 
 ### Infrastructure Requirements
 
 - **Private, permissioned blockchain:** Hyperledger Fabric, deployed in three phases — (1) local process/port, (2) containerized/local network, (3) cloud-hosted with public IP and node-to-node TLS
-- **Shard storage nodes:** Self-hosted, ideally distributed across multiple regions/providers for fault tolerance
 - **Cloud hosting for API/backend:** Any major provider, but deployment fully controlled by us — rented compute, owned configuration
 
 ### Success Metrics
@@ -72,7 +63,6 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 **Leading:**
 - Time for a new developer to complete first successful SDK integration (target: under 1 day)
 - Number of credentials issued/verified in pilot (target: 500+ in first pilot)
-- Zero reconstruction events logged for exact-match verification flows (validates the reconstruction-less design claim)
 
 **Lagging:**
 - Design partner converts pilot into a paid or renewed engagement
@@ -88,7 +78,6 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 This version supersedes the initial PRD draft. Key updates:
 - Locked Hyperledger Fabric as the blockchain framework (previously unspecified)
 - Locked ML-DSA-65 and Zero-Knowledge Verification (previously listed as "recommended")
-- Scoped v1 explicitly to reconstruction-less, exact-match verification only, deferring fuzzy/biometric matching to a clearly separate future track
 - Refined target customer ranking based on sales-cycle friction
 
 ---
@@ -97,24 +86,20 @@ This version supersedes the initial PRD draft. Key updates:
 
 ### Vision Statement
 
-Identity data is permanent, but the cryptography protecting it is not. Crypto Project exists to make identity verification mathematically safe against both today's breaches and tomorrow's quantum-capable attackers — without ever storing a complete, reconstructable copy of anyone's identity in one place.
 
 **Long-term vision:** Become the default identity-verification infrastructure layer that KYC providers, universities, and fintechs plug into instead of building their own — the way payment processors became the default layer for online payments.
 
 ### Mission
 
-Build and sell a developer-facing SDK and verification API that issues, shards, signs, and verifies identity credentials using post-quantum cryptography and threshold secret-sharing — deployed on our own private, permissioned blockchain infrastructure that we fully own and control.
 
 ### Why Now
 
 - NIST finalized post-quantum cryptography standards (FIPS 203/204/205) — the algorithms are no longer experimental, they're standardized and implementable today
 - "Harvest now, decrypt later" is an active, documented threat — data stolen today is already at risk from future quantum decryption
 - Most quantum-safety efforts in the market target blockchain transactions/coins, not identity — identity remains an underserved, urgent gap
-- Regulatory pressure on data protection is increasing globally, making "we never reconstruct the secret" a genuinely differentiated compliance story
 
 ### Core Product Principles
 
-1. No single point ever holds a complete, usable credential — sharding is structural, not optional
 2. Every signature is post-quantum from day one — no retrofitting later
 3. We own our infrastructure (private blockchain, our own nodes) — no dependency on third-party chains for the security model to hold
 4. Sell to businesses that verify identity claims, not consumers — B2B API/SDK, not a wallet app
@@ -125,7 +110,6 @@ Build and sell a developer-facing SDK and verification API that issues, shards, 
 | Phase | Timeline | Deliverables |
 |-------|----------|--------------|
 | Phase 0 — Foundations | 4–6 weeks | PQC library selected, secret-sharing prototype, architecture locked (ADR), 3–5 customer conversations validating the problem |
-| Phase 1 — MVP Core | 8–10 weeks | Credential issuance + sharding + PQC signing + Fabric-based anchoring, working end-to-end on local/containerized nodes |
 | Phase 2 — Developer SDK | 6–8 weeks | JS/Python SDK, API docs, sample integration app, internal security review |
 | Phase 3 — Cloud Deployment & Pilot | 8–12 weeks | Nodes deployed to cloud (Phase 3 of ledger rollout), one real design-partner pilot, case study |
 | Phase 4 — Hardening & Growth | Ongoing | Third-party security audit, company registration finalized, begin sales to second/third customer, research track for fuzzy/biometric matching begins |
@@ -135,7 +119,6 @@ Build and sell a developer-facing SDK and verification API that issues, shards, 
 - A custom Layer-1 blockchain consensus mechanism — using Hyperledger Fabric, not inventing our own
 - A consumer-facing wallet or mobile app
 - Full zero-knowledge selective disclosure — research track, not v1
-- Biometric/fuzzy-matching identity verification — the exact-match, reconstruction-less approach is v1's actual differentiator
 
 ### Success Definition (12-Month Horizon)
 
@@ -159,8 +142,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 | Project Eleven / similar PQC blockchain-security startups | Well-funded, protecting transaction/coin infrastructure | Not identity-focused — different problem, different buyer |
 | Quranium, QRL | Building quantum-resistant base-layer blockchains | Infrastructure-layer plays, not identity-verification products — multi-year, well-funded efforts we shouldn't compete with directly |
 | Stellar, Hedera, XRPL (PQC roadmaps) | Retrofitting PQC into existing large chains | General-purpose chains, not specialized identity infrastructure |
-| Traditional KYC providers (Jumio-style vendors) | Established, trusted, large customer base | Using classical cryptography — vulnerable to harvest-now-decrypt-later; no sharding/no-reconstruction model |
-| Academic SSI (self-sovereign identity) research | Exploring similar sharding/PQC identity concepts | Pre-product, research-stage — not something a business can integrate today |
 
 ### Our Positioning
 
@@ -168,7 +149,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 
 **Differentiator 1:** Identity-specific, not general-purpose transaction security
 
-**Differentiator 2:** Reconstruction-less verification for exact-match identity data — a genuinely rare security claim
 
 **Differentiator 3:** Private, self-owned blockchain infrastructure — appeals to regulated buyers wary of public-chain dependency
 
@@ -183,7 +163,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 ### Why a Small Team Can Compete Here
 
 - The gap is in a specific, narrow product (identity verification API), not in base-layer infrastructure — achievable without massive funding
-- Reconstruction-less exact-match verification is technically tractable today, unlike fuzzy/biometric matching which is still open research — we're not promising something we can't build
 - Using Hyperledger Fabric (proven, open-source, industry-accepted) means we're not competing on blockchain engineering — we're competing on the identity-verification product built on top of it
 
 ---
@@ -196,7 +175,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 |------|---------|--------------|---------------------|
 | 1 | Universities / Credential Verification Bodies | Verify degrees, transcripts, certifications for employers/other institutions | Static, exact-match data; low regulatory complexity; fastest realistic first pilot |
 | 2 | Small/Mid KYC Verification Vendors | Verify user identity for banks, fintechs, exchanges on behalf of clients | Directly liable for secure long-term storage of verification data — strong pain point match |
-| 3 | Fintech / Digital Banks | Need repeatable "is this person KYC-approved" checks without re-exposing raw ID data | Regulatory pressure makes "never reconstruct the secret" a strong compliance-driven sell |
 | 4 | Web3 Wallets / Exchanges | Want quantum-safe identity/KYC add-ons without building it themselves | Crypto-native audience — PQC + blockchain-anchoring pitch resonates naturally, faster technical buy-in |
 | 5 | Enterprise HR / Employee Verification | Employee background check status, security clearance verification | Lower regulatory risk than KYC — good early, low-friction customer |
 | 6 | Government / eID Pilot Programs | National ID systems, especially smaller/emerging programs | High credibility if landed, but slow sales cycle — not a first-customer target |
@@ -209,7 +187,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 
 ### Core Use Case (v1): University Credential Verification
 
-**Scenario:** A university issues a digitally signed, sharded credential confirming a student's degree. A future employer, years later, wants to verify the degree is real without contacting the university directly or trusting a single centralized database that could be breached or go offline.
 
 **Process:**
 
@@ -223,7 +200,6 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 
 **Process:**
 
-1. KYC vendor verifies a user once, issues a sharded, signed "KYC-approved" credential via Crypto Project
 2. Any partner fintech/bank the user interacts with later can verify the KYC-approved status via the API — without needing the vendor to re-share raw ID documents each time
 3. Reduces both the vendor's liability (less raw data re-transmitted) and the partner's exposure (never receives or stores the underlying documents)
 
@@ -251,7 +227,6 @@ Identity data is permanent — a fingerprint, a national ID, a KYC record cannot
 
 ### The Solution
 
-Crypto Project issues identity credentials that are signed with post-quantum cryptography and split into cryptographic shards across independent nodes — no single node, breach, or server ever holds a complete, usable credential. Verification happens without reconstructing the original secret wherever possible. Every credential is anchored on our own private, permissioned blockchain for tamper-evident proof.
 
 ### Why Now
 
@@ -278,7 +253,6 @@ B2B SDK and verification API, licensed per-verification or via subscription. No 
 
 ### What Makes This Defensible
 
-- Reconstruction-less verification for exact-match identity data — a rare, genuinely strong security claim, not a marketing phrase
 - Self-owned, private permissioned blockchain infrastructure (Hyperledger Fabric) — full control, no third-party chain dependency
 - Built entirely on audited, open-source cryptographic libraries (liboqs/PQClean) — no homegrown cryptography, which is what security-conscious buyers actually check for
 
@@ -303,11 +277,9 @@ B2B SDK and verification API, licensed per-verification or via subscription. No 
 | **Blockchain Platform** | Hyperledger Fabric (private, permissioned) |
 | **Cryptographic Library** | liboqs/PQClean (audited, open-source) |
 | **Hash Function** | SHA3-256 |
-| **Verification Model** | Reconstruction-less for exact-match data |
 | **Deployment Model** | Three-phase rollout: local → containerized → cloud |
 | **Delivery Model** | B2B SDK + verification API (per-verification or subscription) |
 | **Phase 0 Deliverables** | PQC library selected, secret-sharing prototype, architecture locked, 3–5 customer conversations |
-| **Phase 1 Deliverables** | Credential issuance + sharding + PQC signing + Fabric-based anchoring |
 | **Phase 2 Deliverables** | JS/Python SDK, API docs, sample integration app, internal security review |
 | **Phase 3 Deliverables** | Cloud deployment, design-partner pilot, case study |
 | **Phase 4 Deliverables** | Third-party audit, company registration, begin sales, biometric research track |
@@ -315,7 +287,6 @@ B2B SDK and verification API, licensed per-verification or via subscription. No 
 | **Market Position** | Identity-specific PQC infrastructure, not general-purpose blockchain |
 | **Primary Competitors** | Traditional KYC providers (classical crypto), PQC blockchains (not identity-focused), academic SSI research (pre-product) |
 | **Primary Targets** | Universities (fastest), KYC vendors (strongest pain), fintechs (compliance-driven) |
-| **Key Differentiators** | Identity-specific, reconstruction-less verification, self-owned infrastructure, sellable now |
 | **Core Risks** | Larger players pivoting, slow enterprise sales, maturing PQC tooling |
 | **Product Principles** | No single point holds full credential; PQC from day one; own infrastructure; B2B focus; ship v1 before advanced features |
 

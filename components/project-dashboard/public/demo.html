@@ -42,7 +42,6 @@
       <section id="view-client" class="view-section active">
         <div class="hero-section">
           <h1 class="hero-title">Post-Quantum Credential Verification</h1>
-          <p class="hero-subtitle">Reconstruction-less cryptographic verification backed by NIST ML-DSA-65 signatures and Zero-Knowledge Verification 3-of-5 secret sharding.</p>
         </div>
 
         <div class="verification-card glass-panel">
@@ -84,7 +83,6 @@
                 <span class="detail-value mono text-purple" id="result-algo">ML-DSA-65 (FIPS 204)</span>
               </div>
               <div class="detail-box">
-                <span class="detail-label">Zero-Knowledge Verification Secret Threshold</span>
                 <span class="detail-value mono text-cyan" id="result-shards">k = 3 of n = 5 Shards Validated</span>
               </div>
               <div class="detail-box">
@@ -112,7 +110,6 @@
           <div class="block-header">
             <div>
               <h3>Issue & Anchor New Credential</h3>
-              <p class="block-sub">Issue custom claim via PQC ML-DSA-65, 5-way Zero-Knowledge Verification sharding, and Fabric ledger anchoring to test node sync and threshold fault tolerance</p>
             </div>
             <span class="tag purple">PQC & SSS Pipeline</span>
           </div>
@@ -129,13 +126,10 @@
               </div>
             </div>
             <button class="btn-verify mt-4" id="btn-issue-new-anchor" style="width: 100%;">
-              🔒 Issue & Anchor Credential (PQC Sign -> 5-Node Shard -> Fabric Commit)
             </button>
 
-            <!-- Anchor Output Log & Shard Dispatch Telemetry -->
             <div class="console-box mt-4 hidden" id="anchor-output-panel">
               <div class="console-header">
-                <span>Low-Level Architectural Issuance & Shard Dispatch Log</span>
                 <span class="cursor">_</span>
               </div>
               <div class="console-body" id="anchor-console-output" style="max-height: 250px; overflow-y: auto;">
@@ -145,18 +139,14 @@
           </div>
         </div>
 
-        <!-- 5-Node Shard Matrix Grid -->
         <div class="telemetry-block glass-panel mb-6">
           <div class="block-header">
             <div>
-              <h3>5-Node Isolated SQLite Shard Matrix</h3>
               <p class="block-sub">Physical multi-container database fragmentation (3-of-5 threshold scheme)</p>
             </div>
             <button class="btn-refresh-sm" id="btn-refresh-shards">Refresh Matrix</button>
           </div>
 
-          <div class="shard-grid" id="telemetry-shard-matrix">
-            <div class="shard-card skeleton">Probing 5 isolated container shard nodes...</div>
           </div>
         </div>
 
@@ -240,7 +230,6 @@
             </div>
             <div class="guarantee-card">
               <div class="guarantee-title">
-                <span>🔐 Zero-Knowledge Verification Bounds (k=3 / n=5)</span>
               </div>
               <div class="guarantee-desc">
                 Information-theoretic security over Galois Field GF(2^256). Any adversary holding &lt; 3 secret shares gains strictly zero information regarding the raw identity claim (H(S | shares &lt; 3) = H(S)).
@@ -251,7 +240,6 @@
                 <span>⚡ Multi-Node Fault Tolerance & Auto-Healing</span>
               </div>
               <div class="guarantee-desc">
-                System tolerates up to 2 isolated database node failures simultaneously. Reconnecting nodes utilize in-memory Zero-Knowledge Verification interpolation across remaining online nodes to backfill missing shards automatically.
               </div>
             </div>
             <div class="guarantee-card">
@@ -259,7 +247,6 @@
                 <span>⛓️ Immutable Ledger Anchoring & Auditing</span>
               </div>
               <div class="guarantee-desc">
-                Hyperledger Fabric Raft consensus anchors SHA3-256 state hashes. Attempts to alter local SQLite shard payloads trigger immediate hash mismatch alarms during gateway evaluation.
               </div>
             </div>
           </div>

@@ -24,11 +24,9 @@ function initStandaloneDemo() {
       btnClient.classList.remove('active');
       viewTelemetry.classList.add('active');
       viewClient.classList.remove('active');
-      loadShardTelemetry('telemetry-shard-matrix');
     });
 
     loadSampleCredentials('sample-credentials-list', 'credential-input');
-    loadShardTelemetry('telemetry-shard-matrix');
 
     const btnVerify = document.getElementById('btn-run-verify');
     const inputCred = document.getElementById('credential-input');
@@ -41,7 +39,6 @@ function initStandaloneDemo() {
 
     const btnRefresh = document.getElementById('btn-refresh-shards');
     if (btnRefresh) {
-      btnRefresh.addEventListener('click', () => loadShardTelemetry('telemetry-shard-matrix'));
     }
 
     const btnIssueAnchor = document.getElementById('btn-issue-new-anchor');
@@ -82,15 +79,12 @@ async function issueAndAnchorNewCredential() {
       return;
     }
 
-    consoleOut.innerHTML += `<div class="log-line success">[2/4] Zero-Knowledge Verification Secret Sharding (k=3 / n=5) complete. Data Hash: ${data.dataHash || '--'}</div>`;
     consoleOut.innerHTML += `<div class="log-line success">[3/4] Hyperledger Fabric Anchor Committed! TxID: ${data.anchorTxId || 'Pending'}</div>`;
-    consoleOut.innerHTML += `<div class="log-line info">[4/4] Multi-Node Shard Dispatch Report:</div>`;
 
     if (data.dispatchReport && data.dispatchReport.length > 0) {
       data.dispatchReport.forEach(r => {
         const isOk = r.httpStatus === 'WRITTEN';
         const color = isOk ? '#10b981' : '#ef4444';
-        consoleOut.innerHTML += `<div class="log-line" style="color: ${color}; margin-left: 12px;">-> Shard ${r.nodeId} (${r.containerUrl}): HTTP=${r.httpStatus} | LocalDB=${r.localDbStatus} | Hash=${r.shareHash}</div>`;
       });
     }
 
@@ -101,14 +95,12 @@ async function issueAndAnchorNewCredential() {
     if (inputCred) inputCred.value = data.credentialId;
 
     // Refresh telemetry matrix and samples list
-    loadShardTelemetry('telemetry-shard-matrix');
     loadSampleCredentials('sample-credentials-list', 'credential-input');
 
   } catch (err) {
     consoleOut.innerHTML += `<div class="log-line error">[EXCEPTION] Issuance failed: ${err.message}</div>`;
   } finally {
     btnIssue.disabled = false;
-    btnIssue.textContent = '🔒 Issue & Anchor Credential (PQC Sign -> 5-Node Shard -> Fabric Commit)';
   }
 }
 
@@ -131,11 +123,9 @@ function initTabDemo() {
       btnTabClient.classList.remove('active');
       viewTabClient.style.display = 'none';
       viewTabTelemetry.style.display = 'block';
-      loadShardTelemetry('tab-telemetry-shard-matrix');
     });
 
     loadSampleCredentials('tab-sample-credentials-list', 'tab-credential-input');
-    loadShardTelemetry('tab-telemetry-shard-matrix');
 
     const btnVerify = document.getElementById('tab-btn-run-verify');
     const inputCred = document.getElementById('tab-credential-input');
@@ -148,7 +138,6 @@ function initTabDemo() {
 
     const btnRefresh = document.getElementById('tab-btn-refresh-shards');
     if (btnRefresh) {
-      btnRefresh.addEventListener('click', () => loadShardTelemetry('tab-telemetry-shard-matrix'));
     }
   }
 }
@@ -281,7 +270,6 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
 
       if (issuedAt) issuedAt.textContent = `Issued: ${new Date(verifyData.issuedAt || Date.now()).toLocaleString()}`;
       if (algoEl) algoEl.textContent = 'ML-DSA-65 (NIST FIPS 204)';
-      if (shardsEl) shardsEl.textContent = 'Zero-Knowledge Verification Secret Threshold Met (>= 3 Live Shards Validated)';
       if (anchorStatusEl) anchorStatusEl.textContent = `Fabric Anchor (${(verifyData.anchorStatus || 'active').toUpperCase()})`;
       if (txIdEl) txIdEl.textContent = credentialId;
     } else {
@@ -308,7 +296,6 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
   }
 }
 
-// Load 5-Node Shard Telemetry
 async function loadShardTelemetry(matrixContainerId) {
   const container = document.getElementById(matrixContainerId);
   if (!container) return;
@@ -326,7 +313,6 @@ async function loadShardTelemetry(matrixContainerId) {
     data.nodes.forEach(node => {
       const card = document.createElement('div');
       const isHealthy = node.status === 'HEALTHY';
-      card.className = `telemetry-shard-card ${node.status.toLowerCase()}`;
       
       const kbSize = (node.sizeBytes / 1024).toFixed(1);
       const badgeClass = isHealthy ? 'green' : 'red';
@@ -335,16 +321,12 @@ async function loadShardTelemetry(matrixContainerId) {
       const btnClass = isHealthy ? 'btn-danger-sm' : 'btn-success-sm';
 
       card.innerHTML = `
-        <div class="shard-card-header">
-          <span class="shard-name">Node ${node.nodeId}</span>
           <span class="status-badge-sm ${badgeClass}">${node.status}</span>
         </div>
-        <div class="shard-metrics">
           <div>Shares: <span>${node.totalShares}</span></div>
           <div>Size: <span>${kbSize} KB</span></div>
           <div>SHA3: <span>${node.integrityCheck}</span></div>
         </div>
-        <button class="btn-node-action ${btnClass}" data-node="shard-node-${node.nodeId}" data-action="${toggleAction}">
           ${toggleText}
         </button>
       `;
@@ -362,7 +344,6 @@ async function loadShardTelemetry(matrixContainerId) {
             const response = await fetch('/api/shards/toggle-container', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ nodeName: `shard-node-${node.nodeId}`, action: toggleAction }),
               signal: AbortSignal.timeout(8000)
             });
 

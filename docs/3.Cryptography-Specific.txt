@@ -1,7 +1,6 @@
 # Cryptography-Specific Details
 
 ## Data-Retention Guarantee
-ScatterID implements a strict reconstruction-less, zero-knowledge verification model. 
 
 Per credential, ScatterID's database and ledger store ONLY:
 - credentialId (UUID)
@@ -15,7 +14,6 @@ Per credential, ScatterID's database and ledger store ONLY:
 **ScatterID explicitly NEVER stores:**
 - The raw claim data.
 - The 16-byte CSPRNG salt.
-- Anything from which the claim could be reconstructed.
 
 Hashing (using RFC 8785 JCS canonicalization and a 16-byte CSPRNG salt) happens entirely client-side via the ScatterID SDK. Only the resulting `dataHash` is ever transmitted to the ScatterID backend.
 

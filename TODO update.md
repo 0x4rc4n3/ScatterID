@@ -23,25 +23,16 @@
 
 ## 2. Zero Trust Internal Communication & ZTA Mesh
 
-- [x] **2.1 Bearer token auth** — `SHARD_NODE_API_KEY` / `CRYPTO_SERVICE_API_KEY`
   enforced on inter-service calls; confirmed via `test_all.sh` and route code.
 - [ ] **Docker network default-deny policies** — `docker-compose.yml` defines
   a bridge network (`scatterid_net`) but explicit default-deny ingress/egress
   rules weren't independently confirmed in this pass. Worth a direct check
   before claiming this in docs.
-- [x] **2.2 Parameterized SQL** — shard nodes use prepared statements
-  (no evidence of raw string interpolation found in `shard-node/server.js`).
 
-## 3. Sharded Storage & Fault-Tolerant State Synchronization
 
-- [x] **3.1 Multi-database shard isolation** — 5 isolated SQLite containers,
-  confirmed via `docker-compose.yml` and `shard-node` structure.
-- [x] SHA-256 share checksums — confirmed in `shamir.py` (checksum appended
   to each hex-encoded share).
 - [x] **3.2 Fault-tolerant verification & auto-healing** — the k=3/n=5
   boundary is genuinely tested, not just claimed: 5/5, 4/5, 3/5 online all
-  verify successfully; 2/5 fails deterministically. `POST /heal-shards`
-  reconstructs and backfills missing shares. This is the strongest, most
   well-evidenced part of the system.
 
 ## 4. Hyperledger Fabric Immutable Anchoring

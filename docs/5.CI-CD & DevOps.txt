@@ -45,7 +45,6 @@ on: push → integration
 4. Build Docker images for each service
 5. Run container security scan (see Container Security Guidelines)
 6. Deploy to staging environment (Phase 2 containerized network)
-7. Run smoke tests against staging (issue → shard → sign → anchor → verify)
 
 on: tag v*.*.* on main
 
@@ -142,7 +141,6 @@ infra/
 ├── terraform/
 │   ├── modules/
 │   │   ├── fabric-node/      # reusable peer/orderer VM definition
-│   │   └── shard-storage/    # reusable storage node VM definition
 │   ├── environments/
 │   │   ├── staging/          # Phase 2-equivalent cloud config
 │   │   └── production/       # Phase 3 config
@@ -150,7 +148,6 @@ infra/
 ├── ansible/
 │   ├── playbooks/
 │   │   ├── setup-fabric-peer.yml
-│   │   ├── setup-shard-node.yml
 │   │   └── setup-api-server.yml
 │   ├── roles/
 │   └── inventory/
@@ -178,11 +175,9 @@ infra/
 |----------|-------|--------|
 | Phase 1 (local) | No IaC needed — manual local setup per Dev Environment Guide | Too small-scale to warrant automation overhead |
 | Phase 2 (containerized) | docker-compose (not full Terraform) for local multi-container network | Terraform reserved for actual cloud resource provisioning, not local containers |
-| Phase 3 (cloud) | Terraform provisions VMs/networking; Ansible configures Fabric, shard-storage, and API software on top | Full IaC coverage required before any real customer pilot |
 
 ### Disaster Recovery Note
 
-Because infrastructure is code, a lost or compromised production environment can be rebuilt from the Terraform/Ansible definitions rather than requiring manual reconstruction — this is a meaningful advantage worth highlighting in the Rollback & Incident Response Runbook.
 
 ---
 
@@ -201,9 +196,7 @@ Because infrastructure is code, a lost or compromised production environment can
 ### Phase 2 — Containerized Deployment
 
 1. Ensure Docker and docker-compose are installed.
-2. Run `docker-compose up` from the infra repo's Phase 2 configuration — spins up multi-peer Fabric network + API + shard-storage containers on a local Docker bridge network.
 3. Verify all containers report healthy (`docker-compose ps`).
-4. Run the fault-tolerance smoke test: `docker-compose stop <node-container>` for one shard-storage node, confirm verification still succeeds using remaining nodes.
 5. Run full integration test suite against the containerized environment.
 
 *Purpose: first real multi-node testing environment. This is the required checkpoint before any cloud deployment — do not skip to Phase 3 without passing Phase 2 fault-tolerance tests.*
@@ -212,7 +205,6 @@ Because infrastructure is code, a lost or compromised production environment can
 
 1. Confirm Terraform state is current: `terraform plan` against the production environment, review output.
 2. Apply infrastructure changes: `terraform apply` (founders only, per Infrastructure as Code document access rules).
-3. Run Ansible playbooks to configure Fabric peers, orderer, shard-storage nodes, and API servers on the newly provisioned machines.
 4. Verify TLS is correctly configured node-to-node (per Network Topology document Section 5) before opening any firewall rules.
 5. Deploy application containers via the CI/CD pipeline's production deploy stage (see CI/CD Pipeline Design Document).
 6. Run post-deploy smoke test against the live public API endpoint.
@@ -232,7 +224,6 @@ Until a real pilot customer is live, deployments can happen any time. Once a pil
 
 ### Post-Deployment Verification
 
-1. Confirm the full issue → shard → sign → anchor → verify flow works against production.
 2. Check monitoring dashboards for anomalies (error rate spike, latency increase) in the 30 minutes following deploy.
 3. Confirm the deployed version tag matches what was intended — verify via a version/health endpoint if the API exposes one.
 
@@ -292,7 +283,6 @@ Within a few days of resolution, write a blameless postmortem covering:
 
 ### Special Case — Suspected Node Compromise Below Threshold
 
-If a single shard-storage node (or up to k-1 nodes) is suspected compromised, this is a real incident but NOT a data breach in the traditional sense — no usable secret is exposed below threshold k, per the Secret-Sharing Scheme Specification. Treat it as SEV-2: rotate that node's infrastructure credentials, investigate how it was compromised, and re-provision the node from Infrastructure as Code rather than trusting a "cleaned" compromised machine.
 
 ---
 
@@ -343,7 +333,6 @@ CMD ["node", "src/server.js"]
 - Set resource limits (CPU/memory) on all containers — prevents a single compromised or misbehaving container from starving others.
 - Use read-only root filesystems where the application doesn't need to write to disk (`--read-only` flag or Compose equivalent).
 - Never mount the Docker socket into a container unless absolutely necessary — doing so effectively grants root on the host.
-- Network segmentation: shard-storage containers should not be able to reach the internet directly; only the API layer needs outbound + inbound access, per the trust boundaries in the System Architecture Diagram.
 
 ### Fabric-Specific Container Notes
 

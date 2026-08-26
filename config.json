@@ -3,7 +3,11 @@
   "system": {
     "env": {
       "value": "production",
-      "options": ["development", "staging", "production"],
+      "options": [
+        "development",
+        "staging",
+        "production"
+      ],
       "purpose": "Governs log verbosity, TLS enforcing rules, and sandbox fallback modes."
     }
   },
@@ -34,10 +38,6 @@
     }
   },
   "security": {
-    "shard_node_api_key": {
-      "value": "",
-      "purpose": "Bearer token used to authorize incoming shard queries/writes from API Gateway."
-    },
     "crypto_service_api_key": {
       "value": "",
       "purpose": "Bearer token securing crypto-service sign, pack, and rotate endpoints."
@@ -62,16 +62,12 @@
   "cryptography": {
     "algorithm": {
       "value": "ML-DSA-65",
-      "options": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "options": [
+        "ML-DSA-44",
+        "ML-DSA-65",
+        "ML-DSA-87"
+      ],
       "purpose": "Module-Lattice-Based Digital Signature standard (NIST FIPS 204 CRYSTALS-Dilithium)."
-    },
-    "threshold_k": {
-      "value": 3,
-      "purpose": "Minimum number of Zero-Knowledge Verification shares required to unpackage/reconstruct signature."
-    },
-    "total_shards_n": {
-      "value": 5,
-      "purpose": "Total number of sharded databases across which secret shares are fragmented."
     }
   },
   "blockchain": {

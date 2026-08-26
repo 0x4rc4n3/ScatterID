@@ -80,7 +80,6 @@ def verify_hash_route():
             
     if not keys_to_test:
         # Fallback to trying all keys if the ID format was changed or we don't know it, 
-        # but wait, the prompt says "resolves the public key exclusively from an internal trusted key registry keyed by publicKeyId"
         # If not found, it fails.
         return jsonify({"valid": False, "reason": "publicKeyId not found in trusted registry"}), 200
 

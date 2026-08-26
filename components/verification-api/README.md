@@ -7,11 +7,9 @@ The `verification-api` service acts as the central orchestrator for credential c
 ## 🔒 Security Architecture
 
 1. **Strict Container Network Fetching**:
-   - `getSharesByCredentialId` queries isolated shard node HTTP endpoints (`http://shard-node-1:3000` .. `http://shard-node-5:3000`) over the `scatterid_net` bridge network.
    - Local SQLite disk bypassing is strictly disabled to guarantee true network fault tolerance boundaries.
 
 2. **Bearer Token Authentication**:
-   - Outgoing HTTP calls to shard nodes contain `Authorization: Bearer <SHARD_NODE_API_KEY>`.
    - Outgoing HTTPS calls to `crypto-service` contain `Authorization: Bearer <CRYPTO_SERVICE_API_KEY>`.
 
 ---
@@ -39,11 +37,6 @@ The `verification-api` service acts as the central orchestrator for credential c
     "algorithm": "ML-DSA-65",
     "anchorTxId": "b2589afd49c3ab67ebf08598c9baac7c229e75c15048f68d9050d06a1d0eeb60",
     "dispatchReport": [
-      { "nodeId": 1, "shareIndex": 1, "containerUrl": "http://shard-node-1:3000", "httpStatus": "WRITTEN" },
-      { "nodeId": 2, "shareIndex": 2, "containerUrl": "http://shard-node-2:3000", "httpStatus": "WRITTEN" },
-      { "nodeId": 3, "shareIndex": 3, "containerUrl": "http://shard-node-3:3000", "httpStatus": "WRITTEN" },
-      { "nodeId": 4, "shareIndex": 4, "containerUrl": "http://shard-node-4:3000", "httpStatus": "WRITTEN" },
-      { "nodeId": 5, "shareIndex": 5, "containerUrl": "http://shard-node-5:3000", "httpStatus": "WRITTEN" }
     ],
     "shares": { "required": 3, "total": 5 }
   }
@@ -68,7 +61,6 @@ The `verification-api` service acts as the central orchestrator for credential c
 
 ### 3. Retrieve All Credentials
 - **Endpoint**: `GET /credentials`
-- **Description**: Queries all stored credential records and returns their status and sharding metadata.
 - **Response**:
   ```json
   {
@@ -90,15 +82,12 @@ The `verification-api` service acts as the central orchestrator for credential c
   }
   ```
 
-### 4. Auto-Heal Node Shards
-- **Endpoint**: `POST /heal-shards`
 - **Request Body**: `{"nodeId": 4}`
 - **Response**:
   ```json
   {
     "success": true,
     "events": [
-      { "nodeId": 4, "healedShares": 1, "logText": "[AUTO-HEAL] Shard Node 4 auto-synced 1 missing secret shares." }
     ]
   }
   ```

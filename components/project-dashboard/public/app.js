@@ -190,9 +190,7 @@ async function fetchLogs() {
   }
 }
 
-// Load 5-Node Shard Matrix with Embedded Compromise Controls
 async function loadShardMatrix() {
-  const container = document.getElementById('shard-matrix-cards');
   if (!container) return;
 
   try {
@@ -208,7 +206,6 @@ async function loadShardMatrix() {
     data.nodes.forEach(node => {
       const card = document.createElement('div');
       const isHealthy = node.status === 'HEALTHY';
-      card.className = `shard-node-card ${node.status.toLowerCase()}`;
       
       const kbSize = (node.sizeBytes / 1024).toFixed(1);
       const statusBadge = isHealthy 
@@ -220,21 +217,16 @@ async function loadShardMatrix() {
       const buttonClass = isHealthy ? 'btn-outline' : 'btn-primary';
 
       card.innerHTML = `
-        <div class="shard-header">
-          <span class="shard-title">Node ${node.nodeId}</span>
           ${statusBadge}
         </div>
-        <div class="shard-details">
           <div>Shares: <span>${node.totalShares}</span></div>
           <div>Size: <span>${kbSize} KB</span></div>
           <div>SHA3: <span>${node.integrityCheck}</span></div>
         </div>
-        <button class="btn btn-sm ${buttonClass} btn-toggle-shard" style="margin-top: 6px; width: 100%;" data-node="shard-node-${node.nodeId}" data-action="${toggleAction}">
           ${toggleText}
         </button>
       `;
 
-      const btn = card.querySelector('.btn-toggle-shard');
       if (btn) {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -243,7 +235,6 @@ async function loadShardMatrix() {
             ? '<span class="spin-icon">⏳</span> Stopping Node...' 
             : '<span class="spin-icon">⏳</span> Starting Node & Auto-Healing...';
           
-          await toggleNodeState(`shard-node-${node.nodeId}`, toggleAction);
           setTimeout(async () => {
             await loadShardMatrix();
           }, 600);

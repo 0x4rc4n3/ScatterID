@@ -2,7 +2,6 @@
 
 ## 1. Purpose & Core Responsibility
 - Implements the Node.js Express application backend for the Operator Diagnostics & Analytics Dashboard.
-- Exposes API routes to display system status, simulate container failover scenarios (starting/stopping shard containers), inspect credentials, execute E2E smoke diagnostics, fetch project progress metrics, and view real-time container logs.
 
 ## 2. Inbound & Outbound Communication Whitelist
 - **Allowed Inbound (Who can talk TO this file):** 
@@ -11,7 +10,6 @@
   - All other external connections.
 - **Allowed Outbound (Who this file can talk TO):** 
   - Verification API Gateway (`http://verification-api:3000`) via HTTP requests.
-  - Shard Node microservices (`http://shard-node-[i]:3000`) for health inquiries, authenticated with Bearer tokens.
   - Local fallback SQLite database files (`node_[i].db` and `credentials.db`) via read-only `better-sqlite3` operations.
   - Docker daemon CLI wrapper (for stopping/starting nodes and logs auditing).
 - **Explicitly Denied Outbound:** 

@@ -29,7 +29,6 @@ These guidelines follow the OWASP Top 10 and OWASP Application Security Verifica
 ### Insecure Design Prevention
 
 - Threat modeling happens before implementation for any new significant feature, not retrofitted afterward (per the Security track's process in module TODOs).
-- Reconstruction-less verification is the default design pattern for exact-match data — any new feature requiring full secret reconstruction needs explicit founder sign-off and a documented justification.
 
 ### Security Misconfiguration Prevention
 
@@ -72,7 +71,6 @@ These guidelines follow the OWASP Top 10 and OWASP Application Security Verifica
 |----------|-------|--------|
 | SAST (Static) | Scans source code without executing it | Runs on every PR in CI — fastest feedback loop |
 | DAST (Dynamic) | Tests the running application from the outside | Runs against staging before each release |
-| Fuzzing | Feeds malformed/random input to find crashes or unexpected behavior | Targeted at highest-risk functions (signature verification, share reconstruction) |
 | Dependency scanning | Checks for known CVEs in third-party libraries | See Dependency & Supply Chain Security Policy |
 | Manual penetration testing | Human-driven, creative attack simulation | See Penetration Testing Plan — periodic, not continuous |
 
@@ -97,10 +95,8 @@ SAST runs as a required CI check on every PR (see CI/CD Pipeline Design Document
 | Function | Input | Output |
 |----------|-------|--------|
 | Target 1: verify_signature() | Malformed signatures, truncated data, mismatched keys | Must always fail closed — never crash, never return an ambiguous result |
-| Target 2: reconstruct_secret() / share comparison | Corrupted shares, wrong share count, duplicate share indices | Must reject cleanly below threshold k, and detect/reject corrupted shares via share_hash check |
 | Target 3: API input parsing | Malformed JSON, oversized payloads, unexpected types in required fields | Must return clean 400 errors, never crash the service or leak stack traces |
 
-- **Tooling:** Atheris (Python fuzzing, coverage-guided) for crypto/sharding modules; a fuzzing-aware HTTP client (e.g. restler-fuzzer or a custom script) for API endpoints.
 - Fuzzing runs are part of the Security track's ongoing responsibility (see Security module TODO doc), not a one-time pre-launch activity.
 
 ### Testing Cadence
@@ -136,7 +132,6 @@ SAST runs as a required CI check on every PR (see CI/CD Pipeline Design Document
 
 | Function | Input | Output |
 |----------|-------|--------|
-| In scope | Verification API endpoints, authentication mechanisms, Fabric network access controls, shard-storage node access, chaincode logic | Core of the security model — must be tested |
 | Out of scope (v1) | Physical security of cloud provider data centers, social engineering of team members (unless separately authorized), third-party cloud provider infrastructure itself | Not within our control or authority to test |
 | Explicitly authorized targets | Staging environment by default; production only with explicit written authorization and a defined testing window | Never test production without this authorization — same rule the Security-track interns follow (see their TODO doc) |
 
@@ -351,10 +346,8 @@ Before any Phase 3 deployment handling real customer data, a founder must explic
 | **SAST Tools** | Bandit (Python), ESLint+Semgrep (Node.js), gosec (Go) |
 | **SAST Cadence** | Every PR; Critical/High block merge |
 | **DAST Tool** | OWASP ZAP against staging before each release |
-| **Fuzzing Targets** | verify_signature(), reconstruct_secret()/share comparison, API input parsing |
 | **Fuzzing Tools** | Atheris (Python), restler-fuzzer or custom script (API) |
 | **Penetration Testing** | Before first pilot; every 6-12 months; after SEV-1 incidents |
-| **PT Scope** | API endpoints, auth, Fabric access, shard storage, chaincode |
 | **PT Environment** | Staging by default; production only with explicit authorization |
 | **Vulnerability Disclosure** | Email security@[domain]; acknowledge within 3 business days |
 | **Safe Harbor** | Private reporting; allow 90 days to fix; no data exfiltration |

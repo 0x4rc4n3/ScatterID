@@ -1,7 +1,7 @@
 {
   "name": "@scatterid/sdk",
   "version": "1.0.0",
-  "description": "Professional TypeScript/JavaScript SDK for integrating ScatterID post-quantum sharded credential systems",
+  "description": "TypeScript/JavaScript SDK for post-quantum, zero-knowledge credential issuance and verification",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,6 @@
   "keywords": [
     "scatterid",
     "pqc",
-    "shamir",
     "blockchain",
     "hyperledger",
     "sdk"
@@ -22,8 +21,8 @@
   "author": "ScatterID Team",
   "license": "MIT",
   "dependencies": {
-    "canonicalize": "^4.0.0",
-    "uuid": "^14.0.2"
+    "canonicalize": "4.0.0",
+    "uuid": "14.0.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

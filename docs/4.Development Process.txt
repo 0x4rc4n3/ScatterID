@@ -23,7 +23,6 @@ main → always working, protected, no direct pushes
     │
     └─ feature/<short-description> → your working branch
     
-    Example: feature/shamir-split-function
 ```
 
 - Branch off `dev`, never off `main` directly.
@@ -39,7 +38,6 @@ Use a consistent, readable format — this matters more than people expect when 
 
 Examples:
 feat: implement split_secret function
-fix: handle k-1 share reconstruction error
 test: add round-trip test for interface.py
 docs: add usage example to README
 ```
@@ -89,7 +87,6 @@ If your module needs testnet access, API keys, or sandbox credentials, request t
 - Every public function must have a docstring/comment describing inputs, outputs, and any side effects.
 - Fail loudly and specifically — avoid silent catch-and-ignore error handling, especially in cryptographic or security-relevant code paths.
 
-### Python (Crypto Module, Issuance/Sharding Layers)
 
 | Function | Input | Output |
 |----------|-------|--------|
@@ -106,7 +103,6 @@ def split_secret(secret: bytes, n: int, k: int) -> list[Share]:
     Args:
         secret: The raw secret bytes to split.
         n: Total number of shares to generate.
-        k: Minimum shares required to reconstruct.
 
     Returns:
         A list of n Share objects.
@@ -153,7 +149,6 @@ All formatters/linters run automatically via the CI pipeline on every pull reque
 
 - Functions/variables: match each language's idiomatic convention (snake_case for Python, camelCase for JS/Go) — don't mix conventions within a single language's codebase.
 - No abbreviations that aren't immediately obvious — `credentialId` not `credId`, `signature` not `sig`, except where the Interface Contract already specifies a shorter name.
-- Test files/functions clearly named after what they test — `test_reconstruct_fails_with_insufficient_shares`, not `test_2`.
 
 ### Security-Specific Code Practices
 
@@ -296,7 +291,6 @@ Each module's individual TODO document already lists a module-specific Definitio
 
 A phase (per the Roadmap document) is not "done" until all of the following hold true across the integrated system, not just within individual modules:
 
-1. End-to-end flow works: issue a credential → shard → sign → anchor → verify, using the actual integrated codebase, not mocked components.
 2. All module-level Definitions of Done are satisfied for every module involved in that phase.
 3. Cross-module integration tests pass on the founders-only `integration` branch (see Branching & Release Strategy).
 4. No component of the flow ever stores, logs, or transmits raw claim data, complete secret shares, or private keys outside their defined, approved locations.
@@ -308,7 +302,6 @@ A phase (per the Roadmap document) is not "done" until all of the following hold
 | Function | Input | Output |
 |----------|-------|--------|
 | Phase 1 (local ledger) | Chaincode functions tested locally; single-peer flow works end-to-end | Fault tolerance not yet meaningfully testable — not required at this phase |
-| Phase 2 (containerized) | Multi-node consensus tested; k-of-n fault tolerance validated by killing a container mid-flow and confirming reconstruction/verification still succeeds | This is the phase where the core security promise ("losing 2 nodes doesn't lose the credential") must be proven, not just assumed |
 | Phase 3 (cloud, public IP) | TLS configured between all nodes; firewall rules restrict Fabric ports to known node IPs; API is the only publicly exposed surface; secrets moved out of env-vars into a proper secrets manager | Do not consider Phase 3 "done" on functionality alone — the security posture upgrade is part of the definition, not a follow-up |
 
 ### What "Done" Explicitly Does Not Mean

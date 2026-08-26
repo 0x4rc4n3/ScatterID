@@ -404,14 +404,11 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
-/* 5-Node Shard Matrix Grid */
-.shard-matrix-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 
-.shard-node-card {
   background: rgba(7, 9, 14, 0.7);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -421,21 +418,16 @@ body {
   gap: 10px;
 }
 
-.shard-node-card.healthy { border-top: 3px solid var(--success); }
-.shard-node-card.offline { border-top: 3px solid var(--error); }
 
-.shard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.shard-title {
   font-size: 0.85rem;
   font-weight: 700;
 }
 
-.shard-details {
   font-size: 0.75rem;
   color: var(--text-muted);
   display: flex;
@@ -443,7 +435,6 @@ body {
   gap: 4px;
 }
 
-.shard-details span {
   font-family: var(--font-mono);
   color: var(--text-main);
 }
@@ -642,5 +633,4 @@ td {
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .grid-2, .arch-flow-grid, .shard-matrix-grid { grid-template-columns: 1fr; }
 }

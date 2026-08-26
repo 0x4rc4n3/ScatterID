@@ -50,7 +50,6 @@ Crypto Project likely acts as a data processor (processing data on behalf of the
 
 ## 4. Data Transfer Considerations
 
-If shard-storage nodes are distributed across multiple regions/countries (per the Network Topology document's fault-tolerance design), this may constitute an international data transfer under GDPR and similar regimes. Confirm appropriate transfer mechanisms (e.g. Standard Contractual Clauses) are in place before deploying nodes across borders with any customer whose data falls under such regulation.
 
 ---
 
@@ -84,7 +83,6 @@ If shard-storage nodes are distributed across multiple regions/countries (per th
 
 | **Function** | **Input** | **Output** |
 |--------------|-----------|------------|
-| Secret shares (shard_references + actual share data at nodes) | Retained for the credential's active lifetime, as defined by the issuer | Deletion here is the primary mechanism of "forgetting" a credential — core to the product's privacy design |
 | Credential records (hashes, references, status) | Retained for the credential's active lifetime + a defined grace period (default: 30 days post-revocation, adjustable per customer agreement) | Grace period allows for dispute resolution/audit before final deletion |
 | Audit logs | Default 1 year minimum, adjustable per compliance requirements once identified with counsel | Balances dispute-resolution/compliance needs against data minimization |
 | Fabric ledger entries (proof hashes) | Effectively permanent — blockchain ledgers are append-only by design | This is a deliberate tradeoff: immutability is the point of anchoring, but it means proof hashes cannot be "deleted" — make sure this is clearly disclosed, since no raw personal data is anchored, only hashes |
@@ -98,9 +96,7 @@ If shard-storage nodes are distributed across multiple regions/countries (per th
 
 2. Mark the credential as revoked in the credentials table (status field, per Database Schema Document) — immediate, reversible flag.
 
-3. After the grace period, trigger actual deletion: remove shard data from all storage nodes, remove the credential and shard_references rows from the database.
 
-4. The Fabric proof hash remains on the ledger (immutable by design) but becomes meaningless without the corresponding off-chain data — the credential cannot be reconstructed or meaningfully verified as "active" post-deletion.
 
 5. Log the deletion event in the audit log (the deletion event itself, not the deleted data).
 
@@ -268,8 +264,6 @@ For a first pilot customer, an honest, conservative SLA builds more trust than a
 
 | **Function** | **Input** | **Output** |
 |--------------|-----------|------------|
-| API response time | 95th percentile under 2 seconds for /verify requests | Reconstruction-less verification should be fast; validate this target against real Phase 2/3 testing before committing |
-| Issuance processing time | 95th percentile under 5 seconds (includes signing + sharding + anchor submission) | Anchoring confirmation on Fabric may take longer than the initial API response — clarify that anchorStatus may be 'pending' initially, this is expected, not a fault |
 
 ---
 
@@ -345,7 +339,6 @@ In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response 
 
 | Data Type | Retention Period | Deletion Process |
 |-----------|------------------|------------------|
-| Secret shares | Credential active lifetime | Delete all shares + shard_references |
 | Credential records | Active lifetime + 30-day grace period | Mark revoked → delete after grace |
 | Audit logs | 1 year minimum (adjustable) | Standard deletion |
 | Fabric ledger entries | Permanent (append-only) | Cannot delete — contains only hashes |

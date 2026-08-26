@@ -18,8 +18,7 @@ export async function verifyRoute(req, res) {
       record = await getCredentialById(credentialId);
     } else {
       // If no credentialId provided, we could look it up by dataHash if we had an index,
-      // but let's assume we need to return an error or we could look it up by dataHash.
-      // We will look it up by dataHash. (Let's add getCredentialByHash to models if needed. Wait, we can just do that now).
+      // Look up credential by dataHash
       const { getAllCredentials } = await import('../db/models.js');
       const all = await getAllCredentials();
       record = all.find(r => r.data_hash === dataHash || r.dataHash === dataHash);

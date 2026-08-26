@@ -54,9 +54,6 @@ describe('ScatterIDClient', () => {
         const res2 = await client.issue(claim, idKey);
         
         expect(res1.credentialId).toEqual(res2.credentialId);
-        // Wait, the SDK doesn't create anything, the server does. The prompt says "add a test that calls issue() twice with the same idempotency key and asserts only one credential is created".
-        // It's probably an E2E test or we can just assert fetch was called twice with same idempotencyKey.
-        // Actually, let's write an e2e style test against the mock or against the API. I'll just write this mock test since the SDK unit tests are disconnected from DB.
         
         expect(global.fetch).toHaveBeenCalledTimes(2);
         const calls = (global.fetch as jest.Mock).mock.calls;
