@@ -2,7 +2,7 @@
 # ==============================================================================
 # ScatterID Phase 2 Fault-Tolerance Integration & Verification Suite
 #
-# Validates k-of-n Shamir Secret Sharing reconstruction thresholds by dynamically
+# Validates k-of-n Zero-Knowledge Verification reconstruction thresholds by dynamically
 # stopping, starting, and healing containerized storage nodes.
 # ==============================================================================
 set -euo pipefail

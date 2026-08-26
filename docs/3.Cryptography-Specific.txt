@@ -1,165 +1,23 @@
-# ScatterID / Crypto Project - Complete Technical Documentation
+# Cryptography-Specific Details
 
-## Cryptographic Design Document
+## Data-Retention Guarantee
+ScatterID implements a strict reconstruction-less, zero-knowledge verification model. 
 
-### Rule Zero
+Per credential, ScatterID's database and ledger store ONLY:
+- credentialId (UUID)
+- dataHash (salted hash, hex)
+- signature (ML-DSA-65 signature over dataHash, hex)
+- publicKeyId (pointer to issuer's public key in ScatterID's own key registry)
+- algorithm (e.g., ML-DSA-65)
+- issuedAt (ISO 8601 timestamp)
+- status / anchorTxId (revocation + chain-anchor bookkeeping)
 
-**⚠ No cryptographic primitive is ever implemented by hand in this project. Every algorithm below is used via an audited, established library. This document specifies WHICH algorithms and libraries — not how the underlying math works internally.**
+**ScatterID explicitly NEVER stores:**
+- The raw claim data.
+- The 16-byte CSPRNG salt.
+- Anything from which the claim could be reconstructed.
 
-### Signature Scheme
-
-| Function | Input | Output |
-|----------|-------|--------|
-| Algorithm | ML-DSA-65 (CRYSTALS-Dilithium, NIST FIPS 204) | NIST-standardized as of 2024; "65" parameter set balances signature size and security level (~ NIST security level 3) |
-| Library | liboqs / oqs-python bindings | Most mature, actively maintained open-source PQC implementation (Open Quantum Safe project) |
-| Public key size | ~1952 bytes (ML-DSA-65) | Larger than classical ECDSA keys (~65 bytes) — factor into storage/transmission design |
-| Signature size | ~3309 bytes (ML-DSA-65) | Significantly larger than ECDSA (~72 bytes) — acceptable for our use case since credentials aren't transmitted at high frequency |
-| Fallback/conservative option | SLH-DSA (SPHINCS+, FIPS 205) | Hash-based, more conservative security assumptions, much larger signatures (~8-49KB depending on parameter set) — reserve for high-assurance use cases only, not default |
-
-### Hash Function
-
-| Function | Input | Output |
-|----------|-------|--------|
-| Algorithm | SHA3-256 | Quantum resistance against Grover's algorithm reduces effective security to ~128-bit, still considered strong; SHA-3 family avoids length-extension issues present in SHA-2 |
-| Library | Standard library implementations (hashlib in Python, crypto module in Node.js) | No third-party dependency needed — hashing is a solved, standardized primitive |
-| Usage | Hashing claim data before signing; integrity-checking individual shares | Never used as a substitute for encryption — hashing is one-way, not for confidentiality of reversible data |
-
-### Secret-Sharing Scheme
-
-| Function | Input | Output |
-|----------|-------|--------|
-| Algorithm | Shamir's Secret Sharing (SSS) | Information-theoretically secure below threshold — stronger guarantee than computational security |
-| Library | secretsharing or shamir-mnemonic (PyPI) — confirm final choice against maintenance activity before Phase 1 build | Do not implement the underlying GF(256) finite-field math by hand |
-| Parameters (MVP default) | k=3, n=5 | See Secret-Sharing Scheme Specification document for full justification |
-
-### What This Project Explicitly Does NOT Use
-
-- RSA or ECDSA for any new signing operations — both are broken by Shor's algorithm on a sufficiently capable quantum computer
-- MD5 or SHA-1 — both are cryptographically broken for collision resistance, unrelated to quantum concerns
-- Custom/homegrown implementations of any algorithm listed above, under any circumstance, including "for learning purposes" in production code paths
-- ECDH or classical Diffie-Hellman for any new key exchange — also broken by Shor's algorithm
-
-### Library Version Pinning
-
-All cryptographic library versions must be pinned exactly (not "latest" or range-based) in requirements.txt / package.json, and updated only via a deliberate, reviewed process — never an automatic dependency bump. Cryptographic library updates should be reviewed for changelog security notes before adopting.
-
-### Randomness Source
-
-- All key generation and share generation must use a cryptographically secure random number generator (CSPRNG) — Python's `secrets` module or `os.urandom()`, never the `random` module.
-- Node.js: use `crypto.randomBytes()`, never `Math.random()`, for anything security-relevant.
-
-**⚠ Weak randomness is one of the most common real-world cryptographic failures — it silently undermines otherwise-correct algorithm choices. Flag any use of a non-CSPRNG source in code review immediately.**
-
-### Algorithm Agility Note
-
-PQC standards are newer than classical cryptography and may see parameter or recommendation updates as cryptanalysis matures. Design the Issuance Layer's signing function to accept an algorithm identifier as a parameter (already reflected in the SignedCredential.algorithm field in the Interface Contract) so a future algorithm swap doesn't require restructuring the data model — only issuing new credentials under the updated algorithm going forward.
-
----
-
-## Key Management Policy
-
-### Scope
-
-This policy governs the ML-DSA-65 issuer signing keypairs used throughout Crypto Project. It does not cover TLS certificates (covered separately under network security practices) or Fabric MSP identities (covered in the Chaincode Design Document).
-
-### Key Generation
-
-1. Keys are generated exclusively using liboqs/oqs-python's `generate_keypair()` function — never manually constructed or derived through non-standard means.
-2. Generation must occur on a machine with access to a proper CSPRNG (see Cryptographic Design Document, Section 6) — never on a machine with known entropy issues (e.g. freshly booted VMs without entropy pooling configured).
-3. Each issuer organization receives its own distinct keypair — keys are never shared across issuers, even during MVP/testing phases.
-4. MVP/test keys must be clearly distinguishable from any future production keys (e.g. separate naming/tagging convention) to prevent accidental reuse.
-
-### Key Storage
-
-| Function | Input | Output |
-|----------|-------|--------|
-| MVP / Development | Environment variables, loaded from a local .env file (never committed to git) | Acceptable only for local development and internal testing — not for any real customer credential |
-| Phase 3 / Pilot-ready | Dedicated secrets manager (e.g. cloud provider's secrets manager, or HashiCorp Vault) | Required before any real customer's issuer key is generated — do not deploy pilot with env-var-only key storage |
-| Long-term / Production | Hardware Security Module (HSM) or cloud HSM service | Required once handling regulated customer data (KYC, government eID) — flagged in the PRD as a P2/future requirement, but should be planned for before any enterprise contract is signed |
-
-**⚠ Private signing keys must never appear in application logs, error messages, commit history, or Slack/Discord messages — including screenshots. If a key is ever accidentally exposed this way, treat it as compromised and rotate immediately (Section 4), regardless of whether misuse is confirmed.**
-
-### Key Rotation
-
-1. Routine rotation: issuer signing keys should be rotated on a defined schedule once in production (recommend annually as a starting policy — revisit based on actual threat landscape and any customer contractual requirements).
-2. Emergency rotation: triggered immediately upon any suspected exposure (leaked key, compromised server, departing team member with prior key access).
-3. Rotation process: generate new keypair → begin signing new credentials with the new key → keep the old public key available for verifying previously issued credentials (do not invalidate historical signatures) → mark old key as "retired, verify-only" in the issuers table.
-4. Communicate rotation to any downstream verifiers that pin/cache public keys, if applicable, so verification doesn't silently break.
-
-### Key Destruction
-
-1. When a key is retired (not just rotated) and no future verification is needed against it (e.g. issuer relationship ends, all associated credentials have separately expired), securely delete all copies from secrets storage.
-2. Secure deletion means: remove from secrets manager AND overwrite/delete from any backup that isn't independently access-controlled and audited.
-3. Log the destruction event (which key, when, why) in the audit log — destruction should be traceable even though the key itself is gone.
-
-### Access Control
-
-- Only the Issuance Layer service (not developers directly, not other services) should have runtime read access to production signing keys.
-- Founders/senior team members may have break-glass access for emergency operations, but this access should be logged and reviewed, not routine.
-- Interns and general team members must never have direct access to production signing keys — development/testing uses separate, clearly-marked test keys only (see Section 2).
-
-### Incident Response — Suspected Key Compromise
-
-1. Immediately begin emergency rotation (Section 4) — do not wait for full confirmation of compromise; the cost of unnecessary rotation is far lower than the cost of delay.
-2. Audit all credentials signed with the potentially compromised key since the suspected exposure window.
-3. Notify affected issuers/verifiers if any customer-facing credentials are impacted — do not delay disclosure to "investigate first" once compromise is confirmed.
-4. Document the incident: what happened, when detected, response timeline, root cause — feed into the Incident Response Runbook (DevOps category) once that document exists.
-
----
-
-## Secret-Sharing Scheme Specification
-
-### Scheme Selected
-
-Shamir's Secret Sharing (SSS), operating over a finite field (GF(2^8) or a suitably large prime field, per the chosen library's implementation). A secret is encoded as the constant term of a randomly generated polynomial of degree k−1; each share is one evaluated point on that polynomial. Any k distinct points allow reconstruction via Lagrange interpolation; fewer than k points reveal zero information about the secret.
-
-### k/n Parameter Justification (MVP Default: k=3, n=5)
-
-| Function | Input | Output |
-|----------|-------|--------|
-| n=5 (total shares) | Five independent storage nodes, ideally across separate providers/regions | Balances fault tolerance against operational complexity for a 4-person team — more nodes means more infrastructure to run and monitor |
-| k=3 (threshold) | Requires 3 of 5 shares to reconstruct/verify | Tolerates up to 2 simultaneous node failures or destructions with zero data loss (see Section 3 for the fault-tolerance math) |
-| Security margin (n−k+1 = 3) | An attacker needs to compromise 3 separate nodes to steal anything usable | Meaningfully higher bar than compromising a single centralized database — the core value proposition of the sharding design |
-
-### Fault Tolerance Analysis
-
-- With k=3, n=5: system tolerates any 2 nodes being destroyed, offline, or unreachable — reconstruction/verification still succeeds using the remaining 3.
-- If more than 2 nodes are lost simultaneously, the credential becomes unrecoverable — this is a deliberate design tradeoff, not a bug. Document this limit clearly in customer-facing SLA discussions once pursuing pilots.
-- Node placement (Network Topology document) should ensure the 5 nodes don't share a common failure domain — e.g. not all 5 behind the same cloud provider's single region, or the "2 node loss tolerance" becomes weaker in practice than it looks on paper.
-
-### Security Analysis
-
-- Below threshold (fewer than k=3 shares held by an attacker): information-theoretically zero information leaked about the secret — this holds regardless of attacker computational power, including future quantum capability.
-- At or above threshold (k=3+ shares compromised): full reconstruction is possible — this is why node independence (separate credentials, separate infrastructure, separate access control per node) matters as much as the k/n math itself.
-
-**⚠ The security guarantee is only as strong as the assumption that compromising multiple nodes requires genuinely independent effort. If all 5 nodes share the same admin credentials or the same underlying infrastructure account, the effective security collapses toward k=1 regardless of what the math says on paper.**
-
-### Share Format Specification
-
-```typescript
-Share {
-  index: number        // 1..n, the x-coordinate on the polynomial
-  value: string        // hex-encoded share bytes (the y-coordinate)
-  share_hash: string   // SHA3-256 hash of `value`, for integrity checking
-  credential_id: string // which credential this share belongs to
-  created_at: string   // ISO 8601 timestamp
-}
-```
-
-The share_hash field allows a node or the verification service to detect if a share has been corrupted or tampered with before attempting to use it in comparison/reconstruction — without needing to trust the storage node's integrity implicitly.
-
-### Re-Sharing / Parameter Changes
-
-If k or n needs to change for a given credential (e.g. adding a 6th node, or increasing the threshold), this requires generating entirely new shares from the original secret — existing shares under old parameters cannot be "upgraded" in place. This should be treated as re-issuance, not modification, and logged accordingly in the audit trail.
-
-### Testing Requirements
-
-1. Verify reconstruction succeeds with exactly k shares, using various combinations of which k out of n are used (not just the first k).
-2. Verify reconstruction fails cleanly (clear error, not silent wrong output) with k−1 shares.
-3. Verify that a corrupted share (failing its share_hash check) is rejected before being used in any comparison/reconstruction attempt, and that the system can still succeed using the remaining valid shares if enough are available.
-4. Load-test the share-distribution step to confirm all n shares are written successfully, with a defined retry/alerting behavior if any single node write fails during issuance.
-
----
+Hashing (using RFC 8785 JCS canonicalization and a 16-byte CSPRNG salt) happens entirely client-side via the ScatterID SDK. Only the resulting `dataHash` is ever transmitted to the ScatterID backend.
 
 ## Summary of All Technical Decisions
 
@@ -167,82 +25,19 @@ If k or n needs to change for a given credential (e.g. adding a 6th node, or inc
 |----------|----------|
 | **Primary Language/Stack** | Python (crypto module), Node.js (API + SDK) |
 | **PQC Signature Algorithm** | ML-DSA-65 (CRYSTALS-Dilithium, NIST FIPS 204) |
-| **Secret-Sharing Scheme** | Shamir's Secret Sharing, k=3 of n=5 for MVP |
-| **Anchoring Chain** | [To be filled: e.g. Sepolia testnet / specific PQC-readying chain] |
+| **Secret-Sharing Scheme** | Removed (Zero-knowledge hashing model used instead) |
+| **Anchoring Chain** | Sepolia testnet / specific PQC-readying chain |
 | **Database (MVP)** | SQLite for local dev, Postgres for shared staging |
-| **Hashing Algorithm** | SHA3-256 |
-| **API Auth (MVP)** | Static API key per module team, env-var only, never committed |
-| **Repo Structure** | One private repo per module + one founders-only integration repo |
-| **Key Storage (MVP)** | Environment variables, loaded from .env file (never committed) |
-| **Key Storage (Phase 3)** | Dedicated secrets manager (cloud provider's or HashiCorp Vault) |
-| **Key Storage (Production)** | Hardware Security Module (HSM) or cloud HSM service |
-| **Randomness Source** | Python: `secrets` or `os.urandom()`; Node.js: `crypto.randomBytes()` |
-| **Library Versioning** | Pinned exactly, no "latest" or range-based |
-| **v1 Explicitly Excludes** | Custom L1 blockchain, ZK proofs, consumer wallet, multiple PQC algorithms, HSM integration |
-| **Endpoint 1** | POST /issue — issue new signed, sharded credential |
-| **Endpoint 2** | POST /verify — verify credential without reconstruction |
+| **Hashing Algorithm** | SHA3-256 with 16-byte CSPRNG Salt (RFC 8785 JCS Canonicalization) |
+| **API Auth (MVP)** | Static API key per module team |
+| **Key Storage (MVP)** | Environment variables |
+| **Key Storage (Production)** | Hardware Security Module (HSM) or HashiCorp Vault |
+| **Randomness Source** | Node.js: `crypto.randomBytes()` |
+| **Library Versioning** | Pinned exactly |
+| **Endpoint 1** | POST /issue — issue new signed credential |
+| **Endpoint 2** | POST /verify — verify credential |
 | **Endpoint 3** | GET /status/{id} — get credential status |
 | **Authentication** | Bearer <API_KEY> in Authorization header |
 | **API Response (Error)** | {error: string, code: string} |
 | **Chaincode Language** | Go (Fabric's most mature) |
-| **Chaincode Package** | scatterproof (internal name) |
-| **Chaincode Functions** | AnchorProof, QueryProof, RevokeProof, ProofExists |
-| **Chaincode Access Control** | Enforced in chaincode logic via MSP identity |
-| **Endorsement Policy (MVP)** | Majority of participating peer organizations (e.g. 2-of-3) |
-| **Database Credentials Table** | id, data_hash, algorithm, signature, anchor_tx_id, status, issuer_id, issued_at, created_at, updated_at |
-| **Database Shard References** | id, credential_id, node_id, share_index, share_hash, storage_location, created_at |
-| **Database Issuers Table** | id, name, public_key, api_key_hash, status, created_at |
-| **Database Audit Log** | id, event_type, credential_id, actor_id, result, metadata, created_at |
-| **Database Principle** | Never stores raw claim data, private keys, or full secret shares |
-| **Data Retention** | audit_log: 1 year minimum; credentials: operational lifetime |
-| **Phase 0 Timeline** | 4-6 weeks |
-| **Phase 1 Timeline** | 8-10 weeks |
-| **Phase 2 Timeline** | 6-8 weeks |
-| **Phase 3 Timeline** | 8-12 weeks |
-| **Phase 4 Timeline** | Ongoing |
-| **Phase 1 Deployment** | Local process, local port (localhost only) |
-| **Phase 2 Deployment** | Containerized, local network (docker-compose) |
-| **Phase 3 Deployment** | Cloud-hosted, public IP with mutual TLS |
-| **Optional Phase 2.5** | Private network, multiple machines via VPN |
-| **Fabric Ports** | 7051 (peer), 7050 (orderer), 7054 (CA), 443 (API) |
-| **Shared Credential Structure** | data_hash, signature, shares[], algorithm, created_at |
-| **CredentialRecord Structure** | id, dataHash, shardRefs[], anchorTxId, status, issuedAt |
-| **SDK Methods** | issueCredential, verifyCredential, getStatus |
-| **Threat Model Framework** | STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) |
-| **Trust Boundaries** | Client↔API (HTTPS + API key), API↔Internal Services, Sharding↔Storage Nodes, API↔Fabric (mutual TLS) |
-| **Cross-Cutting Risks** | Reconstruction exposure, supply chain risk, insider risk |
-| **Out-of-Scope Threats** | Nation-state physical attacks, side-channel attacks, biometric attacks |
-| **Key Rotation** | Annually (routine), immediate (emergency) |
-| **Fault Tolerance** | Tolerates up to 2 node failures with k=3, n=5 |
-| **Security Guarantee** | Information-theoretically secure below threshold |
-| **Share Format** | index, value (hex), share_hash, credential_id, created_at |
-| **Re-sharing** | Requires complete re-issuance, not in-place upgrade |
-| **Testing Requirements** | Reconstruction with exactly k shares, failure with k−1, corrupted share rejection, load-testing |
-
----
-
-## Quick Reference: Document Cross-References
-
-| Document | Key Focus |
-|----------|-----------|
-| **00_Product_Requirements_Document_CryptoProject.docx** | Product goals, requirements, success metrics |
-| **01_Vision_Roadmap_CryptoProject.docx** | Vision, mission, roadmap phases, principles |
-| **02_Market_Competitive_Analysis_CryptoProject.docx** | Market position, competitors, differentiators |
-| **03_Target_Customer_Use_Case_CryptoProject.docx** | Target segments, use cases, buyer personas |
-| **04_Pitch_OnePager_CryptoProject.docx** | Elevator pitch, problem/solution, business model |
-| **01_Architecture_Decision_Record_ScatterID.docx** | Locked technical decisions, out-of-scope items |
-| **02_Interface_Contract_ScatterID.docx** | Data shapes, API contracts, SDK contracts |
-| **06_System_Architecture_Diagram_CryptoProject.docx** | Layers, components, data flow, trust boundaries |
-| **07_Threat_Model_STRIDE_CryptoProject.docx** | STRIDE analysis, assets, risks |
-| **08_Data_Flow_Diagram_CryptoProject.docx** | Level 0 and Level 1 DFDs, data stores |
-| **09_Network_Topology_CryptoProject.docx** | Phase 1, 2, 3 network deployment |
-| **10_Database_Schema_CryptoProject.docx** | PostgreSQL schema, relationships, retention |
-| **11_Chaincode_Design_Document_CryptoProject.docx** | Fabric chaincode functions, access control |
-| **12_Cryptographic_Design_Document_CryptoProject.docx** | Algorithms, libraries, randomness |
-| **13_Key_Management_Policy_CryptoProject.docx** | Generation, storage, rotation, destruction |
-| **14_Secret_Sharing_Scheme_Specification_CryptoProject.docx** | k/n justification, share format, testing |
-| **openapi.yaml** | OpenAPI 3.0.3 API specification |
-
----
-
-*This documentation represents the complete, finalized technical specifications for ScatterID / Crypto Project — Post-Quantum Identity Verification Infrastructure.*
+| **SDK Methods** | issue, verifyByHash, verifyByClaim, getStatus |

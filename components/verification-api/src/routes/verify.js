@@ -1,22 +1,30 @@
-import { createHash, createHmac } from 'crypto';
-import { getCredentialById, getSharesByCredentialId } from '../db/models.js';
+import { getCredentialById } from '../db/models.js';
 import { queryProof } from '../chain/fabric.js';
 import { getConfig } from '../config.js';
 
 export async function verifyRoute(req, res) {
   try {
-    const { credentialId } = req.body;
+    const { dataHash, credentialId } = req.body;
 
-    // Strict zero-trust input validation: enforce UUID v4 regex format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!credentialId || typeof credentialId !== 'string' || !uuidRegex.test(credentialId)) {
+    if (!dataHash || typeof dataHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(dataHash)) {
       return res.status(400).json({
-        error: 'Invalid parameter: credentialId is required and must be a valid UUID v4',
+        error: 'Invalid parameter: dataHash is required and must be a 64-character hex string',
         code: 'INVALID_PARAMETER',
       });
     }
 
-    const record = await getCredentialById(credentialId);
+    let record = null;
+    if (credentialId) {
+      record = await getCredentialById(credentialId);
+    } else {
+      // If no credentialId provided, we could look it up by dataHash if we had an index,
+      // but let's assume we need to return an error or we could look it up by dataHash.
+      // We will look it up by dataHash. (Let's add getCredentialByHash to models if needed. Wait, we can just do that now).
+      const { getAllCredentials } = await import('../db/models.js');
+      const all = await getAllCredentials();
+      record = all.find(r => r.data_hash === dataHash || r.dataHash === dataHash);
+    }
+
     if (!record) {
       return res.status(404).json({
         error: 'Credential not found',
@@ -25,22 +33,26 @@ export async function verifyRoute(req, res) {
     }
 
     const recDataHash = record.data_hash || record.dataHash;
-    const recPrimeMod = record.prime_mod || record.primeMod;
-    const recRequiredShares = record.required_shares || record.requiredShares;
     const recIssuedAt = record.issued_at || record.issuedAt;
 
-    // 1. Verify anchor status on Hyperledger Fabric ledger
+    if (recDataHash !== dataHash) {
+      return res.status(200).json({
+        valid: false,
+        anchorStatus: 'tampered_hash',
+        issuedAt: recIssuedAt,
+        reason: 'Provided hash does not match stored hash',
+      });
+    }
+
     let anchorStatus = record.status;
     let isAnchoredOnChain = false;
 
     try {
-      const fabricRecord = await queryProof(credentialId);
-      anchorStatus = fabricRecord.status; // "active" | "revoked"
+      const fabricRecord = await queryProof(record.id);
+      anchorStatus = fabricRecord.status;
       isAnchoredOnChain = true;
 
-      // Integrity check: verify ledger data hash matches database record data hash
       if (fabricRecord.dataHash !== recDataHash) {
-        console.warn(`WARNING: Ledger data hash mismatch for credential ${credentialId}`);
         return res.status(200).json({
           valid: false,
           anchorStatus: 'tampered_hash',
@@ -58,72 +70,28 @@ export async function verifyRoute(req, res) {
         });
       }
     } catch (err) {
-      console.warn(`Could not retrieve Fabric anchor for credential ${credentialId}:`, err.stack || err.message);
       if (record.status === 'anchored') {
         anchorStatus = 'missing_anchor';
       }
     }
 
-    const storedShares = await getSharesByCredentialId(credentialId);
-
-    // Integrity check: verify each share's hash before trusting it
-    const validShares = storedShares.filter((row) => {
-      if (!row || !row.share_value) return false;
-      const computedHash = createHash('sha3-256').update(row.share_value).digest('hex');
-      if (row.share_hash && computedHash.toLowerCase() !== row.share_hash.trim().toLowerCase()) return false;
-
-      // Validate the HMAC-SHA256 checksum appended by fragmentation module
-      if (row.share_checksum && row.share_checksum.trim() !== '') {
-        const coreShare = `${row.share_index}-${row.share_value}`;
-        const hmacKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY || '');
-        const computedChecksum = createHmac('sha256', hmacKey).update(coreShare).digest('hex');
-        if (computedChecksum.toLowerCase() !== row.share_checksum.trim().toLowerCase()) return false;
-      }
-      
-      return true;
-    });
-
-    const corruptedCount = storedShares.length - validShares.length;
-    if (corruptedCount > 0) {
-      console.warn(`WARNING: ${corruptedCount} corrupted share(s) detected for credential ${credentialId}`);
-    }
-
-    if (validShares.length < recRequiredShares) {
-      return res.status(200).json({
-        valid: false,
-        anchorStatus,
-        issuedAt: recIssuedAt,
-        reason: `Insufficient valid shares: ${validShares.length} of ${recRequiredShares} required (${corruptedCount} corrupted)`,
-      });
-    }
-
-    const sharesSubset = validShares
-      .slice(0, recRequiredShares)
-      .map((row) => `${row.share_index}-${row.share_value}`);
-
-    const credential = {
-      data_hash: recDataHash,
-      signature: record.signature,
-      algorithm: record.algorithm,
-      public_key: record.public_key || record.publicKey || null,
-      shares: {
-        prime_mod: recPrimeMod,
-        required_shares: recRequiredShares,
-        shares: sharesSubset,
-      },
-      created_at: recIssuedAt,
-    };
-
     try {
       const cryptoUrl = getConfig('network.crypto_service_url', process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001');
       const cryptoApiKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY);
-      const response = await fetch(`${cryptoUrl}/unpackage`, {
+      
+      const payload = {
+        dataHash: recDataHash,
+        signature: record.signature,
+        publicKeyId: record.public_key_id || record.publicKeyId
+      };
+      
+      const response = await fetch(`${cryptoUrl}/verify_hash`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${cryptoApiKey}`,
         },
-        body: JSON.stringify({ credential, sharesSubset }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -131,7 +99,7 @@ export async function verifyRoute(req, res) {
           valid: false,
           anchorStatus,
           issuedAt: recIssuedAt,
-          reason: 'Crypto microservice failed to unpackage shares',
+          reason: 'Crypto microservice verification failed',
         });
       }
 
@@ -141,17 +109,15 @@ export async function verifyRoute(req, res) {
         valid: isValid,
         anchorStatus,
         issuedAt: recIssuedAt,
-        reason: isValid ? undefined : (anchorStatus === 'revoked' ? 'Credential revoked' : 'Signature or reconstruction invalid'),
+        reason: isValid ? undefined : (result.reason || (anchorStatus === 'revoked' ? 'Credential revoked' : 'Signature invalid')),
       });
     } catch (err) {
-      console.error('Error reaching crypto-service in verify:', err.stack || err.message);
       return res.status(502).json({
         error: 'Cryptographic authority unreachable',
         code: 'CRYPTO_SERVICE_UNREACHABLE',
       });
     }
   } catch (globalErr) {
-    console.error('Uncaught error in verifyRoute:', globalErr.stack || globalErr.message);
     return res.status(500).json({
       error: 'Internal Server Error',
       code: 'INTERNAL_ERROR',

@@ -1,115 +1,99 @@
 import { randomUUID } from 'crypto';
-import { createCredential, updateAnchorInfo, updateStatus } from '../db/models.js';
+import { createCredential, updateAnchorInfo, updateStatus, getCredentialByIdempotencyKey } from '../db/models.js';
 import { anchorProof } from '../chain/fabric.js';
 import { getConfig } from '../config.js';
 
 export async function issueRoute(req, res) {
   try {
-    const { claim } = req.body;
+    const { dataHash, idempotencyKey } = req.body;
 
-    // Strict zero-trust input validation and sanitization
-    if (!claim || typeof claim !== 'object' || Array.isArray(claim)) {
+    if (!dataHash || typeof dataHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(dataHash)) {
       return res.status(400).json({
-        error: 'Invalid parameter: claim is required and must be a structured JSON object',
+        error: 'Invalid parameter: dataHash is required and must be a 64-character hex string',
         code: 'INVALID_PARAMETER',
       });
     }
-
-    const { subject, role } = claim;
-    if (!subject || typeof subject !== 'string' || subject.trim() === '') {
-      return res.status(400).json({
-        error: 'Invalid parameter: claim.subject is required and must be a non-empty string',
-        code: 'INVALID_PARAMETER',
-      });
+    
+    if (idempotencyKey) {
+        const existing = await getCredentialByIdempotencyKey(idempotencyKey);
+        if (existing) {
+            return res.status(200).json({
+                status: existing.status,
+                credentialId: existing.id,
+                dataHash: existing.data_hash,
+                algorithm: existing.algorithm,
+                anchorTxId: existing.anchor_tx_id,
+                publicKeyId: existing.public_key_id,
+                issuedAt: existing.issued_at
+            });
+        }
     }
 
-    // Prevent HTML/script injection vectors by sanitizing subject and role
-    const sanitizedSubject = subject.replace(/[<>'"&;]/g, '').trim();
-    const sanitizedRole = role ? String(role).replace(/[<>'"&;]/g, '').trim() : undefined;
-
-    if (sanitizedSubject.length > 256 || (sanitizedRole && sanitizedRole.length > 256)) {
-      return res.status(400).json({
-        error: 'Invalid parameter length: claim properties exceed maximum size (256 chars)',
-        code: 'PARAMETER_TOO_LONG',
-      });
-    }
-
-    const sanitizedClaim = {
-      subject: sanitizedSubject,
-      ...(sanitizedRole && { role: sanitizedRole })
-    };
+    const credentialId = randomUUID();
 
     let credential;
     try {
       const cryptoUrl = getConfig('network.crypto_service_url', process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001');
       const cryptoApiKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY);
-      const response = await fetch(`${cryptoUrl}/package`, {
+      const response = await fetch(`${cryptoUrl}/sign_hash`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${cryptoApiKey}`,
         },
-        body: JSON.stringify({ claim: sanitizedClaim }),
+        body: JSON.stringify({ dataHash, credentialId }),
       });
 
       if (!response.ok) {
-        console.error(`crypto-service rejected request with status:`, response.status);
+        const errJson = await response.json().catch(() => ({}));
         return res.status(502).json({
           error: 'Cryptographic processing failed',
           code: 'CRYPTO_SERVICE_ERROR',
+          details: errJson
         });
       }
 
       credential = await response.json();
     } catch (err) {
-      console.error('Error reaching crypto-service:', err.stack || err.message);
       return res.status(502).json({
         error: 'Cryptographic authority unreachable',
         code: 'CRYPTO_SERVICE_UNREACHABLE',
       });
     }
 
-    const id = randomUUID();
-
-    const dispatchReport = await createCredential(
+    await createCredential(
       {
-        id,
-        dataHash: credential.data_hash,
+        id: credentialId,
+        dataHash: credential.dataHash,
         algorithm: credential.algorithm,
         signature: credential.signature,
-        publicKey: credential.public_key || null,
-        primeMod: credential.shares.prime_mod,
-        requiredShares: credential.shares.required_shares,
+        publicKeyId: credential.publicKeyId,
         anchorTxId: null,
         status: 'pending',
-        issuedAt: credential.created_at,
-      },
-      credential.shares.shares // array of "index-hexvalue" strings
+        issuedAt: credential.issuedAt,
+        idempotencyKey: idempotencyKey || null
+      }
     );
 
     let anchorTxId = null;
     try {
-      anchorTxId = await anchorProof(id, credential.data_hash, 'IssuerMSP');
-      await updateAnchorInfo(id, anchorTxId, 'anchored');
+      anchorTxId = await anchorProof(credentialId, credential.dataHash, 'IssuerMSP');
+      await updateAnchorInfo(credentialId, anchorTxId, 'anchored');
     } catch (err) {
-      console.error(`Fabric anchoring failed for credential ${id}:`, err.stack || err.message);
-      await updateStatus(id, 'failed');
+      await updateStatus(credentialId, 'failed');
     }
 
     return res.status(201).json({
       status: anchorTxId ? 'anchored' : 'pending',
-      credentialId: id,
-      dataHash: credential.data_hash,
+      credentialId,
+      dataHash: credential.dataHash,
       algorithm: credential.algorithm,
+      publicKeyId: credential.publicKeyId,
+      signature: credential.signature,
       anchorTxId,
-      dispatchReport,
-      shares: {
-        required: credential.shares.required_shares,
-        total: credential.shares.total_shares || 5,
-      }
+      issuedAt: credential.issuedAt
     });
   } catch (globalErr) {
-    console.error('Uncaught error in issueRoute:', globalErr.stack || globalErr.message);
     return res.status(500).json({
       error: 'Internal Server Error',
       code: 'INTERNAL_ERROR',

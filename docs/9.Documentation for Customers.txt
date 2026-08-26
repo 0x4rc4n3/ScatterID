@@ -98,7 +98,7 @@ Identity data is permanent, but the cryptography historically used to protect it
 | **Function** | **Input** | **Output** |
 |--------------|-----------|------------|
 | Post-quantum signatures | ML-DSA-65 (NIST FIPS 204), implemented via the audited, open-source liboqs library | No proprietary or unaudited cryptography — verifiable against public NIST standards |
-| Threshold secret-sharing | Shamir's Secret Sharing, k=3 of n=5 by default | No single storage node ever holds a complete, usable credential; information-theoretically secure below threshold |
+| Threshold secret-sharing | Zero-Knowledge Verification, k=3 of n=5 by default | No single storage node ever holds a complete, usable credential; information-theoretically secure below threshold |
 | Reconstruction-less verification | Exact-match identity data is verified via share-level comparison wherever possible, without full reconstruction | Minimizes the window during which any complete secret exists in a system's memory |
 | Private, permissioned ledger | Hyperledger Fabric, self-hosted and self-controlled | Tamper-evident proof anchoring with no dependency on any public blockchain's availability or governance |
 
@@ -194,7 +194,7 @@ Post-quantum, reconstruction-less identity credential verification infrastructur
 | Technology | Details |
 |------------|---------|
 | Post-quantum signatures | ML-DSA-65 (NIST FIPS 204) via liboqs |
-| Secret sharing | Shamir's Secret Sharing, k=3 of n=5 (default) |
+| Secret sharing | Zero-Knowledge Verification, k=3 of n=5 (default) |
 | Ledger | Hyperledger Fabric (self-hosted, self-controlled) |
 | API authentication | Role-scoped (issuer/verifier permissions distinct) |
 

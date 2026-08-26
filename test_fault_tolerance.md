@@ -1,7 +1,7 @@
 # Component Technical Specification: test_fault_tolerance.sh
 
 ## 1. Purpose & Core Responsibility
-- Automates verification of the $k$-of-$n$ Shamir Secret Sharing reconstruction thresholds ($k=3$, $n=5$).
+- Automates verification of the $k$-of-$n$ Zero-Knowledge Verification reconstruction thresholds ($k=3$, $n=5$).
 - Dynamically stops, starts, and heals containerized storage nodes to prove fault tolerance.
 
 ## 2. Inbound & Outbound Communication Whitelist

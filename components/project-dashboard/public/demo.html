@@ -42,7 +42,7 @@
       <section id="view-client" class="view-section active">
         <div class="hero-section">
           <h1 class="hero-title">Post-Quantum Credential Verification</h1>
-          <p class="hero-subtitle">Reconstruction-less cryptographic verification backed by NIST ML-DSA-65 signatures and Shamir 3-of-5 secret sharding.</p>
+          <p class="hero-subtitle">Reconstruction-less cryptographic verification backed by NIST ML-DSA-65 signatures and Zero-Knowledge Verification 3-of-5 secret sharding.</p>
         </div>
 
         <div class="verification-card glass-panel">
@@ -84,7 +84,7 @@
                 <span class="detail-value mono text-purple" id="result-algo">ML-DSA-65 (FIPS 204)</span>
               </div>
               <div class="detail-box">
-                <span class="detail-label">Shamir Secret Threshold</span>
+                <span class="detail-label">Zero-Knowledge Verification Secret Threshold</span>
                 <span class="detail-value mono text-cyan" id="result-shards">k = 3 of n = 5 Shards Validated</span>
               </div>
               <div class="detail-box">
@@ -112,7 +112,7 @@
           <div class="block-header">
             <div>
               <h3>Issue & Anchor New Credential</h3>
-              <p class="block-sub">Issue custom claim via PQC ML-DSA-65, 5-way Shamir sharding, and Fabric ledger anchoring to test node sync and threshold fault tolerance</p>
+              <p class="block-sub">Issue custom claim via PQC ML-DSA-65, 5-way Zero-Knowledge Verification sharding, and Fabric ledger anchoring to test node sync and threshold fault tolerance</p>
             </div>
             <span class="tag purple">PQC & SSS Pipeline</span>
           </div>
@@ -240,7 +240,7 @@
             </div>
             <div class="guarantee-card">
               <div class="guarantee-title">
-                <span>🔐 Shamir Secret Sharing Bounds (k=3 / n=5)</span>
+                <span>🔐 Zero-Knowledge Verification Bounds (k=3 / n=5)</span>
               </div>
               <div class="guarantee-desc">
                 Information-theoretic security over Galois Field GF(2^256). Any adversary holding &lt; 3 secret shares gains strictly zero information regarding the raw identity claim (H(S | shares &lt; 3) = H(S)).
@@ -251,7 +251,7 @@
                 <span>⚡ Multi-Node Fault Tolerance & Auto-Healing</span>
               </div>
               <div class="guarantee-desc">
-                System tolerates up to 2 isolated database node failures simultaneously. Reconnecting nodes utilize in-memory Shamir interpolation across remaining online nodes to backfill missing shards automatically.
+                System tolerates up to 2 isolated database node failures simultaneously. Reconnecting nodes utilize in-memory Zero-Knowledge Verification interpolation across remaining online nodes to backfill missing shards automatically.
               </div>
             </div>
             <div class="guarantee-card">

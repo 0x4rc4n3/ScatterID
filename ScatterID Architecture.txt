@@ -2,7 +2,7 @@
 
   ## System Architecture Context
 
-  ScatterID implements a decentralized, fault-tolerant identity architecture combining Post-Quantum Cryptography (PQC ML-DSA-65), Shamir’s Secret Sharing (SSS (k = 3,n = 5)), isolated SQLite storage nodes (node_1.db through node_5.db),
+  ScatterID implements a decentralized, fault-tolerant identity architecture combining Post-Quantum Cryptography (PQC ML-DSA-65), Zero-Knowledge Verification’s Secret Sharing (SSS (k = 3,n = 5)), isolated SQLite storage nodes (node_1.db through node_5.db),
   and immutable transaction anchoring via Hyperledger Fabric.
 
                         +-------------------------------------------------+
@@ -43,7 +43,7 @@
       • The Verification API dispatches shard i to node i via POST http://shard-node-i:3000/shard.
       • Simultaneously, credential metadata (excluding secret shares) is replicated across active nodes to preserve record metadata visibility.
   2. Threshold Verification:
-      • Write acknowledgment succeeds as long as at least k = 3 nodes successfully store their assigned Shamir share Sᵢ = (i,yᵢ).
+      • Write acknowledgment succeeds as long as at least k = 3 nodes successfully store their assigned Zero-Knowledge Verification share Sᵢ = (i,yᵢ).
       • Failure to reach 2 offline nodes generates a warning log without aborting credential issuance or blockchain anchoring.
   3. Hyperledger Fabric Anchoring:
       • After ≥3 shards are stored, the SHA3-256 hash of the credential payload (
@@ -113,7 +113,7 @@
         Recover Secret (raw_bytes) using Lagrange Interpolation over Finite Field GF(2^256):
             f(x) = Sum_{j=1}^3 ( y_j * Product_{m != j} (-x_m / (x_j - x_m)) )
     
-    [ Step 3: Re-evaluate Shamir Polynomial ]
+    [ Step 3: Re-evaluate Zero-Knowledge Verification Polynomial ]
         Calculate missing share S_i = (i, f(i)) for target Node i.
     
     [ Step 4: Local Write & Checksum Generation ]
@@ -229,7 +229,7 @@
   • Stack Startup: Managed via start.sh across Hyperledger Fabric, Vault, Verification Gateway, and Shard Nodes 1–5.
   • End-to-End Test Suite: test_all.sh executed with 100% pass rate:
       • PQC ML-DSA-65 signature generation & key rotation validated.
-      • Shamir secret share reconstruction validated under multi-node failure conditions.
+      • Zero-Knowledge Verification secret share reconstruction validated under multi-node failure conditions.
       • Verification API /issue, /status, and /verify endpoints fully operational.
 
 

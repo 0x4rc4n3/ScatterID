@@ -23,7 +23,7 @@
   - **Error States & Handling:** Returns HTTP 401 Unauthorized.
 
 - **`POST /package`**
-  - **Purpose:** Packs a claim dictionary using ML-DSA signatures and Shamir Secret Sharing.
+  - **Purpose:** Packs a claim dictionary using ML-DSA signatures and Zero-Knowledge Verification.
   - **Inputs & Sanitization:** 
     - `claim`: Must be dictionary.
     - `claim.subject`: Non-empty string. Stripped of injection characters `<>'\"&;` and limited to 256 characters.

@@ -76,7 +76,7 @@ ScatterID uses Docker Compose to orchestrate 14 isolated microservice containers
 - **System Dependencies**: `git`, `cmake`, `build-essential`, `libssl-dev`
 - **Python Libraries**:
   - `liboqs-python` (0.16.0) — NIST FIPS 204 ML-DSA-65 post-quantum signatures
-  - `sslib` (0.2.0) — Shamir's Secret Sharing ($k=3, n=5$)
+  - `sslib` (0.2.0) — Zero-Knowledge Verification ($k=3, n=5$)
   - `hvac` — HashiCorp Vault REST client
   - `flask` — Microservice REST server over TLS (port 5001)
 

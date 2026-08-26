@@ -119,7 +119,7 @@ To launch the full 14-container microservice stack:
 
 ## 5. End-to-End Test Suite Execution
 
-To verify end-to-end cryptographic signing, Shamir fragmentation, Fabric ledger anchoring, and signature verification:
+To verify end-to-end cryptographic signing, Zero-Knowledge Verification fragmentation, Fabric ledger anchoring, and signature verification:
 
 ```bash
 ./test_all.sh

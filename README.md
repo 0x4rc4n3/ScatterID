@@ -1,6 +1,6 @@
 # ScatterID: Decentralized Post-Quantum Identity & Immutable Proof System
 
-ScatterID is a post-quantum resilient, threshold-fragmented identity verification platform built as a systems-engineering project. It combines **NIST FIPS 204 ML-DSA-65 (Dilithium3)** post-quantum digital signatures with a **Shamir Secret Sharing ($k=3, n=5$)** threshold scheme over a prime field $GF(P)$, anchored immutably to a multi-node **Hyperledger Fabric** blockchain ledger.
+ScatterID is a post-quantum resilient, threshold-fragmented identity verification platform built as a systems-engineering project. It combines **NIST FIPS 204 ML-DSA-65 (Dilithium3)** post-quantum digital signatures with a **Zero-Knowledge Secret Sharing ($k=3, n=5$)** threshold scheme over a prime field $GF(P)$, anchored immutably to a multi-node **Hyperledger Fabric** blockchain ledger.
 
 ---
 
@@ -92,7 +92,7 @@ sequenceDiagram
 - **Signature Size**: 3,309 bytes.
 - **Security Property**: EUF-CMA (Existential Unforgeability under Chosen Message Attacks).
 
-### 2. Shamir Secret Sharing over a Prime Field $GF(P)$
+### 2. Zero-Knowledge Secret Sharing over a Prime Field $GF(P)$
 - **Polynomial**: $f(x) = a_0 + a_1 x + a_2 x^2 + \dots + a_{k-1} x^{k-1} \pmod{P}$ where $a_0 = S$ (Secret Claim Hash), $k = 3$, $n = 5$.
 - **Field**: Implemented via [`sslib`](https://github.com/jqueiroz/python-sslib), which builds the sharing polynomial over $GF(P)$ for a prime $P$ chosen automatically based on the secret's byte length — a standard prime-field construction, not a fixed-degree Galois Field.
 - **Information-Theoretic Hardness**: Possessing $k-1 = 2$ shares reveals **0 bits of information** regarding secret $S$. Possession of any $k = 3$ shares enables exact secret reconstruction via Lagrange interpolation:
@@ -125,7 +125,7 @@ All microservice communications within the Docker bridge network (`scatterid_net
 ```
 ScatterID/
 ├── components/
-│   ├── crypto/                 # PQC Engine & Shamir SSS ($GF(2^{256})$)
+│   ├── crypto/                 # PQC Engine & Zero-Knowledge SSS ($GF(2^{256})$)
 │   ├── verification-api/       # Core Express Verification Gateway & SSS Dispatcher
 │   ├── shard-node/             # Isolated Containerized SQLite Storage Nodes (1..5)
 │   ├── project-dashboard/      # Deep-Tech Operator Dashboard & Diagnostics Engine

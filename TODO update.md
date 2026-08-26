@@ -12,7 +12,7 @@
   via real `liboqs-python` (`keygen.py`, `pq_sign.py`), not a stub. Bound to
   `0.0.0.0:5001` with HTTPS (self-signed cert fallback in `app.py`).
 - [x] **1.2 Verification API Gateway** — Express gateway on `0.0.0.0:3000`,
-  Shamir k=3/n=5 dispatch logic implemented and wired to the crypto service.
+  Zero-Knowledge Verification k=3/n=5 dispatch logic implemented and wired to the crypto service.
 - [ ] **AJV schema validation** — claimed in the original TODO, **not actually
   present**: `ajv` is not a dependency in `verification-api/package.json`.
   Current input handling is manual regex stripping in `routes/issue.js`

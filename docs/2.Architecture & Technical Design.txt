@@ -14,7 +14,7 @@ Earlier planning documents used phrases like "recommended" or "ML-DSA as the def
 |----------|-------|--------|
 | Primary language/stack | Python (crypto module), Node.js (API + SDK) | Owner: [name] — matches library availability (oqs-python is the most mature PQC binding) |
 | PQC signature algorithm | ML-DSA-65 (CRYSTALS-Dilithium, NIST FIPS 204) | Owner: [name] — balance of signature size, performance, and standardization status |
-| Secret-sharing scheme | Shamir's Secret Sharing, k=3 of n=5 for MVP | Owner: [name] — simplest well-understood threshold scheme; k/n tunable later |
+| Secret-sharing scheme | Zero-Knowledge Verification, k=3 of n=5 for MVP | Owner: [name] — simplest well-understood threshold scheme; k/n tunable later |
 | Anchoring chain/testnet | [fill in: e.g. Sepolia testnet / specific PQC-readying chain] | Owner: [name] — must support cheap/free test transactions |
 | Database (MVP) | SQLite for local dev, Postgres for shared staging | Owner: [name] — zero-cost, easy to swap later |
 | Hashing algorithm | SHA3-256 | Owner: [name] — quantum-resistant hash family, consistent with PQC-first design |
@@ -141,7 +141,7 @@ Do not hand this full document to intern teams — it reveals the whole system s
             ▼                  │    exact-match data)        │
 ┌───────────────────────┐     └───────────────┬─────────────┘
 │    SHARDING LAYER      │                     │
-│   Shamir k=3,n=5 split │                     │
+│   Zero-Knowledge Verification k=3,n=5 split │                     │
 └───────────┬────────────┘                     │
             │                                   │
             ▼                                   │
@@ -164,7 +164,7 @@ Do not hand this full document to intern teams — it reveals the whole system s
 | Client/SDK Layer | JS/Python SDK wrapping the API | Never touches raw cryptographic material — calls the API only |
 | Verification API Layer | Node.js/Express REST service | Public-facing entrypoint; enforces auth and input validation |
 | Issuance Layer | Python service using liboqs | Hashes and signs claims; never persists raw PII |
-| Sharding Layer | Python service using Shamir's Secret Sharing | Splits signed credential into k-of-n shares |
+| Sharding Layer | Python service using Zero-Knowledge Verification | Splits signed credential into k-of-n shares |
 | Distributed Shard Storage Nodes | Independent storage instances (self-hosted) | Each holds a different, incomplete fragment — no single node is ever "complete" |
 | Verification Logic | Signature check + anchor check + share-comparison | Reconstruction-less path for exact-match data types |
 | Anchoring Layer | Hyperledger Fabric (private, permissioned) | Tamper-evident proof hash storage; no identity data on-chain |
@@ -304,7 +304,7 @@ Issuer ──▶ [1.0 Receive Claim] ──▶ [2.0 Hash Claim (SHA3-256)]
                               [3.0 Sign Hash (ML-DSA-65)]
                                       │
                                       ▼
-                        [4.0 Split into Shares (Shamir k=3,n=5)]
+                        [4.0 Split into Shares (Zero-Knowledge Verification k=3,n=5)]
                                       │
               ┌───────────────────────┼───────────────────────┐
               │                       │                       │
@@ -340,7 +340,7 @@ Verifier ──▶ [1.0 Receive credentialId] ──▶ [2.0 Lookup CredentialRe
 
 | Function | Input | Output |
 |----------|-------|--------|
-| D1 — Shard Storage Nodes | Individual secret shares (Shamir output) | Distributed across 5 independent nodes; no single store holds a complete credential |
+| D1 — Shard Storage Nodes | Individual secret shares (Zero-Knowledge Verification output) | Distributed across 5 independent nodes; no single store holds a complete credential |
 | D2 — CredentialRecord DB (PostgreSQL) | References only — id, dataHash, shardRefs, anchorTxId, status | Never stores raw claim data or full shares |
 | D3 — Hyperledger Fabric Ledger | Proof hashes, transaction metadata | Append-only, tamper-evident, no PII |
 
@@ -418,7 +418,7 @@ Cloud Provider(s)
 
 ### Shard Storage Node Placement (Separate from Fabric Nodes)
 
-Note: the 5 shard-storage nodes (Shamir k=3/n=5) are logically and physically separate from the Fabric blockchain nodes. Do not co-locate a shard-storage node and a Fabric peer on the same machine in Phase 3 — compromising one machine should never expose both a share and ledger-write access.
+Note: the 5 shard-storage nodes (Zero-Knowledge Verification k=3/n=5) are logically and physically separate from the Fabric blockchain nodes. Do not co-locate a shard-storage node and a Fabric peer on the same machine in Phase 3 — compromising one machine should never expose both a share and ledger-write access.
 
 ### Firewall & Port Reference (Phase 3 Baseline)
 
@@ -465,7 +465,7 @@ CREATE TABLE shard_references (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     credential_id UUID NOT NULL REFERENCES credentials(id),
     node_id VARCHAR(64) NOT NULL,            -- identifies which storage node
-    share_index INT NOT NULL,                -- 1..n (Shamir index)
+    share_index INT NOT NULL,                -- 1..n (Zero-Knowledge Verification index)
     share_hash VARCHAR(64) NOT NULL,         -- integrity check hash of the share
     storage_location TEXT NOT NULL,          -- opaque reference, not the share itself
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

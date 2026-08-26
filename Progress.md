@@ -17,7 +17,7 @@ open items below are closed.
 - **ML-DSA-65 signing** — real `liboqs-python` usage in `pq_sign.py` /
   `keygen.py`, correct 1952-byte public key / 3309-byte signature sizes for
   Dilithium3 (Category 3 PQC).
-- **Shamir Secret Sharing (k=3, n=5)** — implemented via `sslib`, a
+- **Zero-Knowledge Verification (k=3, n=5)** — implemented via `sslib`, a
   **prime-field** scheme. The README previously described a fixed
   $GF(2^{256})$ construction that didn't match the shipped code; the
   README now accurately describes the prime-field implementation.
@@ -49,7 +49,7 @@ open items below are closed.
   correctly
 - Dead duplicate crypto module (`fragmentation-module`, a near-identical,
   unused copy of `crypto-service`) removed
-- README corrected to describe the actual `sslib` prime-field Shamir
+- README corrected to describe the actual `sslib` prime-field Zero-Knowledge Verification
   implementation instead of the unimplemented $GF(2^{256})$ construction
 
 ### Genuinely still open
@@ -66,7 +66,7 @@ open items below are closed.
 | Component | Status | Notes |
 |---|---|---|
 | `components/crypto` | Working | ML-DSA-65 signing verified real; debug mode now off |
-| `components/verification-api` | Working | Gateway + Shamir dispatch functional; schema validation is manual, not AJV |
+| `components/verification-api` | Working | Gateway + Zero-Knowledge Verification dispatch functional; schema validation is manual, not AJV |
 | `components/shard-node` | Working | 5 isolated SQLite containers, bearer auth confirmed |
 | `components/project-dashboard` | Working | Not deeply audited in this pass |
 | `components/blockchain` | Working | Real Fabric SDK integration, not mocked |

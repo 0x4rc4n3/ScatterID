@@ -1,6 +1,6 @@
 # Crypto Microservice (`crypto-service`)
 
-The `crypto-service` component is an isolated Python Flask microservice responsible for post-quantum digital signatures, Shamir secret sharding, and Key Management Service (KMS) integration with HashiCorp Vault.
+The `crypto-service` component is an isolated Python Flask microservice responsible for post-quantum digital signatures, Zero-Knowledge Verification, and Key Management Service (KMS) integration with HashiCorp Vault.
 
 ---
 
@@ -17,7 +17,7 @@ The `crypto-service` component is an isolated Python Flask microservice responsi
 ## 2. API Specification & Error Handling
 
 ### `POST /package`
-Generates a SHA3-256 digest of the input claim, signs the digest using the active ML-DSA-65 private key, splits the payload into $k$-of-$n$ ($3$-of-$5$) Shamir secret shares, and computes per-share SHA-256 integrity checksums.
+Generates a SHA3-256 digest of the input claim, signs the digest using the active ML-DSA-65 private key, splits the payload into $k$-of-$n$ ($3$-of-$5$) Zero-Knowledge Verification secret shares, and computes per-share SHA-256 integrity checksums.
 
 #### Request Header & Body
 ```http
@@ -58,7 +58,7 @@ Content-Type: application/json
 ---
 
 ### `POST /unpackage`
-Reconstructs the original raw secret from $\ge 3$ Shamir shares, validates per-share SHA-256 checksums, and verifies the ML-DSA-65 signature against the active public key.
+Reconstructs the original raw secret from $\ge 3$ Zero-Knowledge Verification shares, validates per-share SHA-256 checksums, and verifies the ML-DSA-65 signature against the active public key.
 
 #### Request Body
 ```json
@@ -93,7 +93,7 @@ Reconstructs the original raw secret from $\ge 3$ Shamir shares, validates per-s
 |---|---|---|
 | `UNAUTHORIZED` | `401 Unauthorized` | Missing or invalid `Bearer <API_KEY>` authorization header. |
 | `BAD_REQUEST` | `400 Bad Request` | Missing required fields (`claim`, `credential`, `sharesSubset`). |
-| `RECONSTRUCTION_FAILED` | `400 Bad Request` | Less than $k$ valid shares provided or Shamir reconstruction failure. |
+| `RECONSTRUCTION_FAILED` | `400 Bad Request` | Less than $k$ valid shares provided or Zero-Knowledge Verification reconstruction failure. |
 | `ROTATION_FAILED` | `500 Internal Server Error` | Vault KMS connection failure during key rotation. |
 
 ---

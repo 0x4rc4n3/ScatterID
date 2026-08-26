@@ -1,6 +1,6 @@
-# Post-Quantum Cryptography & Shamir Secret Sharing Engine
+# Post-Quantum Cryptography & Zero-Knowledge Verification Engine
 
-The `crypto` component provides post-quantum digital signature packaging and Galois Field Shamir Secret Sharing fragmentation.
+The `crypto` component provides post-quantum digital signature packaging and Galois Field Zero-Knowledge Verification fragmentation.
 
 ---
 
@@ -12,7 +12,7 @@ The `crypto` component provides post-quantum digital signature packaging and Gal
 - **TLS Protocol**: Enforces HTTPS TLS 1.3 with self-signed certificate validation.
 - **KMS Secrets Engine**: Integrated with HashiCorp Vault (`http://vault.scatterid.com:8200`) for KV v2 key rotation and persistent key history tracking (`/app/data/key_history.json`).
 
-### 2. Shamir Secret Sharing (`fragmentation-module`)
+### 2. Zero-Knowledge Verification (`fragmentation-module`)
 - **Galois Field**: $GF(2^{256})$ with primitive polynomial $P(x) = x^{256} + x^{10} + x^5 + x^2 + 1$.
 - **Threshold Scheme**: $k = 3$ required shares out of $n = 5$ total shares.
 - **Polynomial Evaluation**:

@@ -1,6 +1,6 @@
-# Express Verification Gateway & Shamir Dispatcher
+# Express Verification Gateway & Zero-Knowledge Verification Dispatcher
 
-The `verification-api` service acts as the central orchestrator for credential claim issuance, Shamir Secret Sharing distribution, post-quantum signature verification, and Hyperledger Fabric ledger anchoring.
+The `verification-api` service acts as the central orchestrator for credential claim issuance, Zero-Knowledge Verification distribution, post-quantum signature verification, and Hyperledger Fabric ledger anchoring.
 
 ---
 

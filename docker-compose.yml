@@ -28,7 +28,6 @@ services:
       - "${PORT_VERIFICATION_API:-3000}:3000"
     environment:
       CRYPTO_SERVICE_API_KEY: "${CRYPTO_SERVICE_API_KEY:-dev-secret-key-123}"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
       CRYPTO_SERVICE_URL: "https://crypto-service:5001"
       NODE_EXTRA_CA_CERTS: "/app/certs/ca.crt"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
@@ -53,9 +52,7 @@ services:
       - "${PORT_DASHBOARD:-4000}:4000"
     environment:
       VERIFICATION_API_URL: "http://verification-api:3000"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
       GATEWAY_API_KEY: "${GATEWAY_API_KEY:-scatterid-test-api-key-999}"
-
     volumes:
       - ./Progress.md:/app/Progress.md
       - ./components/project-dashboard:/app
@@ -69,91 +66,6 @@ services:
     networks:
       - scatterid_net
 
-  shard-node-1:
-    build:
-      context: ./components/shard-node
-      dockerfile: Dockerfile
-    container_name: scatterid-shard-1
-    ports:
-      - "${PORT_SHARD_1:-3001}:3000"
-    environment:
-      NODE_INDEX: "1"
-      DATA_DIR: "/app/data"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
-    volumes:
-      - shard_1_data:/app/data
-      - ./config.json:/app/config.json:ro
-    networks:
-      - scatterid_net
-
-  shard-node-2:
-    build:
-      context: ./components/shard-node
-      dockerfile: Dockerfile
-    container_name: scatterid-shard-2
-    ports:
-      - "${PORT_SHARD_2:-3002}:3000"
-    environment:
-      NODE_INDEX: "2"
-      DATA_DIR: "/app/data"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
-    volumes:
-      - shard_2_data:/app/data
-      - ./config.json:/app/config.json:ro
-    networks:
-      - scatterid_net
-
-  shard-node-3:
-    build:
-      context: ./components/shard-node
-      dockerfile: Dockerfile
-    container_name: scatterid-shard-3
-    ports:
-      - "${PORT_SHARD_3:-3003}:3000"
-    environment:
-      NODE_INDEX: "3"
-      DATA_DIR: "/app/data"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
-    volumes:
-      - shard_3_data:/app/data
-      - ./config.json:/app/config.json:ro
-    networks:
-      - scatterid_net
-
-  shard-node-4:
-    build:
-      context: ./components/shard-node
-      dockerfile: Dockerfile
-    container_name: scatterid-shard-4
-    ports:
-      - "${PORT_SHARD_4:-3004}:3000"
-    environment:
-      NODE_INDEX: "4"
-      DATA_DIR: "/app/data"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
-    volumes:
-      - shard_4_data:/app/data
-      - ./config.json:/app/config.json:ro
-    networks:
-      - scatterid_net
-
-  shard-node-5:
-    build:
-      context: ./components/shard-node
-      dockerfile: Dockerfile
-    container_name: scatterid-shard-5
-    ports:
-      - "${PORT_SHARD_5:-3005}:3000"
-    environment:
-      NODE_INDEX: "5"
-      DATA_DIR: "/app/data"
-      SHARD_NODE_API_KEY: "${SHARD_NODE_API_KEY:-scatterid-shard-secret-key-456}"
-    volumes:
-      - shard_5_data:/app/data
-      - ./config.json:/app/config.json:ro
-    networks:
-      - scatterid_net
-
 networks:
   scatterid_net:
     name: scatterid_net
@@ -161,8 +73,3 @@ networks:
 
 volumes:
   verification_data:
-  shard_1_data:
-  shard_2_data:
-  shard_3_data:
-  shard_4_data:
-  shard_5_data:

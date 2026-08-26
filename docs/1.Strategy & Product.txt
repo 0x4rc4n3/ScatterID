@@ -9,7 +9,7 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 ### Goals
 
 1. Issue and verify identity credentials signed with NIST-standardized post-quantum algorithms (ML-DSA-65)
-2. Ensure no single storage node or breach can reconstruct a usable credential, using k-of-n threshold secret-sharing (Shamir's Secret Sharing)
+2. Ensure no single storage node or breach can reconstruct a usable credential, using k-of-n threshold secret-sharing (Zero-Knowledge Verification)
 3. Verify exact-match identity claims (KYC status, credential validity, ID numbers) without reconstructing the underlying secret wherever the data type allows it
 4. Run on our own private, permissioned blockchain (Hyperledger Fabric) for tamper-evident anchoring — fully self-owned infrastructure, no third-party chain dependency
 5. Provide a working SDK that a third-party developer can integrate in under a day
@@ -35,7 +35,7 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 
 **P0 (Must-Have):**
 - PQ-signed credential issuance (ML-DSA-65 via liboqs)
-- k-of-n shard generation and distributed storage (Shamir, k=3/n=5 default)
+- k-of-n shard generation and distributed storage (Zero-Knowledge Verification, k=3/n=5 default)
 - Reconstruction-less verification for exact-match data types
 - Anchoring on our private Hyperledger Fabric network
 - Basic audit logging
@@ -87,7 +87,7 @@ Identity data is permanent, but the cryptography protecting it is not. Passwords
 
 This version supersedes the initial PRD draft. Key updates:
 - Locked Hyperledger Fabric as the blockchain framework (previously unspecified)
-- Locked ML-DSA-65 and Shamir's Secret Sharing (previously listed as "recommended")
+- Locked ML-DSA-65 and Zero-Knowledge Verification (previously listed as "recommended")
 - Scoped v1 explicitly to reconstruction-less, exact-match verification only, deferring fuzzy/biometric matching to a clearly separate future track
 - Refined target customer ranking based on sales-cycle friction
 
@@ -299,7 +299,7 @@ B2B SDK and verification API, licensed per-verification or via subscription. No 
 | Component | Decision |
 |-----------|----------|
 | **Post-Quantum Signature Algorithm** | ML-DSA-65 (NIST-standardized) |
-| **Secret Sharing Scheme** | Shamir's Secret Sharing, k=3/n=5 default |
+| **Secret Sharing Scheme** | Zero-Knowledge Verification, k=3/n=5 default |
 | **Blockchain Platform** | Hyperledger Fabric (private, permissioned) |
 | **Cryptographic Library** | liboqs/PQClean (audited, open-source) |
 | **Hash Function** | SHA3-256 |

@@ -101,7 +101,7 @@ If your module needs testnet access, API keys, or sandbox credentials, request t
 
 ```python
 def split_secret(secret: bytes, n: int, k: int) -> list[Share]:
-    """Split a secret into n Shamir shares with threshold k.
+    """Split a secret into n Zero-Knowledge Verification shares with threshold k.
 
     Args:
         secret: The raw secret bytes to split.

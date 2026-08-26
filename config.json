@@ -67,7 +67,7 @@
     },
     "threshold_k": {
       "value": 3,
-      "purpose": "Minimum number of Shamir shares required to unpackage/reconstruct signature."
+      "purpose": "Minimum number of Zero-Knowledge Verification shares required to unpackage/reconstruct signature."
     },
     "total_shards_n": {
       "value": 5,

@@ -82,7 +82,7 @@ async function issueAndAnchorNewCredential() {
       return;
     }
 
-    consoleOut.innerHTML += `<div class="log-line success">[2/4] Shamir Secret Sharding (k=3 / n=5) complete. Data Hash: ${data.dataHash || '--'}</div>`;
+    consoleOut.innerHTML += `<div class="log-line success">[2/4] Zero-Knowledge Verification Secret Sharding (k=3 / n=5) complete. Data Hash: ${data.dataHash || '--'}</div>`;
     consoleOut.innerHTML += `<div class="log-line success">[3/4] Hyperledger Fabric Anchor Committed! TxID: ${data.anchorTxId || 'Pending'}</div>`;
     consoleOut.innerHTML += `<div class="log-line info">[4/4] Multi-Node Shard Dispatch Report:</div>`;
 
@@ -281,7 +281,7 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
 
       if (issuedAt) issuedAt.textContent = `Issued: ${new Date(verifyData.issuedAt || Date.now()).toLocaleString()}`;
       if (algoEl) algoEl.textContent = 'ML-DSA-65 (NIST FIPS 204)';
-      if (shardsEl) shardsEl.textContent = 'Shamir Secret Threshold Met (>= 3 Live Shards Validated)';
+      if (shardsEl) shardsEl.textContent = 'Zero-Knowledge Verification Secret Threshold Met (>= 3 Live Shards Validated)';
       if (anchorStatusEl) anchorStatusEl.textContent = `Fabric Anchor (${(verifyData.anchorStatus || 'active').toUpperCase()})`;
       if (txIdEl) txIdEl.textContent = credentialId;
     } else {

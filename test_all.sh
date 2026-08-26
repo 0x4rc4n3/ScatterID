@@ -87,7 +87,7 @@ if [ -n "$CRED_ID" ]; then
     echo "     $VERIFY_RES"
 
     if echo "$VERIFY_RES" | grep -q '"valid":true'; then
-        echo "  -> Verification API /verify: PASSED (ML-DSA-65 + Shamir Shards Validated)"
+        echo "  -> Verification API /verify: PASSED (ML-DSA-65 + Zero-Knowledge Verification Shards Validated)"
     else
         echo "  -> Verification API /verify: FAILED"
         exit 1

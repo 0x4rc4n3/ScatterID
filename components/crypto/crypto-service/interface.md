@@ -1,8 +1,8 @@
 # Component Technical Specification: interface.py (KMS Crypto-Service Copy)
 
 ## 1. Purpose & Core Responsibility
-- Acts as the primary interface layer for the PQC and Shamir Secret Sharing sharding module within the KMS Crypto-Service.
-- Coordinates credential signing (via post-quantum ML-DSA) and secret sharding (via Shamir Secret Sharing) during credential packaging and verification.
+- Acts as the primary interface layer for the PQC and Zero-Knowledge Verification sharding module within the KMS Crypto-Service.
+- Coordinates credential signing (via post-quantum ML-DSA) and secret sharding (via Zero-Knowledge Verification) during credential packaging and verification.
 
 ## 2. Inbound & Outbound Communication Whitelist
 - **Allowed Inbound (Who can talk TO this file):** 

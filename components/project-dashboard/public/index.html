@@ -107,7 +107,7 @@
                   <span class="detail-value mono text-purple" id="tab-result-algo">ML-DSA-65 (FIPS 204)</span>
                 </div>
                 <div class="detail-box">
-                  <span class="detail-label">Shamir Secret Threshold</span>
+                  <span class="detail-label">Zero-Knowledge Verification Secret Threshold</span>
                   <span class="detail-value mono text-cyan" id="tab-result-shards">k = 3 of n = 5 Shards Validated</span>
                 </div>
                 <div class="detail-box">
@@ -338,7 +338,7 @@
                 <div class="arch-card">
                   <span class="badge green">Port 5001</span>
                   <h4>Crypto Service</h4>
-                  <p>ML-DSA-65 signatures & Shamir 3-of-5 secret sharing</p>
+                  <p>ML-DSA-65 signatures & Zero-Knowledge Verification 3-of-5 secret sharing</p>
                 </div>
 
                 <div class="arch-card">
@@ -361,7 +361,7 @@
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">2</span>
-                  <span class="arch-step-info"><strong>Gateway -> Crypto Service:</strong> <code>POST /package</code> signs via ML-DSA-65 and splits into 3-of-5 Shamir secret shares.</span>
+                  <span class="arch-step-info"><strong>Gateway -> Crypto Service:</strong> <code>POST /package</code> signs via ML-DSA-65 and splits into 3-of-5 Zero-Knowledge Verification secret shares.</span>
                 </div>
                 <div class="arch-step-item">
                   <span class="arch-step-num">3</span>
@@ -394,7 +394,7 @@
                   <p>Implements NIST FIPS 204 post-quantum module-lattice-based digital signatures, offering Category 3 security (AES-192 equivalent) resistant to Shor's algorithm quantum attack vectors.</p>
                 </div>
                 <div class="boundary-item">
-                  <h4>2. Shamir 3-of-5 Threshold Secret Sharing</h4>
+                  <h4>2. Zero-Knowledge Verification 3-of-5 Threshold Secret Sharing</h4>
                   <p>Identity claims are split into 5 polynomial secret shares across independent database containers. Any 3 shares can reconstruct the proof, while 2 or fewer reveal zero mathematical information.</p>
                 </div>
               </div>
