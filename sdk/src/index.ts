@@ -2,7 +2,6 @@ import canonicalize from 'canonicalize';
 import { randomBytes, createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import {
-    ScatterIDError,
     InvalidClaimError,
     CredentialNotFoundError,
     RevokedCredentialError,
@@ -11,12 +10,8 @@ import {
 } from './errors.js';
 
 export * from './errors.js';
-
-export interface ScatterIDClientOptions {
-    apiKey: string;
-    issuanceUrl?: string;
-    verificationUrl?: string;
-}
+export * from './types.js';
+import { ScatterIDClientOptions } from './types.js';
 
 export class ScatterIDClient {
     private apiKey: string;

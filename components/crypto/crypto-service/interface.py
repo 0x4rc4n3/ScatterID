@@ -1,4 +1,3 @@
-import json
 import datetime
 from pq_sign import sign_data, verify_signature
 

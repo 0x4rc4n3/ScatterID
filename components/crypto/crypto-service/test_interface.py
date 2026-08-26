@@ -1,5 +1,4 @@
 import unittest
-import json
 from interface import issue_credential, verify_credential
 from keygen import generate_keypair
 import hashlib

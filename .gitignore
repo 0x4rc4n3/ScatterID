@@ -63,3 +63,6 @@ Thumbs.db
 scratch/
 
 config.json
+
+# Build outputs
+sdk/dist/

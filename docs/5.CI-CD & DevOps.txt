@@ -130,38 +130,6 @@ This policy covers all non-cryptographic-key secrets: API keys, database credent
 Given the phased rollout (local → container → cloud) and the requirement that node placement/security config be consistent and auditable (per the Network Topology document), infrastructure should be defined as code from Phase 2 onward — not manually clicked together in a cloud console. This also makes the "we own our infrastructure" pitch claim verifiable, not just asserted.
 
 ### Tooling Choice
-
-| Function | Input | Output |
-|----------|-------|--------|
-| Provisioning (create cloud resources) | Terraform | Cloud-agnostic, widely adopted, works whether you choose AWS, DigitalOcean, or a multi-provider setup |
-| Configuration (set up software on provisioned machines) | Ansible | Agentless, simpler learning curve than alternatives, well-suited to a small team configuring Fabric nodes and API servers |
-
-### Repository Structure
-
-```
-infra/
-├── terraform/
-│   ├── modules/
-│   │   ├── fabric-node/      # reusable peer/orderer VM definition
-│   ├── environments/
-│   │   ├── staging/          # Phase 2-equivalent cloud config
-│   │   └── production/       # Phase 3 config
-│   └── main.tf
-├── ansible/
-│   ├── playbooks/
-│   │   ├── setup-fabric-peer.yml
-│   │   └── setup-api-server.yml
-│   ├── roles/
-│   └── inventory/
-│       ├── staging.ini
-│       └── production.ini
-└── README.md
-```
-
-### Access Control
-
-- Only founders have credentials to run `terraform apply` against production — interns may work with staging/local Terraform configs only, per module scope.
-- Terraform state files stored remotely (e.g. Terraform Cloud free tier, or a private cloud storage bucket) with state locking enabled — never committed to git, and never left only on one person's laptop.
 - Ansible inventory files for production hosts should not be committed with real IPs/hostnames in a public or intern-accessible repo — keep infra repo access founders-only, consistent with the compartmentalization model used elsewhere.
 
 ### Change Process

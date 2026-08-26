@@ -1,32 +1,7 @@
 export interface ScatterIDClientOptions {
-  /**
-   * Base URL of the ScatterID Verification Gateway.
-   * @default 'http://localhost:3000'
-   */
-  baseUrl?: string;
-
-  /**
-   * API Key for bearer token authentication against the Gateway.
-   */
-  apiKey?: string;
-
-  /**
-   * Network connection timeout in milliseconds.
-   * @default 10000
-   */
-  timeoutMs?: number;
-
-  /**
-   * Maximum number of retry attempts for transient network failures.
-   * @default 3
-   */
-  maxRetries?: number;
-
-  /**
-   * Initial delay in milliseconds before the first retry attempt.
-   * @default 1000
-   */
-  retryDelayMs?: number;
+  apiKey: string;
+  issuanceUrl?: string;
+  verificationUrl?: string;
 }
 
 export interface Claim {
