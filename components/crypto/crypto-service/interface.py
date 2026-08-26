@@ -93,11 +93,6 @@ def unpackage_credential(signed_credential: dict, public_key, shares_subset: lis
     algorithm = signed_credential.get("algorithm", "ML-DSA-65")
 
     keys_to_test = []
-    if signed_credential.get("public_key"):
-        try:
-            keys_to_test.append(bytes.fromhex(signed_credential["public_key"]))
-        except Exception:
-            pass
 
     if isinstance(public_key, list):
         for k_item in public_key:

@@ -154,3 +154,7 @@ docker compose up -d --build
 - **Operator Presentation Portal**: `http://localhost:4000`
 - **Verification Gateway API**: `http://localhost:3000`
 - **Post-Quantum Crypto Microservice**: `https://localhost:5001`
+
+## Security Note
+**MANUAL REVIEW REQUIRED**: Any version bumps to cryptographic dependencies (`flask`, `hvac`, `sslib`, `liboqs-python`, and any `crypto` JS packages) require manual review of changelogs before upgrading. Do not use caret (`^`) or tilde (`~`) version ranges for these packages.
+

@@ -18,9 +18,13 @@ class KMS:
     """
     def __init__(self):
         self.vault_url = get_config("network.vault_addr", os.environ.get("VAULT_ADDR", "http://localhost:8200"))
-        self.vault_token = get_config("security.vault_token", os.environ.get("VAULT_TOKEN", "scatterid-vault-root-token"))
+        self.vault_token = get_config("security.vault_token", os.environ.get("VAULT_TOKEN"))
         self.vault_role_id = get_config("security.vault_role_id", os.environ.get("VAULT_ROLE_ID"))
         self.vault_secret_id = get_config("security.vault_secret_id", os.environ.get("VAULT_SECRET_ID"))
+        
+        if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
+            raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
+            
         self.secret_path = get_config("security.vault_secret_path", os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa"))
         self.client = None
         self.fallback_pub = None

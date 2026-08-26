@@ -1,6 +1,6 @@
 import express from 'express';
 import Database from 'better-sqlite3';
-import { createHash, createHmac } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { getConfig } from './config.js';
@@ -25,7 +25,7 @@ const authenticateInterService = (req, res, next) => {
   }
 
   const token = authHeader.substring(7).trim();
-  if (token !== SHARD_NODE_API_KEY) {
+  if (token.length !== SHARD_NODE_API_KEY.length || !timingSafeEqual(Buffer.from(token), Buffer.from(SHARD_NODE_API_KEY))) {
     return res.status(403).json({ success: false, error: 'Forbidden: Invalid inter-service authentication token' });
   }
 

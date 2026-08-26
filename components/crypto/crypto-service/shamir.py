@@ -18,10 +18,15 @@ def split_secret(secret: bytes, n: int, k: int):
     raw = shamir.split_secret(secret, k, n)
     hex_data = shamir.to_hex(raw)
     
-    # Append SHA-256 checksum to each share string
+    import hmac
+    import os
+    from config import get_config
+    
+    hmac_key = get_config("security.crypto_service_api_key", os.environ.get("CRYPTO_SERVICE_API_KEY", "")).encode('utf-8')
+    
     updated_shares = []
     for share in hex_data["shares"]:
-        checksum = hashlib.sha256(share.encode('utf-8')).hexdigest()
+        checksum = hmac.new(hmac_key, share.encode('utf-8'), hashlib.sha256).hexdigest()
         updated_shares.append(f"{share}:{checksum}")
         
     hex_data["shares"] = updated_shares

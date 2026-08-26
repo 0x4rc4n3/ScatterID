@@ -28,8 +28,9 @@ def enforce_api_key():
     if not auth_header or not auth_header.startswith("Bearer "):
         return jsonify({"error": "Unauthorized: Missing Bearer Token", "code": "UNAUTHORIZED"}), 401
     
+    import hmac
     token = auth_header.split(" ")[1]
-    if token != API_KEY:
+    if not hmac.compare_digest(token, API_KEY):
         return jsonify({"error": "Unauthorized: Invalid API Key", "code": "UNAUTHORIZED"}), 401
 
 

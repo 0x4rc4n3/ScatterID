@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { getCredentialById, getSharesByCredentialId } from '../db/models.js';
 import { queryProof } from '../chain/fabric.js';
 import { getConfig } from '../config.js';
@@ -72,10 +72,11 @@ export async function verifyRoute(req, res) {
       const computedHash = createHash('sha3-256').update(row.share_value).digest('hex');
       if (row.share_hash && computedHash.toLowerCase() !== row.share_hash.trim().toLowerCase()) return false;
 
-      // Validate the SHA-256 checksum appended by fragmentation module
+      // Validate the HMAC-SHA256 checksum appended by fragmentation module
       if (row.share_checksum && row.share_checksum.trim() !== '') {
         const coreShare = `${row.share_index}-${row.share_value}`;
-        const computedChecksum = createHash('sha256').update(coreShare).digest('hex');
+        const hmacKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY || '');
+        const computedChecksum = createHmac('sha256', hmacKey).update(coreShare).digest('hex');
         if (computedChecksum.toLowerCase() !== row.share_checksum.trim().toLowerCase()) return false;
       }
       

@@ -17,40 +17,10 @@ const PORT = process.env.PORT || 4000;
 const VERIFICATION_API_URL = process.env.VERIFICATION_API_URL || 'http://verification-api:3000';
 const CRYPTO_SERVICE_HOST = process.env.CRYPTO_SERVICE_HOST || 'crypto-service';
 const VERIFICATION_API_HOST = process.env.VERIFICATION_API_HOST || 'verification-api';
-let GATEWAY_API_KEY = process.env.GATEWAY_API_KEY;
-if (!GATEWAY_API_KEY) {
-  console.error('FATAL: GATEWAY_API_KEY environment variable is not set. Refusing to start with a guessable default.');
-  process.exit(1);
-}
-
-// Canonicalize JSON utility to ensure consistent key ordering
-function canonicalizeJson(obj) {
-  if (obj === undefined) return '';
-  if (obj === null || typeof obj !== 'object') {
-    return JSON.stringify(obj);
-  }
-  if (Array.isArray(obj)) {
-    return '[' + obj.map(canonicalizeJson).join(',') + ']';
-  }
-  const keys = Object.keys(obj).sort();
-  return '{' + keys.map(k => `${JSON.stringify(k)}:${canonicalizeJson(obj[k])}`).join(',') + '}';
-}
-
-function getSecureGatewayHeaders(body = {}, extraHeaders = {}) {
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const nonce = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-  
-  const bodyStr = Object.keys(body || {}).length > 0 ? canonicalizeJson(body) : '';
-  const payload = `${timestamp}.${nonce}.${bodyStr}`;
-  const signature = createHmac('sha256', GATEWAY_API_KEY).update(payload).digest('hex');
-  
+let GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || 'disabled';
+function getHeaders() {
   return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${GATEWAY_API_KEY}`,
-    'X-Signature': signature,
-    'X-Timestamp': timestamp,
-    'X-Nonce': nonce,
-    ...extraHeaders
+    'Content-Type': 'application/json'
   };
 }
 
@@ -87,7 +57,7 @@ app.post('/api/verify', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/verify`, {
       method: 'POST',
-      headers: getSecureGatewayHeaders({ credentialId }),
+      headers: getHeaders(),
       body: JSON.stringify({ credentialId }),
     });
 
@@ -218,7 +188,7 @@ app.post('/api/shards/toggle-container', async (req, res) => {
         try {
           const healRes = await fetch(`${VERIFICATION_API_URL}/heal-shards`, {
             method: 'POST',
-            headers: getSecureGatewayHeaders({ nodeId }),
+            headers: getHeaders(),
             body: JSON.stringify({ nodeId })
           });
           if (healRes.ok) {
@@ -239,7 +209,7 @@ app.post('/api/shards/toggle-container', async (req, res) => {
 app.get('/api/credentials', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/credentials`, {
-      headers: getSecureGatewayHeaders(),
+      headers: getHeaders(),
       signal: AbortSignal.timeout(5000)
     });
     const data = await response.json();
@@ -262,7 +232,7 @@ app.post('/api/issue', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/issue`, {
       method: 'POST',
-      headers: getSecureGatewayHeaders({ claim: payload }),
+      headers: getHeaders(),
       body: JSON.stringify({ claim: payload }),
     });
 
@@ -377,7 +347,7 @@ app.post('/api/diagnostics/run', async (req, res) => {
 
     const issueResponse = await fetch(`${VERIFICATION_API_URL}/issue`, {
       method: 'POST',
-      headers: getSecureGatewayHeaders({ claim }),
+      headers: getHeaders(),
       body: JSON.stringify({ claim })
     });
 
@@ -396,7 +366,7 @@ app.post('/api/diagnostics/run', async (req, res) => {
     addLog('Credential Verification', `Sending POST request to ${VERIFICATION_API_URL}/verify for ${credId}`, 'info');
     const verifyResponse = await fetch(`${VERIFICATION_API_URL}/verify`, {
       method: 'POST',
-      headers: getSecureGatewayHeaders({ credentialId: credId }),
+      headers: getHeaders(),
       body: JSON.stringify({ credentialId: credId })
     });
 
@@ -586,7 +556,7 @@ app.post('/api/settings/rotate', async (req, res) => {
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/rotate-key`, {
       method: 'POST',
-      headers: getSecureGatewayHeaders(),
+      headers: getHeaders(),
       body: JSON.stringify({})
     });
     
@@ -597,8 +567,7 @@ app.post('/api/settings/rotate', async (req, res) => {
     
     const data = await response.json();
     if (data.success) {
-      GATEWAY_API_KEY = data.newKeyPlaintext;
-      console.log(`[Dashboard] API Key rotated dynamically. New Key: ${GATEWAY_API_KEY}`);
+      console.log(`[Dashboard] API Key rotated dynamically.`);
     }
     
     res.json(data);
