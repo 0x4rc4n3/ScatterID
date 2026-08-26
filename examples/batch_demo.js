@@ -41,7 +41,8 @@ function loadEnv() {
 loadEnv();
 
 const API_KEY = process.env.VERIFICATION_API_KEY;
-const API_URL = process.env.VERIFICATION_API_URL || 'http://localhost:3000';
+const rawApiUrl = process.env.VERIFICATION_API_URL || 'http://localhost:3000';
+const API_URL = rawApiUrl.replace('verification-api', 'localhost');
 
 if (!API_KEY) {
   console.error('\x1b[31m[ERROR] VERIFICATION_API_KEY is not set in .env or environment.\x1b[0m');

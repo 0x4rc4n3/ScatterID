@@ -90,9 +90,9 @@ class KMS:
             hex_keys = [k.hex() for k in self.public_key_history]
             flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
             mode = 0o600  # Owner read-write only
-            with os.open(HISTORY_FILE, flags, mode) as fd:
-                with os.fdopen(fd, 'w') as f:
-                    json.dump(hex_keys, f)
+            fd = os.open(HISTORY_FILE, flags, mode)
+            with os.fdopen(fd, 'w') as f:
+                json.dump(hex_keys, f)
         except Exception as e:
             print(f"KMS Warning: Error saving key history file: {e}")
 

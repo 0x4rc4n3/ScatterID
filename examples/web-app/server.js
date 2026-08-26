@@ -29,7 +29,8 @@ function loadEnv() {
 loadEnv();
 
 const VERIFICATION_API_KEY = process.env.VERIFICATION_API_KEY || '';
-const VERIFICATION_API_URL = process.env.VERIFICATION_API_URL || 'http://localhost:3000';
+const rawApiUrl = process.env.VERIFICATION_API_URL || 'http://localhost:3000';
+const VERIFICATION_API_URL = rawApiUrl.replace('verification-api', 'localhost');
 
 const client = new ScatterIDClient({
   apiKey: VERIFICATION_API_KEY,

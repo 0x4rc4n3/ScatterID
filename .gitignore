@@ -14,6 +14,8 @@
 *.srl
 *.csr
 test_keys/
+key_history.json
+**/key_history.json
 
 # Explicitly track certificate generation scripts
 !components/crypto/certs/generate_certs.sh

@@ -53,5 +53,5 @@ cat crypto-service.crt ca.crt > bundle.crt
 # Clean up CSR and configuration
 rm -f crypto-service.csr server.ext
 echo "Certificates generated successfully in $DIR"
-chmod 600 ca.key crypto-service.key 2>/dev/null || true
-chmod 644 ca.crt crypto-service.crt bundle.crt 2>/dev/null || true
+chmod 600 ca.key 2>/dev/null || true
+chmod 644 crypto-service.key ca.crt crypto-service.crt bundle.crt 2>/dev/null || true
