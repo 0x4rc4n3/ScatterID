@@ -1,10 +1,13 @@
 module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
+    '^.+\\.[tj]sx?$': ['ts-jest', { useESM: true }],
   },
+  transformIgnorePatterns: [],
   moduleNameMapper: {
+    '^canonicalize$': '<rootDir>/node_modules/canonicalize/lib/canonicalize.js',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

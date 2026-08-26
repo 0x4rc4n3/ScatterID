@@ -29,9 +29,9 @@ The `POST /verify` endpoint ensures true cryptographic security without trusting
 Both test suites were executed and passed cleanly:
 
 **SDK test suite (sdk/, 3 tests passed):**
-- Smoke test: ScatterIDClient construction and computeHash import chain verified.
-- Hash constant test: SHA3-256(salt || RFC 8785 canonicalized claim) produces the expected static hex value (186193952f4b8c93f7d89a32cda305f8f50e136e25ad28c5419d01023df20808).
-- Idempotency dedup test: Two issue() calls with the same idempotencyKey both send the same key to the server.
+- smoke test: constructs a client and computes a hash without import errors
+- should compute consistent hash for a given claim and salt
+- should deduplicate issues with the same idempotency key
 
 **Verification-API test suite (components/verification-api/, 4 tests passed):**
 - createCredential/getCredentialById: round-trip storage and retrieval.
