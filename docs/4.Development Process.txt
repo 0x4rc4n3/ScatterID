@@ -1,3 +1,5 @@
+> NOTE: This document reflects the original v1 architecture. ScatterID has since been upgraded to a Zero-Knowledge hashing model (v2). Please refer to the root README.md and docs/ScatterID Architecture.txt for current technical specifications.
+
 # ScatterID / Crypto Project - Development & Operations Documentation
 
 ---
