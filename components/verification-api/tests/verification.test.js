@@ -81,3 +81,51 @@ test('statusRoute returns awaited record with proper field normalization', async
   assert.equal(responseData.anchorTxId, 'tx-status-999');
   assert.equal(responseData.status, 'anchored');
 });
+
+test('verifyRoute rejects tampered share with forged SHA-256 MAC', async () => {
+  const testId = `test-cred-tampered-${Date.now()}`;
+  const record = {
+    id: testId,
+    dataHash: 'hash123',
+    algorithm: 'ML-DSA-65',
+    signature: 'sig123',
+    primeMod: '65537',
+    requiredShares: 3,
+    status: 'anchored',
+    issuedAt: new Date().toISOString(),
+  };
+
+  // Create shares where one share has a re-computed SHA256 MAC that will fail the HMAC check
+  const crypto = await import('crypto');
+  const validCoreShare1 = '1-aaaaaa';
+  const validCoreShare2 = '2-bbbbbb';
+  const tamperedCoreShare = '3-tampered';
+  
+  const hmacKey = process.env.CRYPTO_SERVICE_API_KEY || '';
+  const validMac1 = crypto.createHmac('sha256', hmacKey).update(validCoreShare1).digest('hex');
+  const validMac2 = crypto.createHmac('sha256', hmacKey).update(validCoreShare2).digest('hex');
+  
+  // Attacker recalculates using SHA256 (the old way) or an incorrect HMAC key
+  const forgedMac3 = crypto.createHash('sha256').update(tamperedCoreShare).digest('hex');
+
+  const shares = [
+    `${validCoreShare1}:${validMac1}`,
+    `${validCoreShare2}:${validMac2}`,
+    `${tamperedCoreShare}:${forgedMac3}`
+  ];
+  await createCredential(record, shares);
+
+  let responseData = null;
+  const mockReq = { body: { credentialId: testId } };
+  const mockRes = {
+    status(s) { return this; },
+    json(data) {
+      responseData = data;
+      return this;
+    }
+  };
+
+  await verifyRoute(mockReq, mockRes);
+  assert.equal(responseData.valid, false, 'Should reject verification due to forged MAC');
+  assert.ok(responseData.reason.includes('Insufficient valid shares'), 'Reason should cite insufficient valid shares');
+});
