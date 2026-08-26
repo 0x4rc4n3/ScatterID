@@ -172,88 +172,111 @@ async function fetchLogs() {
 async function loadDatabaseExplorer() {
   const tbody = document.getElementById('db-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center">Loading database records...</td></tr>';
+
+  // Helper: set a single-cell status row using textContent (no innerHTML)
+  function setStatusRow(text, cssClass) {
+    tbody.textContent = '';
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    td.className = `text-center ${cssClass || ''}`;
+    td.textContent = text;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
+
+  setStatusRow('Loading database records...');
 
   try {
     const res = await fetch('/api/credentials');
     const data = await res.json();
 
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-error">Failed to query database: ${data.error}</td></tr>`;
+      setStatusRow(`Failed to query database: ${data.error}`, 'text-error');
       return;
     }
 
     if (data.credentials.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No credentials found in database.</td></tr>';
+      setStatusRow('No credentials found in database.', 'text-muted');
       return;
     }
 
-    tbody.innerHTML = '';
+    tbody.textContent = '';
     data.credentials.forEach(row => {
       const tr = document.createElement('tr');
-      
-      const fullId = row.id;
-      const fullHash = row.data_hash || '--';
-      const fullTx = row.anchor_tx_id || 'None';
-      
+
+      const fullId   = row.id;
+      const fullHash = row.dataHash || '--';
+      const fullTx   = row.anchorTxId || 'None';
       const statusClass = row.status === 'anchored' ? 'running' : (row.status === 'failed' ? 'offline' : 'checking');
 
-      tr.innerHTML = `
-        <td>
-          <div class="expandable-cell" data-full="${fullId}">
-            <span class="cell-text mono primary-text">${fullId.substring(0, 10)}...</span>
-            <button class="btn-copy-sm" title="Copy Credential ID">📋</button>
-          </div>
-        </td>
-        <td>
-          <div class="expandable-cell" data-full="${fullHash}">
-            <span class="cell-text mono">${fullHash !== '--' ? fullHash.substring(0, 14) + '...' : '--'}</span>
-            ${fullHash !== '--' ? '<button class="btn-copy-sm" title="Copy Data Hash">📋</button>' : ''}
-          </div>
-        </td>
-        <td><span class="badge green">${row.algorithm}</span></td>
-        <td>
-          <div class="expandable-cell" data-full="${fullTx}">
-            <span class="cell-text mono">${fullTx !== 'None' ? fullTx.substring(0, 14) + '...' : 'None'}</span>
-            ${fullTx !== 'None' ? '<button class="btn-copy-sm" title="Copy Anchor Tx ID">📋</button>' : ''}
-          </div>
-        </td>
-        <td><span class="status-badge ${statusClass}">${row.status.toUpperCase()}</span></td>
-        <td>${new Date(row.issued_at).toLocaleString()}</td>
-      `;
+      // Build each cell with createElement so server strings can never inject markup
+      function makeExpandableCell(fullVal, displayVal) {
+        const td = document.createElement('td');
+        const cell = document.createElement('div');
+        cell.className = 'expandable-cell';
+        cell.dataset.full = fullVal;
 
-      tr.querySelectorAll('.expandable-cell').forEach(cell => {
-        const textSpan = cell.querySelector('.cell-text');
-        const copyBtn = cell.querySelector('.btn-copy-sm');
-        const val = cell.getAttribute('data-full');
+        const textSpan = document.createElement('span');
+        textSpan.className = 'cell-text mono' + (fullVal === fullId ? ' primary-text' : '');
+        textSpan.textContent = displayVal;
+        textSpan.style.cursor = 'pointer';
+        textSpan.addEventListener('click', () => {
+          if (textSpan.classList.contains('expanded')) {
+            textSpan.classList.remove('expanded');
+            textSpan.textContent = displayVal;
+          } else {
+            textSpan.classList.add('expanded');
+            textSpan.textContent = fullVal;
+          }
+        });
+        cell.appendChild(textSpan);
 
-        if (textSpan) {
-          textSpan.style.cursor = 'pointer';
-          textSpan.addEventListener('click', () => {
-            if (textSpan.classList.contains('expanded')) {
-              textSpan.classList.remove('expanded');
-              textSpan.textContent = val.length > 16 ? val.substring(0, 14) + '...' : val;
-            } else {
-              textSpan.classList.add('expanded');
-              textSpan.textContent = val;
-            }
-          });
-        }
-
-        if (copyBtn) {
-          copyBtn.addEventListener('click', (e) => {
+        if (fullVal !== '--' && fullVal !== 'None') {
+          const btn = document.createElement('button');
+          btn.className = 'btn-copy-sm';
+          btn.title = 'Copy value';
+          btn.textContent = '📋';
+          btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            navigator.clipboard.writeText(val);
-            copyBtn.textContent = '✓';
-            setTimeout(() => { copyBtn.textContent = '📋'; }, 1500);
+            navigator.clipboard.writeText(fullVal);
+            btn.textContent = '✓';
+            setTimeout(() => { btn.textContent = '📋'; }, 1500);
           });
+          cell.appendChild(btn);
         }
-      });
+
+        td.appendChild(cell);
+        return td;
+      }
+
+      tr.appendChild(makeExpandableCell(fullId, fullId.substring(0, 10) + '...'));
+      tr.appendChild(makeExpandableCell(fullHash, fullHash !== '--' ? fullHash.substring(0, 14) + '...' : '--'));
+
+      const algoTd = document.createElement('td');
+      const algoBadge = document.createElement('span');
+      algoBadge.className = 'badge green';
+      algoBadge.textContent = row.algorithm;
+      algoTd.appendChild(algoBadge);
+      tr.appendChild(algoTd);
+
+      tr.appendChild(makeExpandableCell(fullTx, fullTx !== 'None' ? fullTx.substring(0, 14) + '...' : 'None'));
+
+      const statusTd = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge ${statusClass}`;
+      statusBadge.textContent = row.status.toUpperCase();
+      statusTd.appendChild(statusBadge);
+      tr.appendChild(statusTd);
+
+      const dateTd = document.createElement('td');
+      dateTd.textContent = new Date(row.issuedAt).toLocaleString();
+      tr.appendChild(dateTd);
 
       tbody.appendChild(tr);
     });
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-error">Error loading database records: ${err.message}</td></tr>`;
+    setStatusRow(`Error loading database records: ${err.message}`, 'text-error');
   }
 }
 
@@ -261,32 +284,41 @@ async function loadDatabaseExplorer() {
 const runDiagnosticBtn = document.getElementById('run-diagnostic-btn');
 const diagnosticsConsole = document.getElementById('diagnostics-console');
 
+function appendDiagLog(container, cssClass, text) {
+  const div = document.createElement('div');
+  div.className = `log-line ${cssClass}`;
+  div.textContent = text;
+  container.appendChild(div);
+}
+
 if (runDiagnosticBtn && diagnosticsConsole) {
   runDiagnosticBtn.addEventListener('click', async () => {
     runDiagnosticBtn.disabled = true;
     runDiagnosticBtn.textContent = 'Running Diagnostics...';
-    diagnosticsConsole.innerHTML = '<div class="log-line info">[INIT] Triggering E2E Diagnostics Smoke Test...</div>';
+    diagnosticsConsole.textContent = '';
+    appendDiagLog(diagnosticsConsole, 'info', '[INIT] Triggering E2E Diagnostics Smoke Test...');
 
     try {
       const res = await fetch('/api/diagnostics/run', { method: 'POST' });
       const data = await res.json();
 
       if (data.logs) {
-        diagnosticsConsole.innerHTML = '';
+        diagnosticsConsole.textContent = '';
         data.logs.forEach(log => {
-          const div = document.createElement('div');
-          div.className = `log-line ${log.status}`;
-          div.textContent = `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.step} - ${log.detail}`;
-          diagnosticsConsole.appendChild(div);
+          appendDiagLog(
+            diagnosticsConsole,
+            log.status,
+            `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.step} - ${log.detail}`
+          );
         });
         if (!data.success) {
-          diagnosticsConsole.innerHTML += `<div class="log-line error">[ERROR] ${data.error || 'Diagnostics run was unsuccessful'}</div>`;
+          appendDiagLog(diagnosticsConsole, 'error', `[ERROR] ${data.error || 'Diagnostics run was unsuccessful'}`);
         }
       } else {
-        diagnosticsConsole.innerHTML += `<div class="log-line error">[ERROR] ${data.error || 'Failed to run diagnostics'}</div>`;
+        appendDiagLog(diagnosticsConsole, 'error', `[ERROR] ${data.error || 'Failed to run diagnostics'}`);
       }
     } catch (err) {
-      diagnosticsConsole.innerHTML += `<div class="log-line error">[FATAL] ${err.message}</div>`;
+      appendDiagLog(diagnosticsConsole, 'error', `[FATAL] ${err.message}`);
     } finally {
       runDiagnosticBtn.disabled = false;
       runDiagnosticBtn.textContent = 'Run E2E Smoke Test Suite';

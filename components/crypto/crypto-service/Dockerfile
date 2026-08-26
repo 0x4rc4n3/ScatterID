@@ -15,4 +15,9 @@ COPY . .
 EXPOSE 5001
 ENV PYTHONUNBUFFERED=1
 
+# Run as a non-root user for container isolation
+RUN addgroup --system --gid 1001 cryptoapp \
+ && adduser  --system --uid 1001 --ingroup cryptoapp --no-create-home cryptoapp
+USER cryptoapp
+
 CMD ["python", "app.py"]

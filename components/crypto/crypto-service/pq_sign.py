@@ -1,25 +1,28 @@
 import oqs
 
-def sign_data(data: bytes, private_key: bytes, algorithm: str = "ML-DSA-65") -> bytes:
+def sign_data(data: bytes, private_key, algorithm: str = "ML-DSA-65") -> bytes:
     """Sign data using a post-quantum private key securely.
 
     Args:
         data: Raw bytes to sign.
-        private_key: The exported secret key from generate_keypair().
+        private_key: The exported secret key from generate_keypair() — accepts
+                     bytes or bytearray. Callers should hold private keys as
+                     bytearray so they can be zeroed by kms.zeroize() after use.
         algorithm: The PQC signature algorithm name.
 
     Returns:
         signature: bytes
     """
-    if not isinstance(data, bytes) or len(data) == 0:
-        raise ValueError("Data to sign must be non-empty bytes")
-    if not isinstance(private_key, bytes) or len(private_key) == 0:
-        raise ValueError("Private key must be non-empty bytes")
+    if not isinstance(data, (bytes, bytearray)) or len(data) == 0:
+        raise ValueError("Data to sign must be non-empty bytes or bytearray")
+    if not isinstance(private_key, (bytes, bytearray)) or len(private_key) == 0:
+        raise ValueError("Private key must be non-empty bytes or bytearray")
     if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
-    signer = oqs.Signature(algorithm, secret_key=private_key)
-    return signer.sign(data)
+    # oqs.Signature accepts bytes; convert bytearray transparently.
+    signer = oqs.Signature(algorithm, secret_key=bytes(private_key))
+    return signer.sign(bytes(data))
 
 
 def verify_signature(data: bytes, signature: bytes, public_key: bytes, algorithm: str = "ML-DSA-65") -> bool:
@@ -34,14 +37,14 @@ def verify_signature(data: bytes, signature: bytes, public_key: bytes, algorithm
     Returns:
         valid: bool
     """
-    if not isinstance(data, bytes) or len(data) == 0:
-        raise ValueError("Original data must be non-empty bytes")
-    if not isinstance(signature, bytes) or len(signature) == 0:
-        raise ValueError("Signature must be non-empty bytes")
-    if not isinstance(public_key, bytes) or len(public_key) == 0:
-        raise ValueError("Public key must be non-empty bytes")
+    if not isinstance(data, (bytes, bytearray)) or len(data) == 0:
+        raise ValueError("Original data must be non-empty bytes or bytearray")
+    if not isinstance(signature, (bytes, bytearray)) or len(signature) == 0:
+        raise ValueError("Signature must be non-empty bytes or bytearray")
+    if not isinstance(public_key, (bytes, bytearray)) or len(public_key) == 0:
+        raise ValueError("Public key must be non-empty bytes or bytearray")
     if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
     verifier = oqs.Signature(algorithm)
-    return verifier.verify(data, signature, public_key)
+    return verifier.verify(bytes(data), bytes(signature), bytes(public_key))

@@ -44,6 +44,14 @@ function initStandaloneDemo() {
   }
 }
 
+/** Append a log line to the console output panel using textContent (no innerHTML). */
+function appendLog(container, cssClass, text) {
+  const div = document.createElement('div');
+  div.className = `log-line ${cssClass}`;
+  div.textContent = text;
+  container.appendChild(div);
+}
+
 async function issueAndAnchorNewCredential() {
   const subjectInput = document.getElementById('anchor-subject-input');
   const roleInput = document.getElementById('anchor-role-input');
@@ -59,7 +67,8 @@ async function issueAndAnchorNewCredential() {
   btnIssue.disabled = true;
   btnIssue.textContent = 'Executing Cryptographic Pipeline...';
   outputPanel.classList.remove('hidden');
-  consoleOut.innerHTML = `<div class="log-line info">[1/3] Signing claim hash via PQC ML-DSA-65 (Vault KMS)...</div>`;
+  consoleOut.textContent = '';
+  appendLog(consoleOut, 'info', '[1/3] Signing claim hash via PQC ML-DSA-65 (Vault KMS)...');
 
   try {
     const claim = { subject, role, timestamp: new Date().toISOString() };
@@ -71,13 +80,19 @@ async function issueAndAnchorNewCredential() {
 
     const data = await res.json();
     if (!res.ok) {
-      consoleOut.innerHTML += `<div class="log-line error">[ERROR] API rejected issuance: ${data.error || 'Unknown'}</div>`;
+      appendLog(consoleOut, 'error', `[ERROR] API rejected issuance: ${data.error || 'Unknown'}`);
       return;
     }
 
-    consoleOut.innerHTML += `<div class="log-line success">[2/3] ML-DSA-65 signature generated. PublicKeyId: ${data.publicKeyId || 'N/A'}</div>`;
-    consoleOut.innerHTML += `<div class="log-line success">[3/3] Hyperledger Fabric Anchor Committed! TxID: ${data.anchorTxId || 'Pending'}</div>`;
-    consoleOut.innerHTML += `<div class="log-line highlight" style="margin-top: 8px; color: #38bdf8;">=> Credential Issued Successfully! Credential ID: ${data.credentialId}</div>`;
+    appendLog(consoleOut, 'success', `[2/3] ML-DSA-65 signature generated. PublicKeyId: ${data.publicKeyId || 'N/A'}`);
+    appendLog(consoleOut, 'success', `[3/3] Hyperledger Fabric Anchor Committed! TxID: ${data.anchorTxId || 'Pending'}`);
+
+    const highlight = document.createElement('div');
+    highlight.className = 'log-line highlight';
+    highlight.style.marginTop = '8px';
+    highlight.style.color = '#38bdf8';
+    highlight.textContent = `=> Credential Issued Successfully! Credential ID: ${data.credentialId}`;
+    consoleOut.appendChild(highlight);
 
     // Auto-set as active input in verification panel
     const inputCred = document.getElementById('credential-input');
@@ -87,7 +102,7 @@ async function issueAndAnchorNewCredential() {
     loadSampleCredentials('sample-credentials-list', 'credential-input');
 
   } catch (err) {
-    consoleOut.innerHTML += `<div class="log-line error">[EXCEPTION] Issuance failed: ${err.message}</div>`;
+    appendLog(consoleOut, 'error', `[EXCEPTION] Issuance failed: ${err.message}`);
   } finally {
     btnIssue.disabled = false;
     btnIssue.textContent = '🔒 Issue & Anchor Credential';
@@ -140,11 +155,11 @@ async function loadSampleCredentials(listContainerId, inputId) {
     const validCreds = (data.credentials || []).filter(c => c.status !== 'failed');
 
     if (validCreds.length > 0) {
-      container.innerHTML = '';
+      container.textContent = '';
       validCreds.slice(0, 3).forEach(row => {
         const pill = document.createElement('span');
         pill.className = 'sample-pill';
-        pill.textContent = row.id;
+        pill.textContent = row.id;   // textContent — never innerHTML with server data
         pill.title = `Click to set input ID to ${row.id}`;
         pill.addEventListener('click', () => {
           const input = document.getElementById(inputId);
@@ -158,10 +173,10 @@ async function loadSampleCredentials(listContainerId, inputId) {
         input.value = validCreds[0].id;
       }
     } else {
-      container.innerHTML = '<span class="pill-label">No credentials found. Click "Issue & Anchor Credential" to create one.</span>';
+      container.textContent = 'No credentials found. Click "Issue & Anchor Credential" to create one.';
     }
   } catch (err) {
-    container.innerHTML = '<span class="pill-label">Demo offline mode</span>';
+    container.textContent = 'Demo offline mode';
   }
 }
 
@@ -220,7 +235,18 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
 
     if (resVerify.ok && verifyData.valid) {
       statusBadge.className = 'badge-status-box valid';
-      statusBadge.innerHTML = '<span class="status-icon">✓</span> <span class="status-text">CRYPTOGRAPHICALLY VALIDATED</span>';
+
+      // Build badge content with createElement — no innerHTML with server data
+      statusBadge.textContent = '';
+      const icon = document.createElement('span');
+      icon.className = 'status-icon';
+      icon.textContent = '✓';
+      const text = document.createElement('span');
+      text.className = 'status-text';
+      text.textContent = 'CRYPTOGRAPHICALLY VALIDATED';
+      statusBadge.appendChild(icon);
+      statusBadge.appendChild(document.createTextNode(' '));
+      statusBadge.appendChild(text);
 
       if (issuedAt) issuedAt.textContent = `Issued: ${new Date(verifyData.issuedAt || Date.now()).toLocaleString()}`;
       if (algoEl) algoEl.textContent = 'ML-DSA-65 (NIST FIPS 204)';
@@ -228,8 +254,19 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
       if (txIdEl) txIdEl.textContent = credentialId;
     } else {
       statusBadge.className = 'badge-status-box invalid';
+
+      // Server-provided reason goes through textContent, not innerHTML
       const failReason = verifyData.reason || verifyData.error || 'Verification failed on backend';
-      statusBadge.innerHTML = `<span class="status-icon">✕</span> <span class="status-text">VERIFICATION FAILED: ${failReason}</span>`;
+      statusBadge.textContent = '';
+      const icon = document.createElement('span');
+      icon.className = 'status-icon';
+      icon.textContent = '✕';
+      const text = document.createElement('span');
+      text.className = 'status-text';
+      text.textContent = `VERIFICATION FAILED: ${failReason}`;
+      statusBadge.appendChild(icon);
+      statusBadge.appendChild(document.createTextNode(' '));
+      statusBadge.appendChild(text);
 
       if (issuedAt) issuedAt.textContent = `Timestamp: ${new Date().toLocaleString()}`;
       if (algoEl) algoEl.textContent = 'ML-DSA-65 Signature Check Failed';
@@ -239,7 +276,17 @@ async function genericVerify(credentialId, resultPanelId, badgeId, issuedAtId, a
   } catch (err) {
     resultPanel.classList.remove('hidden');
     statusBadge.className = 'badge-status-box invalid';
-    statusBadge.innerHTML = `<span class="status-icon">✕</span> <span class="status-text">VERIFICATION ERROR: ${err.message}</span>`;
+
+    statusBadge.textContent = '';
+    const icon = document.createElement('span');
+    icon.className = 'status-icon';
+    icon.textContent = '✕';
+    const text = document.createElement('span');
+    text.className = 'status-text';
+    text.textContent = `VERIFICATION ERROR: ${err.message}`;
+    statusBadge.appendChild(icon);
+    statusBadge.appendChild(document.createTextNode(' '));
+    statusBadge.appendChild(text);
   } finally {
     if (btnVerify) {
       btnVerify.disabled = false;

@@ -73,12 +73,14 @@ jobs:
         working-directory: sdk
         run: |
           npm ci
-          npm audit --production --audit-level=high || true
+          # Fail the build on any HIGH or CRITICAL vulnerability.
+          # If a specific advisory needs to be overridden, use --ignore-vulnerability, not || true.
+          npm audit --production --audit-level=high
       - name: Audit Verification API dependencies
         working-directory: components/verification-api
         run: |
           npm ci
-          npm audit --production --audit-level=high || true
+          npm audit --production --audit-level=high
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -87,4 +89,6 @@ jobs:
         run: |
           pip install pip-audit
           pip install -r requirements.txt
-          pip-audit || true
+          # Fail on any known vulnerability. To suppress a false-positive use:
+          # pip-audit --ignore-vuln <VULN-ID>
+          pip-audit

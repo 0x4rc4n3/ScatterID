@@ -1,8 +1,6 @@
-FROM node:20
+FROM node:20-slim
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
 
 # Copy package files and install dependencies
 COPY package*.json ./
@@ -13,5 +11,12 @@ COPY . .
 
 EXPOSE 4000
 
-# Assuming 'npm start' handles the dashboard execution
+# Run as a non-root user for container isolation.
+# docker.io is intentionally NOT installed — the dashboard no longer uses the
+# Docker socket (removed in prior security pass). There is no Docker CLI here
+# by design; use `docker logs <container>` from the host instead.
+RUN addgroup --system --gid 1001 nodeapp \
+ && adduser  --system --uid 1001 --ingroup nodeapp --no-create-home nodeapp
+USER nodeapp
+
 CMD ["npm", "start"]

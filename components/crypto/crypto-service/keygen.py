@@ -13,8 +13,8 @@ def generate_keypair(algorithm: str = "ML-DSA-65"):
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
     signer = oqs.Signature(algorithm)
-    public_key = signer.generate_keypair()
-    private_key = signer.export_secret_key()
+    public_key = signer.generate_keypair()          # bytes — not secret, stays bytes
+    private_key = bytearray(signer.export_secret_key())  # bytearray — mutable so zeroize() can clear it
     return public_key, private_key
 
 

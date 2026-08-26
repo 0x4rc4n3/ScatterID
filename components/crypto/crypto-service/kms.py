@@ -12,21 +12,28 @@ DATA_DIR = '/app/data' if os.path.exists('/app/data') else (
 HISTORY_FILE = os.path.join(DATA_DIR, 'key_history.json')
 
 def zeroize(data):
-    """Zeroize sensitive bytes or bytearray in memory in-place."""
+    """Overwrite a bytearray's contents with zeros to reduce secret key material
+    exposure in memory.
+
+    Only operates on bytearray, which is mutable by language contract.
+    The bytes type is immutable; overwriting it via CPython-internal pointer
+    arithmetic (id(obj)+32) is not portable, is CPython build/version-specific,
+    and can cause memory corruption on future releases or alternative interpreters.
+    Call sites must hold key material in bytearray, not bytes.
+
+    Note: this is best-effort. Copies made inside C extensions (e.g. hvac, oqs)
+    or by the interpreter during assignment are not reachable and cannot be zeroed.
+    """
     if not data:
         return
-    if isinstance(data, (bytes, bytearray)):
-        length = len(data)
-        if length > 0:
-            try:
-                if isinstance(data, bytearray):
-                    buf = (ctypes.c_char * length).from_buffer(data)
-                    ctypes.memset(ctypes.addressof(buf), 0, length)
-                else:
-                    addr = id(data) + 32
-                    ctypes.memset(addr, 0, length)
-            except Exception:
-                pass
+    if isinstance(data, bytearray) and len(data) > 0:
+        try:
+            buf = (ctypes.c_char * len(data)).from_buffer(data)
+            ctypes.memset(ctypes.addressof(buf), 0, len(data))
+        except Exception:
+            # Last-resort fallback: slice assignment is slower but always safe.
+            for i in range(len(data)):
+                data[i] = 0
 
 class KMS:
     """Production-grade Key Management Service (KMS) interfacing with HashiCorp Vault.
