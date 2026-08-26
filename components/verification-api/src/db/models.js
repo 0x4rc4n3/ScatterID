@@ -24,6 +24,29 @@ db.exec(`
   );
 `);
 
+// Index for efficient lookup by data_hash (used in /verify without credentialId)
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_credentials_data_hash ON credentials(data_hash);`);
+
+/**
+ * Converts a raw SQLite row (snake_case columns) into a canonical camelCase API shape.
+ * All database query functions return through this mapper to eliminate
+ * dual snake_case/camelCase fallbacks throughout the codebase.
+ */
+export function toApiShape(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    dataHash: row.data_hash,
+    algorithm: row.algorithm,
+    signature: row.signature,
+    publicKeyId: row.public_key_id,
+    anchorTxId: row.anchor_tx_id || null,
+    status: row.status,
+    issuedAt: row.issued_at,
+    idempotencyKey: row.idempotency_key || null
+  };
+}
+
 const stmts = {
   insertCred: db.prepare(`
     INSERT OR IGNORE INTO credentials (id, data_hash, algorithm, signature, public_key_id, anchor_tx_id, status, issued_at, idempotency_key)
@@ -31,6 +54,7 @@ const stmts = {
   `),
   getCred: db.prepare('SELECT * FROM credentials WHERE id = ?'),
   getCredByIdempotencyKey: db.prepare('SELECT * FROM credentials WHERE idempotency_key = ?'),
+  getCredByDataHash: db.prepare('SELECT * FROM credentials WHERE data_hash = ?'),
   updateStatus: db.prepare('UPDATE credentials SET status = ? WHERE id = ?'),
   updateAnchor: db.prepare('UPDATE credentials SET anchor_tx_id = ?, status = ? WHERE id = ?'),
   getAll: db.prepare('SELECT * FROM credentials ORDER BY issued_at DESC')
@@ -52,11 +76,15 @@ export async function createCredential(record) {
 }
 
 export async function getCredentialById(id) {
-  return stmts.getCred.get(id);
+  return toApiShape(stmts.getCred.get(id));
 }
 
 export async function getCredentialByIdempotencyKey(key) {
-  return stmts.getCredByIdempotencyKey.get(key);
+  return toApiShape(stmts.getCredByIdempotencyKey.get(key));
+}
+
+export async function getCredentialByDataHash(hash) {
+  return toApiShape(stmts.getCredByDataHash.get(hash));
 }
 
 export async function updateStatus(id, status) {
@@ -68,5 +96,5 @@ export async function updateAnchorInfo(id, anchorTxId, status) {
 }
 
 export async function getAllCredentials() {
-  return stmts.getAll.all();
+  return stmts.getAll.all().map(toApiShape);
 }

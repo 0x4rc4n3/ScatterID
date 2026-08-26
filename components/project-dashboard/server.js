@@ -1,11 +1,12 @@
 import express from 'express';
-import { exec } from 'child_process';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import fsSync from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
-import { createHash, createHmac } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,29 +17,84 @@ const PORT = process.env.PORT || 4000;
 const VERIFICATION_API_URL = process.env.VERIFICATION_API_URL || 'http://verification-api:3000';
 const CRYPTO_SERVICE_HOST = process.env.CRYPTO_SERVICE_HOST || 'crypto-service';
 const VERIFICATION_API_HOST = process.env.VERIFICATION_API_HOST || 'verification-api';
-let GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || 'disabled';
+const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || '';
+
+// Fail fast if authentication is not configured
+if (!GATEWAY_API_KEY || GATEWAY_API_KEY === 'disabled') {
+  console.error('FATAL: GATEWAY_API_KEY must be set to a real secret. The dashboard cannot start without authentication.');
+  process.exit(1);
+}
+
 function getHeaders() {
   return {
     'Content-Type': 'application/json'
   };
 }
 
-const validContainers = [
-  'orderer.scatterid.com',
-  'peer0.issuer.scatterid.com',
-  'peer0.verifier.scatterid.com',
-  'scatterid-verification',
-  'scatterid-crypto',
-  'scatterid-vault',
-  'scatterid-dashboard',
-];
-
 app.use(express.json());
+app.use(helmet());
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later', code: 'RATE_LIMITED' }
+});
+
+app.use('/api/', apiLimiter);
+
+// Static files and demo page — no auth required (serves the frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/demo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/demo.html'));
 });
+
+// Authentication middleware for all /api/* routes
+// Uses timing-safe comparison to prevent timing attacks
+app.use('/api', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  const tokenBuf = Buffer.from(token);
+  const keyBuf = Buffer.from(GATEWAY_API_KEY);
+
+  // Prevent length-oracle by comparing against a hash if lengths differ
+  if (tokenBuf.length !== keyBuf.length) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!timingSafeEqual(tokenBuf, keyBuf)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  next();
+});
+
+// Helper to check if a port/host is reachable
+function checkPort(port, host = '127.0.0.1') {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(1500);
+    socket.on('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
+}
 
 // Proxy route for real backend verification
 app.post('/api/verify', async (req, res) => {
@@ -63,41 +119,7 @@ app.post('/api/verify', async (req, res) => {
   }
 });
 
-// Helper to check if a port/host is reachable
-function checkPort(port, host = '127.0.0.1') {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    socket.setTimeout(1500);
-    socket.on('connect', () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.on('timeout', () => {
-      socket.destroy();
-      resolve(false);
-    });
-    socket.on('error', () => {
-      socket.destroy();
-      resolve(false);
-    });
-    socket.connect(port, host);
-  });
-}
-
-// Helper to run shell commands
-function runCmd(command) {
-  return new Promise((resolve) => {
-    exec(command, { cwd: path.resolve(__dirname, '../..') }, (error, stdout, stderr) => {
-      resolve({
-        success: !error,
-        stdout: stdout ? stdout.trim() : '',
-        stderr: stderr ? stderr.trim() : ''
-      });
-    });
-  });
-}
-
-// API: System Status
+// API: System Status — uses port checks instead of Docker socket
 app.get('/api/status', async (req, res) => {
   const cryptoServiceUp = await checkPort(5001, CRYPTO_SERVICE_HOST) || await checkPort(5001, '127.0.0.1');
   const verificationApiUp = await checkPort(3000, VERIFICATION_API_HOST) || await checkPort(3000, '127.0.0.1');
@@ -105,14 +127,6 @@ app.get('/api/status', async (req, res) => {
   let ordererUp = await checkPort(7050, 'orderer.scatterid.com') || await checkPort(7050, 'host.docker.internal') || await checkPort(7050, '127.0.0.1');
   let issuerPeerUp = await checkPort(7051, 'peer0.issuer.scatterid.com') || await checkPort(7051, 'host.docker.internal') || await checkPort(7051, '127.0.0.1');
   let verifierPeerUp = await checkPort(8051, 'peer0.verifier.scatterid.com') || await checkPort(8051, 'host.docker.internal') || await checkPort(8051, '127.0.0.1');
-
-  const dockerInfo = await runCmd('docker ps --format "{{.Names}}: {{.Status}}"');
-  if (dockerInfo.success && dockerInfo.stdout) {
-    const output = dockerInfo.stdout;
-    if (output.includes('orderer.scatterid.com')) ordererUp = true;
-    if (output.includes('peer0.issuer.scatterid.com')) issuerPeerUp = true;
-    if (output.includes('peer0.verifier.scatterid.com')) verifierPeerUp = true;
-  }
 
   res.json({
     services: {
@@ -266,20 +280,13 @@ app.post('/api/diagnostics/run', async (req, res) => {
   }
 });
 
-// API: Docker Logs
+// API: Container Logs
+// Docker socket access has been removed for security. Use `docker logs` from the host instead.
 app.get('/api/logs/:container', async (req, res) => {
-  const container = req.params.container;
-
-  if (!validContainers.includes(container)) {
-    return res.status(400).json({ success: false, error: 'Invalid container name' });
-  }
-
-  const logs = await runCmd(`docker logs --tail 100 ${container}`);
-  const logText = (logs.stdout || logs.stderr || ('No log output available for ' + container)).trim();
   res.json({
     success: true,
-    logs: logText,
-    content: logText
+    logs: 'Container log streaming requires direct Docker access. Use `docker logs <container>` from the host.',
+    content: 'Container log streaming requires direct Docker access. Use `docker logs <container>` from the host.'
   });
 });
 

@@ -20,11 +20,11 @@ export async function issueRoute(req, res) {
             return res.status(200).json({
                 status: existing.status,
                 credentialId: existing.id,
-                dataHash: existing.data_hash,
+                dataHash: existing.dataHash,
                 algorithm: existing.algorithm,
-                anchorTxId: existing.anchor_tx_id,
-                publicKeyId: existing.public_key_id,
-                issuedAt: existing.issued_at
+                anchorTxId: existing.anchorTxId,
+                publicKeyId: existing.publicKeyId,
+                issuedAt: existing.issuedAt
             });
         }
     }

@@ -1,5 +1,8 @@
 # ScatterID — Post-Quantum Identity Verification Infrastructure
 
+[![CI](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/ci.yml/badge.svg)](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ScatterID is a decentralized, zero-knowledge, post-quantum identity verification system.
 
 ## 🏛 Core Architectural Flow
@@ -87,5 +90,24 @@ ScatterID/
 └── README.md                   # Master Architectural Documentation
 ```
 
+---
+
+## Current Limitations
+
+ScatterID is an active research and development project. The following limitations are acknowledged honestly:
+
+- **No independent security audit** has been performed. The codebase has undergone internal review but has not been evaluated by an external security firm.
+- **Test coverage is smoke-level**, not comprehensive. Unit and integration tests exist for core flows, but full edge-case and failure-mode coverage is a work in progress.
+- **The default `docker-compose.yml` configuration is for local development only** and is not hardened for production deployment. Vault runs in dev mode (`VAULT_DEV_MODE=true`) over HTTP, and TLS certificates are self-signed.
+- **CI includes linting, tests, and build verification** but does not yet include SAST or comprehensive dependency scanning beyond `npm audit` / `pip-audit`.
+- **Documentation reflects the current v2 zero-knowledge architecture**; supplementary docs in `docs/` may reference design decisions that predate the current implementation.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full history of changes and resolved issues.
+
+---
+
 ## Security Note
 **MANUAL REVIEW REQUIRED**: Any version bumps to cryptographic dependencies (`flask`, `hvac`, `liboqs-python`, and any `crypto` JS packages) require manual review of changelogs before upgrading. Do not use caret (`^`) or tilde (`~`) version ranges for these packages.
+
+For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md). For contributing, see [CONTRIBUTING.md](CONTRIBUTING.md).
+

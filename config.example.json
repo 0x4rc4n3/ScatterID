@@ -1,8 +1,8 @@
 {
-  "_comment": "ScatterID Production Configuration File. Treat this file as highly sensitive. Mount to all containers.",
+  "_comment": "ScatterID Configuration Template. Copy to config.json and fill in values. NEVER commit config.json.",
   "system": {
     "env": {
-      "value": "production",
+      "value": "development",
       "options": [
         "development",
         "staging",
@@ -13,7 +13,7 @@
   },
   "network": {
     "vault_addr": {
-      "value": "http://vault.scatterid.com:8200",
+      "value": "",
       "purpose": "KMS HashiCorp Vault endpoint address."
     },
     "crypto_service_url": {

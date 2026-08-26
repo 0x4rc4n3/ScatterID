@@ -24,11 +24,11 @@ export async function statusRoute(req, res) {
 
     return res.status(200).json({
       id: record.id,
-      dataHash: record.data_hash || record.dataHash,
+      dataHash: record.dataHash,
       algorithm: record.algorithm,
-      anchorTxId: record.anchor_tx_id || record.anchorTxId || null,
+      anchorTxId: record.anchorTxId,
       status: record.status,
-      issuedAt: record.issued_at || record.issuedAt,
+      issuedAt: record.issuedAt,
     });
   } catch (err) {
     console.error('Failed to get credential status:', err.stack || err.message);

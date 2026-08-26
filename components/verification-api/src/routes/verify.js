@@ -1,4 +1,4 @@
-import { getCredentialById } from '../db/models.js';
+import { getCredentialById, getCredentialByDataHash } from '../db/models.js';
 import { queryProof } from '../chain/fabric.js';
 import { getConfig } from '../config.js';
 
@@ -17,11 +17,8 @@ export async function verifyRoute(req, res) {
     if (credentialId) {
       record = await getCredentialById(credentialId);
     } else {
-      // If no credentialId provided, we could look it up by dataHash if we had an index,
-      // Look up credential by dataHash
-      const { getAllCredentials } = await import('../db/models.js');
-      const all = await getAllCredentials();
-      record = all.find(r => r.data_hash === dataHash || r.dataHash === dataHash);
+      // Lookup by data_hash using the UNIQUE INDEX — O(log n), not a full table scan
+      record = await getCredentialByDataHash(dataHash);
     }
 
     if (!record) {
@@ -31,8 +28,9 @@ export async function verifyRoute(req, res) {
       });
     }
 
-    const recDataHash = record.data_hash || record.dataHash;
-    const recIssuedAt = record.issued_at || record.issuedAt;
+    // All fields are camelCase via toApiShape() in models.js
+    const recDataHash = record.dataHash;
+    const recIssuedAt = record.issuedAt;
 
     if (recDataHash !== dataHash) {
       return res.status(200).json({
@@ -81,7 +79,7 @@ export async function verifyRoute(req, res) {
       const payload = {
         dataHash: recDataHash,
         signature: record.signature,
-        publicKeyId: record.public_key_id || record.publicKeyId
+        publicKeyId: record.publicKeyId  // always from registry, never from caller
       };
       
       const response = await fetch(`${cryptoUrl}/verify_hash`, {

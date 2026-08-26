@@ -131,7 +131,7 @@ def ensure_certificates(cert_path, key_path, base_dir):
             if os.path.exists(cert_path) and os.path.exists(key_path):
                 return cert_path, key_path
         except Exception as err:
-            pass
+            print(f"WARNING: Certificate generation script failed: {err}", flush=True)
 
     try:
         subprocess.run([
@@ -140,7 +140,14 @@ def ensure_certificates(cert_path, key_path, base_dir):
             '-subj', '/CN=localhost/O=ScatterID'
         ], check=True)
     except Exception as err:
-        pass
+        print(f"ERROR: Fallback certificate generation failed: {err}", flush=True)
+
+    if not os.path.exists(cert_path) or not os.path.exists(key_path):
+        raise RuntimeError(
+            f"FATAL: Could not generate TLS certificates. "
+            f"Expected cert at {cert_path} and key at {key_path}. "
+            f"The crypto-service cannot start without valid TLS certificates."
+        )
 
     return cert_path, key_path
 

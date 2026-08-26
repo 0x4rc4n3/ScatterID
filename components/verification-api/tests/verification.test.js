@@ -181,3 +181,112 @@ test('verifyRoute uses only registry-resolved publicKeyId and ignores attacker m
     global.fetch = originalFetch;
   }
 });
+
+test('verifyRoute rejects tampered dataHash not matching stored record', async () => {
+  const testId = randomUUID();
+  const realHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+  await createCredential({
+    id: testId,
+    dataHash: realHash,
+    algorithm: 'ML-DSA-65',
+    signature: 'sig123',
+    publicKeyId: 'key-id',
+    anchorTxId: 'tx-123',
+    status: 'anchored',
+    issuedAt: new Date().toISOString()
+  });
+
+  const tamperedHash = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({ ok: true, json: async () => ({ valid: true }) });
+
+  try {
+    let responseData = null;
+    const mockRes = {
+      status(s) { return this; },
+      json(data) { responseData = data; return this; }
+    };
+    await verifyRoute({ body: { dataHash: tamperedHash, credentialId: testId } }, mockRes);
+    assert.equal(responseData.valid, false, 'Tampered hash should be rejected');
+    assert.equal(responseData.anchorStatus, 'tampered_hash');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('verifyRoute returns 502 when crypto-service is unreachable', async () => {
+  const testId = randomUUID();
+  const dataHash = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+
+  await createCredential({
+    id: testId,
+    dataHash,
+    algorithm: 'ML-DSA-65',
+    signature: 'sig123',
+    publicKeyId: 'key-id',
+    anchorTxId: null,
+    status: 'pending',
+    issuedAt: new Date().toISOString()
+  });
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => { throw new Error('Connection refused'); };
+
+  try {
+    let responseStatus = null;
+    let responseData = null;
+    const mockRes = {
+      status(s) { responseStatus = s; return this; },
+      json(data) { responseData = data; return this; }
+    };
+    await verifyRoute({ body: { dataHash, credentialId: testId } }, mockRes);
+    assert.equal(responseStatus, 502, 'Should return 502 when crypto-service is unreachable');
+    assert.equal(responseData.code, 'CRYPTO_SERVICE_UNREACHABLE');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('issueRoute returns 502 when crypto-service is unreachable', async () => {
+  const dataHash = 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd';
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => { throw new Error('Connection refused'); };
+
+  try {
+    let responseStatus = null;
+    let responseData = null;
+    const mockRes = {
+      status(s) { responseStatus = s; return this; },
+      json(data) { responseData = data; return this; }
+    };
+    await issueRoute({ body: { dataHash } }, mockRes);
+    assert.equal(responseStatus, 502, 'Should return 502 when crypto-service is unreachable');
+    assert.equal(responseData.code, 'CRYPTO_SERVICE_UNREACHABLE');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('toApiShape normalizes snake_case DB row to camelCase API shape', async () => {
+  const { toApiShape } = await import('../src/db/models.js');
+  const row = {
+    id: 'test-id',
+    data_hash: 'hash123',
+    algorithm: 'ML-DSA-65',
+    signature: 'sig',
+    public_key_id: 'pkid',
+    anchor_tx_id: 'tx1',
+    status: 'anchored',
+    issued_at: '2026-01-01T00:00:00Z',
+    idempotency_key: 'ik1'
+  };
+  const mapped = toApiShape(row);
+  assert.equal(mapped.dataHash, 'hash123', 'data_hash should map to dataHash');
+  assert.equal(mapped.publicKeyId, 'pkid', 'public_key_id should map to publicKeyId');
+  assert.equal(mapped.anchorTxId, 'tx1', 'anchor_tx_id should map to anchorTxId');
+  assert.equal(mapped.issuedAt, '2026-01-01T00:00:00Z', 'issued_at should map to issuedAt');
+  assert.equal(mapped.idempotencyKey, 'ik1', 'idempotency_key should map to idempotencyKey');
+  assert.equal(mapped.data_hash, undefined, 'snake_case data_hash should not be present in output');
+});

@@ -43,10 +43,15 @@ class KMS:
         self.vault_role_id = get_config("security.vault_role_id", os.environ.get("VAULT_ROLE_ID"))
         self.vault_secret_id = get_config("security.vault_secret_id", os.environ.get("VAULT_SECRET_ID"))
         
-        # Enforce HTTPS connection URLs for non-local Vault environments
-        is_local = any(h in self.vault_url for h in ["localhost", "127.0.0.1", "vault"])
-        if not self.vault_url.startswith("https://") and not is_local:
-            raise ValueError("CRITICAL: Insecure connection protocol. VAULT_ADDR must use HTTPS.")
+        # Enforce HTTPS unless explicitly running in dev mode.
+        # Set VAULT_DEV_MODE=true in the environment for local/dev deployments only.
+        # Never use VAULT_DEV_MODE=true in production — all production Vault traffic must use HTTPS.
+        is_dev_mode = os.environ.get("VAULT_DEV_MODE", "false").lower() == "true"
+        if not self.vault_url.startswith("https://") and not is_dev_mode:
+            raise ValueError(
+                "CRITICAL: Insecure connection protocol. VAULT_ADDR must use HTTPS. "
+                "Set VAULT_DEV_MODE=true to allow HTTP for local development only."
+            )
             
         if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
             raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
