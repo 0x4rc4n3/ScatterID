@@ -2,8 +2,10 @@ import hmac
 import os
 import uuid
 import re
+import hashlib
+import threading
 from flask import Flask, request, jsonify
-from kms import KMS
+from kms import KMS, zeroize
 from interface import issue_credential, verify_credential
 from config import get_config
 
@@ -11,10 +13,9 @@ app = Flask(__name__)
 
 kms = KMS()
 PUBLIC_KEY, PRIVATE_KEY = kms.get_keys()
-
-# Use a truncated hash of the public key as the publicKeyId
-import hashlib
 PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
+
+state_lock = threading.RLock()
 
 API_KEY = get_config("security.crypto_service_api_key", os.environ.get("CRYPTO_SERVICE_API_KEY"))
 if not API_KEY:
@@ -47,8 +48,12 @@ def sign_hash_route():
     if not credential_id:
         credential_id = str(uuid.uuid4())
 
+    with state_lock:
+        local_priv = PRIVATE_KEY
+        local_pub_id = PUBLIC_KEY_ID
+
     try:
-        result = issue_credential(data_hash, PRIVATE_KEY, PUBLIC_KEY_ID)
+        result = issue_credential(data_hash, local_priv, local_pub_id)
         result["credentialId"] = credential_id
         return jsonify(result), 201
     except Exception as e:
@@ -65,22 +70,23 @@ def verify_hash_route():
     signature = data["signature"]
     public_key_id = data["publicKeyId"]
 
-    # Resolve public key from internal trusted key registry.
-    # We never accept or read any public_key field supplied in the request.
+    with state_lock:
+        local_pub_key = PUBLIC_KEY
+        local_pub_key_id = PUBLIC_KEY_ID
+
     keys_to_test = []
     
     # Check if the requested key matches the current one
-    if public_key_id == PUBLIC_KEY_ID:
-        keys_to_test.append(PUBLIC_KEY)
+    if public_key_id == local_pub_key_id:
+        keys_to_test.append(local_pub_key)
         
     # Also check historical keys if necessary
-    for pk in getattr(kms, 'public_key_history', []):
-        if hashlib.sha256(pk).hexdigest()[:16] == public_key_id:
-            keys_to_test.append(pk)
-            
+    with kms.lock:
+        for pk in getattr(kms, 'public_key_history', []):
+            if hashlib.sha256(pk).hexdigest()[:16] == public_key_id:
+                keys_to_test.append(pk)
+                
     if not keys_to_test:
-        # Fallback to trying all keys if the ID format was changed or we don't know it, 
-        # If not found, it fails.
         return jsonify({"valid": False, "reason": "publicKeyId not found in trusted registry"}), 200
 
     valid = False
@@ -95,8 +101,12 @@ def verify_hash_route():
 def rotate_route():
     global PUBLIC_KEY, PRIVATE_KEY, PUBLIC_KEY_ID
     try:
-        PUBLIC_KEY, PRIVATE_KEY = kms.rotate_keys()
-        PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
+        with state_lock:
+            old_priv = PRIVATE_KEY
+            PUBLIC_KEY, PRIVATE_KEY = kms.rotate_keys()
+            PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
+            if old_priv:
+                zeroize(old_priv)
         return jsonify({
             "message": "Keys rotated successfully",
             "publicKeyId": PUBLIC_KEY_ID

@@ -1,6 +1,8 @@
 import json
 import os
 import hvac
+import ctypes
+import threading
 from keygen import generate_keypair
 from config import get_config
 
@@ -8,6 +10,23 @@ DATA_DIR = '/app/data' if os.path.exists('/app/data') else (
     '/app/certs' if os.path.exists('/app/certs') else os.path.dirname(os.path.abspath(__file__))
 )
 HISTORY_FILE = os.path.join(DATA_DIR, 'key_history.json')
+
+def zeroize(data):
+    """Zeroize sensitive bytes or bytearray in memory in-place."""
+    if not data:
+        return
+    if isinstance(data, (bytes, bytearray)):
+        length = len(data)
+        if length > 0:
+            try:
+                if isinstance(data, bytearray):
+                    buf = (ctypes.c_char * length).from_buffer(data)
+                    ctypes.memset(ctypes.addressof(buf), 0, length)
+                else:
+                    addr = id(data) + 32
+                    ctypes.memset(addr, 0, length)
+            except Exception:
+                pass
 
 class KMS:
     """Production-grade Key Management Service (KMS) interfacing with HashiCorp Vault.
@@ -17,21 +36,28 @@ class KMS:
     ensure seamless verification of historical records.
     """
     def __init__(self):
-        self.vault_url = get_config("network.vault_addr", os.environ.get("VAULT_ADDR", "http://localhost:8200"))
+        self.lock = threading.RLock()
+        
+        self.vault_url = get_config("network.vault_addr", os.environ.get("VAULT_ADDR", "https://localhost:8200"))
         self.vault_token = get_config("security.vault_token", os.environ.get("VAULT_TOKEN"))
         self.vault_role_id = get_config("security.vault_role_id", os.environ.get("VAULT_ROLE_ID"))
         self.vault_secret_id = get_config("security.vault_secret_id", os.environ.get("VAULT_SECRET_ID"))
         
+        # Enforce HTTPS connection URLs for non-local Vault environments
+        is_local = any(h in self.vault_url for h in ["localhost", "127.0.0.1", "vault"])
+        if not self.vault_url.startswith("https://") and not is_local:
+            raise ValueError("CRITICAL: Insecure connection protocol. VAULT_ADDR must use HTTPS.")
+            
         if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
             raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
             
         self.secret_path = get_config("security.vault_secret_path", os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa"))
         self.client = None
-        self.fallback_pub = None
-        self.fallback_priv = None
         self.public_key_history = []
-        self._load_disk_history()
-        self._init_vault()
+        
+        with self.lock:
+            self._load_disk_history()
+            self._init_vault()
 
     def _load_disk_history(self):
         """Load persisted public key history from disk if present."""
@@ -59,7 +85,7 @@ class KMS:
             print(f"KMS Warning: Error saving key history file: {e}")
 
     def _init_vault(self):
-        """Initialize and authenticate the Vault client."""
+        """Initialize and authenticate the Vault client. Fails loudly on error."""
         try:
             if self.vault_role_id and self.vault_secret_id:
                 self.client = hvac.Client(url=self.vault_url)
@@ -71,13 +97,11 @@ class KMS:
                 self.client = hvac.Client(url=self.vault_url, token=self.vault_token)
             
             if not self.client.is_authenticated():
-                print("KMS Warning: Vault authentication failed. Using in-memory keypair fallback.")
-                self.client = None
-            else:
-                self._sync_vault_history()
+                raise RuntimeError("Vault authentication failed: Invalid token or AppRole credentials.")
+            
+            self._sync_vault_history()
         except Exception as e:
-            print(f"KMS Warning: Failed to connect to Vault at {self.vault_url}: {e}. Using in-memory fallback.")
-            self.client = None
+            raise RuntimeError(f"Failed to connect to Vault at {self.vault_url}: {e}")
 
     def _sync_vault_history(self):
         """Read all past KV v2 versions from Vault to populate key history."""
@@ -98,6 +122,9 @@ class KMS:
                         pk = bytes.fromhex(v_data["public_key"])
                         if pk not in self.public_key_history:
                             self.public_key_history.append(pk)
+                    # Defense-in-depth: remove historical private keys from memory immediately
+                    if "private_key" in v_data:
+                        del v_data["private_key"]
                 except Exception:
                     pass
             self._save_disk_history()
@@ -105,74 +132,58 @@ class KMS:
             pass
 
     def get_keys(self, algorithm: str = "ML-DSA-65"):
-        """Retrieve active signing keypair, or generate if not present."""
+        """Retrieve active signing keypair from Vault. Fails loudly on connection failure."""
         if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
             raise ValueError("Unsupported or insecure PQC algorithm standard requested")
-        if not self.client:
-            if not self.fallback_pub:
-                self.fallback_pub, self.fallback_priv = generate_keypair(algorithm)
-                if self.fallback_pub not in self.public_key_history:
-                    self.public_key_history.append(self.fallback_pub)
-                    self._save_disk_history()
-            return self.fallback_pub, self.fallback_priv
-
+        
         secret_path = self.secret_path
         mount_point = "secret"
 
-        try:
-            res = self.client.secrets.kv.v2.read_secret_version(
-                path=secret_path,
-                mount_point=mount_point
-            )
-            data = res["data"]["data"]
-            public_key = bytes.fromhex(data["public_key"])
-            private_key = bytes.fromhex(data["private_key"])
-            if public_key not in self.public_key_history:
-                self.public_key_history.append(public_key)
-                self._save_disk_history()
-            return public_key, private_key
-        except hvac.exceptions.InvalidPath:
-            public_key, private_key = generate_keypair(algorithm)
-            payload = {
-                "public_key": public_key.hex(),
-                "private_key": private_key.hex(),
-            }
+        with self.lock:
             try:
+                res = self.client.secrets.kv.v2.read_secret_version(
+                    path=secret_path,
+                    mount_point=mount_point
+                )
+                data = res["data"]["data"]
+                public_key = bytes.fromhex(data["public_key"])
+                private_key = bytes.fromhex(data["private_key"])
+                
+                # Zeroize Vault response dictionary copies to prevent leakage
+                if "private_key" in data:
+                    data["private_key"] = ""
+                
+                if public_key not in self.public_key_history:
+                    self.public_key_history.append(public_key)
+                    self._save_disk_history()
+                return public_key, private_key
+            except hvac.exceptions.InvalidPath:
+                public_key, private_key = generate_keypair(algorithm)
+                payload = {
+                    "public_key": public_key.hex(),
+                    "private_key": private_key.hex(),
+                }
                 self.client.secrets.kv.v2.create_or_update_secret(
                     path=secret_path,
                     secret=payload,
                     mount_point=mount_point
                 )
-            except Exception as e:
-                print(f"KMS Warning: Could not write key to Vault: {e}")
-            if public_key not in self.public_key_history:
-                self.public_key_history.append(public_key)
-                self._save_disk_history()
-            return public_key, private_key
-        except Exception as e:
-            print(f"KMS Warning: Vault error ({e}), falling back to in-memory keypair.")
-            if not self.fallback_pub:
-                self.fallback_pub, self.fallback_priv = generate_keypair(algorithm)
-                if self.fallback_pub not in self.public_key_history:
-                    self.public_key_history.append(self.fallback_pub)
+                # Clean up the payload keys
+                payload["private_key"] = ""
+                
+                if public_key not in self.public_key_history:
+                    self.public_key_history.append(public_key)
                     self._save_disk_history()
-            return self.fallback_pub, self.fallback_priv
+                return public_key, private_key
+            except Exception as e:
+                raise RuntimeError(f"KMS Error: Failed to retrieve active signing keys from Vault: {e}")
 
     def rotate_keys(self, algorithm: str = "ML-DSA-65"):
         """Rotate active signing keypair, maintaining previous public keys in history."""
         if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
             raise ValueError("Unsupported or insecure PQC algorithm standard requested")
+        
         public_key, private_key = generate_keypair(algorithm)
-
-        if public_key not in self.public_key_history:
-            self.public_key_history.append(public_key)
-            self._save_disk_history()
-
-        if not self.client:
-            self.fallback_pub = public_key
-            self.fallback_priv = private_key
-            return public_key, private_key
-
         secret_path = self.secret_path
         mount_point = "secret"
         payload = {
@@ -180,16 +191,20 @@ class KMS:
             "private_key": private_key.hex(),
         }
 
-        try:
-            self.client.secrets.kv.v2.create_or_update_secret(
-                path=secret_path,
-                secret=payload,
-                mount_point=mount_point
-            )
-            self._sync_vault_history()
-        except Exception as e:
-            print(f"KMS Warning: Vault write failed during rotation: {e}")
-            self.fallback_pub = public_key
-            self.fallback_priv = private_key
-
-        return public_key, private_key
+        with self.lock:
+            try:
+                self.client.secrets.kv.v2.create_or_update_secret(
+                    path=secret_path,
+                    secret=payload,
+                    mount_point=mount_point
+                )
+                # Clean up the payload keys
+                payload["private_key"] = ""
+                
+                if public_key not in self.public_key_history:
+                    self.public_key_history.append(public_key)
+                    self._save_disk_history()
+                self._sync_vault_history()
+                return public_key, private_key
+            except Exception as e:
+                raise RuntimeError(f"KMS Error: Key rotation operation failed in Vault: {e}")
