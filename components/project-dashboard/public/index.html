@@ -3,388 +3,405 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScatterID Enterprise Platform</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Roboto:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <title>ScatterID — Operator Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="demo.css">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-  <!-- Sidebar Navigation (Collapsible Horizontal) -->
-  <nav class="sidebar" id="main-sidebar">
-    <div class="logo">
-      <div class="brand-wrapper">
-        <img src="icon.png" alt="ScatterID Logo" class="brand-logo-img">
-        <span class="logo-text">ScatterID</span>
+
+  <!-- App Header -->
+  <header class="header">
+    <div class="header-container">
+      <div class="brand">
+        <a href="/" class="brand-link">
+          <div class="brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <span class="brand-title">ScatterID</span>
+          <span class="brand-badge">Console</span>
+        </a>
       </div>
-      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Collapse / Expand Menu">◀</button>
+
+      <nav class="nav-tabs" id="nav-tabs">
+        <button class="nav-btn active" data-tab="tab-overview">Overview</button>
+        <button class="nav-btn" data-tab="tab-studio">Credential Studio</button>
+        <button class="nav-btn" data-tab="tab-registry">Registry</button>
+        <button class="nav-btn" data-tab="tab-diagnostics">Diagnostics</button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-auth-settings" title="Configure API Access Key">
+          <span class="status-indicator-dot" id="auth-status-dot"></span>
+          <span id="auth-btn-text">API Key</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh" title="Refresh Dashboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          Refresh
+        </button>
+        <a href="http://localhost:8080" target="_blank" class="btn btn-secondary btn-sm">Documentation ↗</a>
+      </div>
     </div>
-    <ul class="nav-links">
-      <li><a href="#" class="nav-link active" data-tab="tab-demo"><span class="nav-icon-dot"></span><span class="nav-text">Sandbox</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-db"><span class="nav-icon-dot"></span><span class="nav-text">Credentials Explorer</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-overview"><span class="nav-icon-dot"></span><span class="nav-text">Health Status</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-logs"><span class="nav-icon-dot"></span><span class="nav-text">Fabric Logs</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-diagnostics"><span class="nav-icon-dot"></span><span class="nav-text">Diagnostics</span></a></li>
-      <li><a href="#" class="nav-link" data-tab="tab-architecture"><span class="nav-icon-dot"></span><span class="nav-text">Architecture</span></a></li>
-    </ul>
-    <div class="sidebar-footer">
-      <div class="system-tag">
-        <span class="status-dot"></span>
-        <span class="sidebar-footer-text">ScatterID — Powered by Rynex Security</span>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- TAB 1: OVERVIEW -->
+    <section id="tab-overview" class="tab-content active">
+      <!-- Welcome / Status Banner -->
+      <div class="page-heading">
+        <div>
+          <h1 class="page-title">System Overview</h1>
+          <p class="page-subtitle">Zero-knowledge credential verification and decentralized ledger health.</p>
+        </div>
+        <div class="heading-badge">
+          <span class="pulse-dot"></span>
+          <span>All Services Operational</span>
+        </div>
       </div>
-    </div>
-  </nav>
 
-  <!-- Main Workspace -->
-  <main class="main-content" id="main-content">
-    <div class="glow-bg"></div>
-
-    <!-- Centralized Header -->
-    <header class="top-header">
-      <div class="header-left">
-        <h2 id="page-title">Interactive Sandbox</h2>
-        <p class="subtitle">Post-Quantum Zero-Knowledge Credential Verification Architecture</p>
+      <!-- Quick Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Issued Credentials</span>
+          <span class="metric-value" id="metric-total-credentials">--</span>
+          <span class="metric-note">Anchored on distributed ledger</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Signing Authority</span>
+          <span class="metric-value text-blue" id="metric-crypto-status">Active</span>
+          <span class="metric-note">Hardware / KMS secured</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Verification Gateway</span>
+          <span class="metric-value text-blue" id="metric-gateway-status">Active</span>
+          <span class="metric-note">Port 3000 REST listener</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Ledger Network</span>
+          <span class="metric-value text-blue" id="metric-ledger-status">Active</span>
+          <span class="metric-note">Consensus active</span>
+        </div>
       </div>
-      <div class="header-right">
-        <button class="btn btn-outline" id="refresh-all-btn">Refresh Data</button>
+
+      <!-- Services Grid -->
+      <div class="section-title-row">
+        <h2 class="section-title">Core Services</h2>
+        <span class="section-subtitle">Real-time connectivity and status probes</span>
       </div>
-    </header>
 
-    <div class="content-body">
-      
-      <!-- TAB 1: Interactive Sandbox Demo (TOP DEFAULT TAB) -->
-      <section id="tab-demo" class="tab-pane active">
-        <!-- Prominent View Switch Banner -->
-        <div class="prominent-switch-bar mb-6">
-          <div class="switch-heading">
-            <span class="switch-tag">Interactive Sandbox</span>
-            <span class="switch-sub">Select View Mode:</span>
-          </div>
-          <div class="view-toggle-container prominent">
-            <button class="toggle-btn active" id="btn-view-client-tab" data-view="client">Client Experience Portal</button>
-            <button class="toggle-btn" id="btn-view-telemetry-tab" data-view="telemetry">Deep-Tech Telemetry Matrix</button>
-          </div>
-        </div>
-
-        <!-- Embedded View A: Client Experience -->
-        <div id="demo-tab-client" class="demo-subview active">
-          <div class="verification-card glass-panel">
-            <div class="card-title-row">
-              <h3>Verify Credential Integrity</h3>
-              <span class="status-indicator live"><span class="dot"></span> Network Active</span>
-            </div>
-
-            <div class="input-form">
-              <div class="input-group">
-                <label for="tab-credential-input">Credential Identifier (UUID v4)</label>
-                <div class="input-wrapper">
-                  <input type="text" id="tab-credential-input" placeholder="e.g. 56298928-58b6-4092-9cc6-b4e29fc1b2d5" autocomplete="off" spellcheck="false" />
-                  <button class="btn btn-primary" id="tab-btn-run-verify">Verify Credential</button>
-                </div>
-              </div>
-
-              <div class="sample-pills">
-                <span class="pill-label">Sample Issued Credentials:</span>
-                <div id="tab-sample-credentials-list">
-                  <span class="sample-pill loading">Loading database records...</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Verification Result Panel (Hidden until user clicks Verify) -->
-            <div class="result-panel hidden" id="tab-verification-result">
-              <div class="result-header">
-                <div class="badge-status-box valid" id="tab-result-status-badge">
-                  <span class="status-icon">✓</span>
-                  <span class="status-text">CRYPTOGRAPHICALLY VALIDATED</span>
-                </div>
-                <span class="timestamp-text" id="tab-result-issued-at">Issued: --</span>
-              </div>
-
-              <div class="result-details-grid">
-                <div class="detail-box">
-                  <span class="detail-label">Post-Quantum Algorithm</span>
-                  <span class="detail-value mono text-purple" id="tab-result-algo">ML-DSA-65 (FIPS 204)</span>
-                </div>
-
-                <div class="detail-box">
-                  <span class="detail-label">Hyperledger Fabric Anchor</span>
-                  <span class="detail-value mono text-green" id="tab-result-anchor-status">Active (TxID Anchored)</span>
-                </div>
-                <div class="detail-box col-span-2">
-                  <span class="detail-label">Blockchain Anchor Transaction ID</span>
-                  <span class="detail-value mono text-muted break-all" id="tab-result-tx-id">--</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Embedded View B: Deep-Tech Telemetry -->
-        <div id="demo-tab-telemetry" class="demo-subview" style="display: none;">
-
-
-          <div class="grid grid-2">
-            <div class="telemetry-block glass-panel">
-              <div class="block-header">
-                <h3>ML-DSA-65 Post-Quantum Cryptography</h3>
-                <span class="tag green">NIST FIPS 204 Standard</span>
-              </div>
-              <div class="tech-spec-list">
-                <div class="spec-row"><span class="spec-key">Signature Scheme:</span><span class="spec-val mono">ML-DSA-65 (Dilithium3)</span></div>
-                <div class="spec-row"><span class="spec-key">Security Category:</span><span class="spec-val mono">NIST Level 3 (AES-192 equivalent)</span></div>
-                <div class="spec-row"><span class="spec-key">Public Key Size:</span><span class="spec-val mono">1952 Bytes</span></div>
-                <div class="spec-row"><span class="spec-key">Secret Key Vault Engine:</span><span class="spec-val mono">HashiCorp Vault KV v2 (Port 8200)</span></div>
-              </div>
-            </div>
-
-            <div class="telemetry-block glass-panel">
-              <div class="block-header">
-                <h3>Hyperledger Fabric Ledger Telemetry</h3>
-                <span class="tag green">gRPC Mutual TLS Protocol</span>
-              </div>
-              <div class="tech-spec-list">
-                <div class="spec-row"><span class="spec-key">Channel Name:</span><span class="spec-val mono">scatterid-channel</span></div>
-                <div class="spec-row"><span class="spec-key">Go Chaincode:</span><span class="spec-val mono">scatterproof.go</span></div>
-                <div class="spec-row"><span class="spec-key">Orderer Node:</span><span class="spec-val mono">orderer.scatterid.com:7050 (Raft)</span></div>
-                <div class="spec-row"><span class="spec-key">Peers:</span><span class="spec-val mono">peer0.issuer (7051), peer0.verifier (8051)</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 2: Health Status Overview -->
-      <section id="tab-overview" class="tab-pane">
-        <div class="grid grid-2">
-          <!-- API Services Status -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Core Microservice Endpoints</h3>
-              <span class="badge green">HTTP / TLS Probes</span>
-            </div>
-            <div class="status-list">
-              <div class="status-item">
-                <span class="service-name">Verification API Gateway (Express:3000)</span>
-                <span class="status-badge checking" id="status-api">CHECKING</span>
-              </div>
-              <div class="status-item">
-                <span class="service-name">Crypto Microservice (Flask:5001)</span>
-                <span class="status-badge checking" id="status-crypto">CHECKING</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Blockchain Network Status -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Hyperledger Fabric Network Nodes</h3>
-              <span class="badge green">gRPC Probes</span>
-            </div>
-            <div class="status-list">
-              <div class="status-item">
-                <span class="service-name">Orderer Node (orderer.scatterid.com:7050)</span>
-                <span class="status-badge checking" id="status-orderer">CHECKING</span>
-              </div>
-              <div class="status-item">
-                <span class="service-name">Issuer Peer (peer0.issuer.scatterid.com:7051)</span>
-                <span class="status-badge checking" id="status-issuer-peer">CHECKING</span>
-              </div>
-              <div class="status-item">
-                <span class="service-name">Verifier Peer (peer0.verifier.scatterid.com:8051)</span>
-                <span class="status-badge checking" id="status-verifier-peer">CHECKING</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="tab-db" class="tab-pane">
-
-        <!-- Issued Credentials Table -->
+      <div class="cards-grid">
         <div class="card">
           <div class="card-header">
-            <h3>Issued Credentials & Blockchain Anchors</h3>
-            <p class="subtitle">Direct visualization of SQLite DB records synchronized with Hyperledger Fabric State</p>
+            <div class="card-title-group">
+              <div class="service-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div>
+                <h3 class="card-title">Signing Authority</h3>
+                <span class="card-meta">Internal Microservice &middot; Port 5001</span>
+              </div>
+            </div>
+            <span class="pill-badge" id="badge-crypto">Checking...</span>
           </div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Credential ID</th>
-                  <th>Data Hash (SHA3-256)</th>
-                  <th>PQC Algorithm</th>
-                  <th>Anchor Tx ID</th>
-                  <th>Status</th>
-                  <th>Issued At</th>
-                </tr>
-              </thead>
-              <tbody id="db-table-body">
-                <tr>
-                  <td colspan="6" class="text-center">Loading database records...</td>
-                </tr>
-              </tbody>
-            </table>
+          <p class="card-desc">Signs cryptographic commitments without ever receiving or storing plain identity data.</p>
+          <div class="card-footer">
+            <span class="footer-meta">Protocol: Secure mTLS &middot; Bearer Auth</span>
           </div>
         </div>
-      </section>
 
-      <!-- TAB 4: Fabric Logs (Full-Viewport Output Console) -->
-      <section id="tab-logs" class="tab-pane">
-        <div class="card log-card full-viewport">
+        <div class="card">
           <div class="card-header">
-            <h3>Hyperledger Fabric Peer & Orderer Log Output</h3>
-            <div class="log-controls">
-              <select id="container-log-select">
-                <option value="peer0.issuer.scatterid.com">peer0.issuer.scatterid.com</option>
-                <option value="peer0.verifier.scatterid.com">peer0.verifier.scatterid.com</option>
-                <option value="orderer.scatterid.com">orderer.scatterid.com</option>
-                <option value="scatterid-verification">scatterid-verification</option>
-                <option value="scatterid-crypto">scatterid-crypto</option>
-                <option value="scatterid-vault">scatterid-vault</option>
-              </select>
-              <button class="btn btn-primary" id="refresh-logs-btn">Fetch Container Logs</button>
+            <div class="card-title-group">
+              <div class="service-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              </div>
+              <div>
+                <h3 class="card-title">Verification Gateway</h3>
+                <span class="card-meta">Express API &middot; Port 3000</span>
+              </div>
             </div>
+            <span class="pill-badge" id="badge-gateway">Checking...</span>
           </div>
-          <div class="log-container">
-            <pre id="log-output">Select a container and click "Fetch Container Logs" to stream output...</pre>
+          <p class="card-desc">Processes client issuance and verification requests, verifying ledger anchor integrity.</p>
+          <div class="card-footer">
+            <span class="footer-meta">Rate Limited &middot; Helmet Secured</span>
           </div>
         </div>
-      </section>
 
-      <!-- TAB 5: Diagnostics Console (Full-Viewport Output Console) -->
-      <section id="tab-diagnostics" class="tab-pane">
-        <div class="card full-viewport">
+        <div class="card">
           <div class="card-header">
-            <h3>End-to-End System Smoke Tester</h3>
-            <button class="btn btn-primary" id="run-diagnostic-btn">Run E2E Smoke Test Suite</button>
-          </div>
-
-          <div class="console-box full-viewport mt-4">
-            <div class="console-header">
-              <span>Diagnostics Terminal Output</span>
-              <span class="cursor">_</span>
-            </div>
-            <div class="console-body" id="diagnostics-console">
-              Click "Run E2E Smoke Test Suite" above to test complete issuance, anchoring, and verification flow...
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 6: System Architecture (Sub-Options for Infra & Cryptography) -->
-      <section id="tab-architecture" class="tab-pane">
-        <!-- Sub-View Switcher for Architecture -->
-        <div class="prominent-switch-bar mb-6">
-          <div class="view-toggle-container prominent">
-            <button class="toggle-btn active" id="btn-arch-infra" data-arch="infra">Infrastructure Architecture Map</button>
-            <button class="toggle-btn" id="btn-arch-crypto" data-arch="crypto">Cryptographic Security & Boundaries</button>
-          </div>
-        </div>
-
-        <!-- Sub-View A: Infrastructure Architecture Map -->
-        <div id="arch-view-infra" class="arch-subview active">
-          <div class="card">
-            <div class="card-header">
-              <h3>ScatterID Infrastructure Visual Map</h3>
-              <span class="badge green">5 Microservice Micro-Stack</span>
-            </div>
-            
-            <div class="arch-flow-container">
-              <div class="arch-flow-grid">
-                <div class="arch-card">
-                  <span class="badge green">Client Context</span>
-                  <h4>Client SDK</h4>
-                  <p>Initiates credential issuance and verification lifecycle</p>
-                </div>
-
-                <div class="arch-card">
-                  <span class="badge green">Port 3000</span>
-                  <h4>Verification API</h4>
-                  <p>Routes requests, manages credential storage, and anchors proofs</p>
-                </div>
-
-                <div class="arch-card">
-                  <span class="badge green">Port 5001</span>
-                  <h4>Crypto Service</h4>
-                </div>
-
-                <div class="arch-card">
-                  <span class="badge green">Port 8200</span>
-                  <h4>Vault KMS</h4>
-                  <p>Zero-trust post-quantum private key engine</p>
-                </div>
-
-                <div class="arch-card">
-                  <span class="badge green">gRPC</span>
-                  <h4>Fabric Audit Ledger</h4>
-                  <p>Raft Orderer (7050), Peers (7051, 8051), Go Chaincode</p>
-                </div>
+            <div class="card-title-group">
+              <div class="service-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               </div>
-
-              <div class="arch-steps-list">
-                <div class="arch-step-item">
-                  <span class="arch-step-num">1</span>
-                  <span class="arch-step-info"><strong>Client Hashing:</strong> Client SDK canonicalizes the claim (RFC 8785), generates a 16-byte CSPRNG salt, and computes the SHA3-256 hash.</span>
-                </div>
-                <div class="arch-step-item">
-                  <span class="arch-step-num">2</span>
-                  <span class="arch-step-info"><strong>Client -> Gateway:</strong> <code>POST /issue</code> submits the `dataHash` and `idempotencyKey` to the Verification API.</span>
-                </div>
-                <div class="arch-step-item">
-                  <span class="arch-step-num">3</span>
-                  <span class="arch-step-info"><strong>Gateway -> Crypto Service:</strong> Proxies the `dataHash` to generate a NIST ML-DSA-65 post-quantum signature (KMS Vault-backed).</span>
-                </div>
-                <div class="arch-step-item">
-                  <span class="arch-step-num">4</span>
-                  <span class="arch-step-info"><strong>Gateway -> Fabric Network:</strong> Commits the proof state to the Hyperledger Fabric ledger via gRPC.</span>
-                </div>
-                <div class="arch-step-item">
-                  <span class="arch-step-num">5</span>
-                  <span class="arch-step-info"><strong>Verifier -> Gateway:</strong> <code>POST /verify</code> queries the blockchain anchor, retrieves the registry key, and validates the signature on the dataHash.</span>
-                </div>
+              <div>
+                <h3 class="card-title">Decentralized Ledger</h3>
+                <span class="card-meta">Smart Contract Network &middot; Port 7051</span>
               </div>
             </div>
+            <span class="pill-badge" id="badge-ledger">Checking...</span>
+          </div>
+          <p class="card-desc">Provides immutable timestamps and tamper-evident proof records across validating peer nodes.</p>
+          <div class="card-footer">
+            <span class="footer-meta">Distributed State &middot; Zero-Knowledge Commitments</span>
           </div>
         </div>
+      </div>
 
-        <!-- Sub-View B: Cryptographic Security & Boundaries -->
-        <div id="arch-view-crypto" class="arch-subview" style="display: none;">
-          <div class="card">
-            <div class="card-header">
-              <h3>Cryptographic Security Guarantees & Boundaries</h3>
-              <span class="badge green">Post-Quantum Standards</span>
+      <!-- Quick Action Bar -->
+      <div class="action-banner">
+        <div>
+          <h3 class="action-banner-title">Ready to test credential issuance?</h3>
+          <p class="action-banner-subtitle">Use the interactive studio to generate, anchor, and verify cryptographic proofs.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-goto-studio">Open Credential Studio &rarr;</button>
+      </div>
+    </section>
+
+    <!-- TAB 2: CREDENTIAL STUDIO (DEMO) -->
+    <section id="tab-studio" class="tab-content">
+      <div class="page-heading">
+        <div>
+          <h1 class="page-title">Credential Studio</h1>
+          <p class="page-subtitle">Generate zero-knowledge identity claims, sign them securely, and verify them against the ledger.</p>
+        </div>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Step 1: Issue -->
+        <div class="studio-card">
+          <div class="studio-card-header">
+            <span class="step-num">1</span>
+            <div>
+              <h3 class="card-title">Issue New Credential</h3>
+              <p class="card-subtitle">Claim data is hashed locally on your device with a cryptographic salt.</p>
             </div>
-            <div class="grid grid-2">
-              <div class="boundary-list">
-                <div class="boundary-item">
-                  <h4>1. NIST ML-DSA-65 Digital Signatures</h4>
-                  <p>Implements NIST FIPS 204 post-quantum module-lattice-based digital signatures, offering Category 3 security (AES-192 equivalent) resistant to Shor's algorithm quantum attack vectors.</p>
-                </div>
-                <div class="boundary-item">
-                  <h4>2. Zero-Knowledge Claims Privacy</h4>
-                  <p>Raw identity claims never leave the client SDK context. Only cryptographic salted hashes (SHA3-256) are sent to the network for signature and ledger anchoring, preventing data leakage.</p>
-                </div>
+          </div>
+
+          <form id="form-issue" class="studio-form">
+            <div class="form-group">
+              <label class="form-label" for="issue-subject">Subject Identifier / Name</label>
+              <input type="text" id="issue-subject" class="form-input" placeholder="e.g. did:scatterid:user:alice-chen" value="did:scatterid:user:alice-chen" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="issue-role">Role or Title</label>
+                <input type="text" id="issue-role" class="form-input" placeholder="e.g. Senior Security Architect" value="Senior Security Architect" required>
               </div>
-              <div class="boundary-list">
-                <div class="boundary-item">
-                  <h4>3. Zero-Trust Vault KMS Storage</h4>
-                  <p>Post-quantum private keypairs are generated and stored exclusively inside HashiCorp Vault KV v2 engine. Keys are never exposed on disk or environment variables.</p>
-                </div>
-                <div class="boundary-item">
-                  <h4>4. Immutable Blockchain Ledger Anchoring</h4>
-                  <p>Credential IDs and SHA3-256 data hashes are immutably committed to Hyperledger Fabric via Raft consensus, establishing an unalterable audit ledger.</p>
-                </div>
+              <div class="form-group">
+                <label class="form-label" for="issue-org">Issuing Organization</label>
+                <input type="text" id="issue-org" class="form-input" placeholder="e.g. ScatterID Security" value="ScatterID Security" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="btn-submit-issue">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Issue & Anchor Credential
+            </button>
+          </form>
+
+          <!-- Issue Result Box -->
+          <div class="result-box hidden" id="issue-result-box">
+            <div class="result-badge-row">
+              <span class="badge-success">Anchored on Ledger</span>
+              <span class="result-timestamp" id="issue-result-time"></span>
+            </div>
+            <div class="result-fields">
+              <div class="field-item">
+                <span class="field-label">Credential ID</span>
+                <span class="field-value mono" id="issue-result-id">--</span>
+              </div>
+              <div class="field-item">
+                <span class="field-label">Commitment Hash</span>
+                <span class="field-value mono" id="issue-result-hash">--</span>
+              </div>
+              <div class="field-item">
+                <span class="field-label">Ledger TxID</span>
+                <span class="field-value mono" id="issue-result-txid">--</span>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-    </div>
+        <!-- Step 2: Verify & Tamper Test -->
+        <div class="studio-card">
+          <div class="studio-card-header">
+            <span class="step-num">2</span>
+            <div>
+              <h3 class="card-title">Verify & Test Integrity</h3>
+              <p class="card-subtitle">Verify cryptographic authenticity or simulate data tampering.</p>
+            </div>
+          </div>
+
+          <div class="studio-form">
+            <div class="form-group">
+              <label class="form-label" for="verify-cred-id">Credential Identifier to Verify</label>
+              <div class="input-with-action">
+                <input type="text" id="verify-cred-id" class="form-input mono" placeholder="Enter Credential UUID...">
+                <button class="btn btn-secondary btn-sm" id="btn-use-latest">Use Latest</button>
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button class="btn btn-primary" id="btn-run-verify">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                Verify Credential
+              </button>
+              <button class="btn btn-secondary" id="btn-run-tamper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Test Tamper Detection
+              </button>
+            </div>
+          </div>
+
+          <!-- Verify Result Box -->
+          <div class="result-box hidden" id="verify-result-box">
+            <div class="result-badge-row">
+              <span class="badge-status" id="verify-status-badge">Validated</span>
+              <span class="result-timestamp" id="verify-result-time"></span>
+            </div>
+            <p class="verify-explanation" id="verify-explanation-text">
+              The credential signature and zero-knowledge hash match the immutable blockchain anchor record.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: REGISTRY -->
+    <section id="tab-registry" class="tab-content">
+      <div class="page-heading">
+        <div>
+          <h1 class="page-title">Credentials Registry</h1>
+          <p class="page-subtitle">Immutable audit record of all credentials issued and anchored to the ledger.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-registry">Refresh List</button>
+      </div>
+
+      <div class="registry-card">
+        <div class="table-toolbar">
+          <input type="text" id="registry-search" class="form-input search-input" placeholder="Search by ID or Hash...">
+          <span class="table-count" id="registry-count">0 credentials</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Credential ID</th>
+                <th>Hash Commitment</th>
+                <th>Status</th>
+                <th>Anchored At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="registry-tbody">
+              <tr>
+                <td colspan="5" class="table-empty">Loading records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DIAGNOSTICS & MAINTENANCE -->
+    <section id="tab-diagnostics" class="tab-content">
+      <div class="page-heading">
+        <div>
+          <h1 class="page-title">System Diagnostics</h1>
+          <p class="page-subtitle">Run automated self-tests across all microservices and manage signing keys.</p>
+        </div>
+      </div>
+
+      <div class="diagnostics-grid">
+        <!-- Self Test Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="service-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <div>
+                <h3 class="card-title">Live End-to-End Test</h3>
+                <span class="card-meta">Automated Verification Pipeline</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-run-diagnostics">Run Test</button>
+          </div>
+          <p class="card-desc">Tests port reachability, local hashing, quantum-safe signature issuance, ledger commit, and verification.</p>
+
+          <div class="log-terminal" id="diagnostics-log-box">
+            <div class="log-entry log-muted">Click "Run Test" to perform system diagnostics...</div>
+          </div>
+        </div>
+
+        <!-- Key Management Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="service-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              </div>
+              <div>
+                <h3 class="card-title">Key Management</h3>
+                <span class="card-meta">Signing Authority Security</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-rotate-key">Rotate Key</button>
+          </div>
+          <p class="card-desc">Generates a fresh post-quantum keypair in the KMS. Previous public keys are retained so past credentials remain valid.</p>
+          
+          <div class="key-info-box">
+            <div class="info-row">
+              <span class="info-label">Active Key Type</span>
+              <span class="info-value">Post-Quantum Lattice Signer</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Key Vault</span>
+              <span class="info-value">HashiCorp Vault KV v2</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Key History</span>
+              <span class="info-value" id="key-history-count">Archived & Retained</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
+  <!-- Auth Settings Modal -->
+  <div class="modal-backdrop hidden" id="auth-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">API Authentication</h3>
+        <button class="modal-close" id="btn-close-auth-modal">&times;</button>
+      </div>
+      <p class="modal-desc">Enter the Operator Gateway API key configured in your local environment.</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="input-api-key">Operator Gateway API Key</label>
+        <input type="password" id="input-api-key" class="form-input mono" placeholder="Enter GATEWAY_API_KEY...">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="btn-clear-key">Clear</button>
+        <button class="btn btn-primary" id="btn-save-key">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
-  <script src="demo.js"></script>
 </body>
 </html>
