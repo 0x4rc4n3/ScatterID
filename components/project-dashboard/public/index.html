@@ -388,11 +388,13 @@
         <h3 class="modal-title">API Authentication</h3>
         <button class="modal-close" id="btn-close-auth-modal">&times;</button>
       </div>
-      <p class="modal-desc">Enter the Operator Gateway API key configured in your local environment.</p>
+      <p class="modal-desc">
+        Enter the <code class="field-value mono">GATEWAY_API_KEY</code> from your root <code class="field-value mono">.env</code> file. This token authenticates operator diagnostics, key rotation, and registry queries.
+      </p>
       
       <div class="form-group">
         <label class="form-label" for="input-api-key">Operator Gateway API Key</label>
-        <input type="password" id="input-api-key" class="form-input mono" placeholder="Enter GATEWAY_API_KEY...">
+        <input type="password" id="input-api-key" class="form-input mono" placeholder="Paste GATEWAY_API_KEY from .env...">
       </div>
 
       <div class="modal-actions">
