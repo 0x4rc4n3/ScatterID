@@ -1,11 +1,11 @@
 import datetime
 from pq_sign import sign_data, verify_signature
 
-def issue_credential(data_hash: str, private_key: bytes, public_key_id: str, algorithm: str = "ML-DSA-65"):
+def issue_credential(data_hash: str, private_key, public_key_id: str, algorithm: str = "ML-DSA-65"):
     if not isinstance(data_hash, str) or not data_hash:
         raise ValueError("data_hash must be a non-empty string")
-    if not isinstance(private_key, bytes) or len(private_key) == 0:
-        raise ValueError("Private key must be non-empty bytes")
+    if not isinstance(private_key, (bytes, bytearray)) or len(private_key) == 0:
+        raise ValueError("Private key must be non-empty bytes or bytearray")
     if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
