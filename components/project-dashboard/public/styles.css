@@ -52,6 +52,7 @@ body {
 }
 
 /* Header */
+.app-header,
 .header {
   position: sticky;
   top: 0;
@@ -61,6 +62,7 @@ body {
   z-index: 100;
 }
 
+.header-inner,
 .header-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -71,6 +73,12 @@ body {
   gap: 1.5rem;
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+}
+
+.brand-logo,
 .brand-link {
   display: flex;
   align-items: center;
@@ -88,8 +96,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 5px;
 }
 
+.brand-name,
 .brand-title {
   font-size: 1.15rem;
   font-weight: 700;
@@ -127,6 +137,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
+  outline: none;
 }
 
 .nav-btn:hover {
@@ -160,6 +171,7 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  outline: none;
 }
 
 .btn-sm {
@@ -220,11 +232,6 @@ body {
   letter-spacing: -0.03em;
   color: var(--text-primary);
   margin-bottom: 0.25rem;
-}
-
-.page-subtitle {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
 }
 
 .heading-badge {
@@ -307,11 +314,6 @@ body {
   color: var(--text-primary);
 }
 
-.section-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
 /* Cards Grid */
 .cards-grid {
   display: grid;
@@ -328,11 +330,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: border-color 0.15s ease;
-}
-
-.card:hover {
-  border-color: #D6D6D6;
 }
 
 .card-header {
@@ -359,6 +356,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 .card-title {
@@ -388,13 +386,6 @@ body {
   border-color: transparent;
 }
 
-.card-desc {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 1.25rem;
-}
-
 .card-footer {
   border-top: 1px solid var(--border);
   padding-top: 0.85rem;
@@ -403,30 +394,6 @@ body {
 .footer-meta {
   font-size: 0.75rem;
   color: var(--text-muted);
-}
-
-/* Action Banner */
-.action-banner {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-}
-
-.action-banner-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.action-banner-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
 }
 
 /* Studio Layout */
@@ -462,11 +429,6 @@ body {
   font-size: 0.8125rem;
   font-weight: 700;
   flex-shrink: 0;
-}
-
-.card-subtitle {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
 }
 
 .studio-form {
@@ -525,7 +487,7 @@ body {
 
 .button-row {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .button-row .btn {
@@ -735,6 +697,7 @@ body {
 }
 
 /* Modal */
+.modal-overlay,
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -784,6 +747,7 @@ body {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-bottom: 1.25rem;
+  line-height: 1.45;
 }
 
 .modal-actions {
@@ -799,16 +763,13 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .header-inner,
   .header-container {
     flex-direction: column;
     align-items: stretch;
   }
   .nav-tabs {
     overflow-x: auto;
-  }
-  .action-banner {
-    flex-direction: column;
-    align-items: flex-start;
   }
   .studio-grid {
     grid-template-columns: 1fr;
