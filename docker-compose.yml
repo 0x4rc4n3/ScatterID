@@ -60,10 +60,17 @@ services:
       - "${PORT_DASHBOARD:-4000}:4000"
     environment:
       VERIFICATION_API_URL: "http://verification-api:3000"
+      CRYPTO_SERVICE_URL: "https://crypto-service:5001"
+      CRYPTO_SERVICE_API_KEY: "${CRYPTO_SERVICE_API_KEY}"
+      CRYPTO_SERVICE_HOST: "crypto-service"
+      VERIFICATION_API_HOST: "verification-api"
       GATEWAY_API_KEY: "${GATEWAY_API_KEY}"
       # Auth key the dashboard uses when proxying requests to verification-api.
       VERIFICATION_API_KEY: "${VERIFICATION_API_KEY}"
+      # Trust the crypto-service's CA certificate for TLS validation.
+      NODE_EXTRA_CA_CERTS: "/app/certs/ca.crt"
     volumes:
+      - ./components/crypto/certs:/app/certs
       - ./Progress.md:/app/Progress.md
       - ./components/project-dashboard/public:/app/public
       - ./components/project-dashboard/server.js:/app/server.js
