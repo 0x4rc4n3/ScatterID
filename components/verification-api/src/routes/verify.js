@@ -6,9 +6,24 @@ export async function verifyRoute(req, res) {
   try {
     const { dataHash, credentialId } = req.body;
 
-    if (!dataHash || typeof dataHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(dataHash)) {
+    if (!dataHash && !credentialId) {
       return res.status(400).json({
-        error: 'Invalid parameter: dataHash is required and must be a 64-character hex string',
+        error: 'Invalid parameter: either dataHash (64-character hex string) or credentialId (UUID v4) is required',
+        code: 'INVALID_PARAMETER',
+      });
+    }
+
+    if (dataHash && (typeof dataHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(dataHash))) {
+      return res.status(400).json({
+        error: 'Invalid parameter: dataHash must be a 64-character hex string',
+        code: 'INVALID_PARAMETER',
+      });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (credentialId && (typeof credentialId !== 'string' || !uuidRegex.test(credentialId))) {
+      return res.status(400).json({
+        error: 'Invalid parameter: credentialId must be a valid UUID v4',
         code: 'INVALID_PARAMETER',
       });
     }
@@ -32,7 +47,7 @@ export async function verifyRoute(req, res) {
     const recDataHash = record.dataHash;
     const recIssuedAt = record.issuedAt;
 
-    if (recDataHash !== dataHash) {
+    if (dataHash && recDataHash !== dataHash) {
       return res.status(200).json({
         valid: false,
         anchorStatus: 'tampered_hash',

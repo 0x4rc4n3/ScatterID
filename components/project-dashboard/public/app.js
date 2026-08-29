@@ -261,20 +261,20 @@ function setupStudioForms() {
         verifyBox.classList.remove('hidden');
         document.getElementById('verify-result-time').textContent = new Date().toLocaleTimeString();
 
-        if (result.valid) {
+        if (res.ok && result.valid) {
           badge.textContent = 'Cryptographically Validated';
           badge.className = 'badge-status';
-          exp.textContent = `Credential ${credId.slice(0, 8)}... was successfully verified against the immutable ledger anchor.`;
+          exp.textContent = `Credential ${credId.slice(0, 8)}... was successfully verified against the immutable ledger anchor (Status: ${result.anchorStatus || 'active'}).`;
         } else {
           badge.textContent = 'Verification Rejected';
           badge.className = 'badge-status tampered';
-          exp.textContent = `The provided hash or key did not match the cryptographic anchor on the ledger. Reason: ${result.reason || 'Invalid Proof'}`;
+          exp.textContent = result.reason || result.error || 'Verification check failed: Anchor or signature mismatch.';
         }
       } catch (err) {
         alert(err.message || 'Verification check failed');
       } finally {
         btnVerify.disabled = false;
-        btnVerify.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Verify Credential';
+        btnVerify.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Verify Proof';
       }
     });
   }
@@ -304,14 +304,20 @@ function setupStudioForms() {
         verifyBox.classList.remove('hidden');
         document.getElementById('verify-result-time').textContent = new Date().toLocaleTimeString();
 
-        badge.textContent = 'Tampered Data Detected & Rejected';
-        badge.className = 'badge-status tampered';
-        exp.textContent = `Defense Check Passed: The ledger rejected the modified payload because the hash did not match the cryptographic commitment anchored during issuance.`;
+        if (result.valid === false || !res.ok) {
+          badge.textContent = 'Tampered Data Rejected';
+          badge.className = 'badge-status tampered';
+          exp.textContent = `Defense Check Passed: The ledger rejected the modified payload because the hash did not match the cryptographic commitment anchored during issuance.`;
+        } else {
+          badge.textContent = 'Unexpected Result';
+          badge.className = 'badge-status';
+          exp.textContent = 'Warning: Tampered payload was not rejected.';
+        }
       } catch (err) {
         alert(err.message || 'Tamper test error');
       } finally {
         btnTamper.disabled = false;
-        btnTamper.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Test Tamper Detection';
+        btnTamper.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Test Tamper Defense';
       }
     });
   }

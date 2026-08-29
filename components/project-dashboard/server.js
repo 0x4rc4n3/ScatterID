@@ -110,17 +110,28 @@ function checkPort(port, host = '127.0.0.1') {
 // /api/verify — proxy to verification-api
 // ---------------------------------------------------------------------------
 app.post('/api/verify', async (req, res) => {
-  const { credentialId } = req.body;
+  const { credentialId, dataHash } = req.body;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!credentialId || !uuidRegex.test(credentialId)) {
-    return res.status(400).json({ error: 'Invalid parameter: credentialId must be a valid UUID v4' });
+  
+  const payload = {};
+  if (credentialId) {
+    if (!uuidRegex.test(credentialId)) {
+      return res.status(400).json({ error: 'Invalid parameter: credentialId must be a valid UUID v4' });
+    }
+    payload.credentialId = credentialId;
+  }
+  if (dataHash) {
+    payload.dataHash = dataHash;
+  }
+  if (!credentialId && !dataHash) {
+    return res.status(400).json({ error: 'Invalid parameter: either credentialId or dataHash is required' });
   }
 
   try {
     const response = await fetch(`${VERIFICATION_API_URL}/verify`, {
       method: 'POST',
       headers: getVerificationApiHeaders(),
-      body: JSON.stringify({ credentialId }),
+      body: JSON.stringify(payload),
     });
     const data = await response.json();
     res.status(response.status).json(data);
