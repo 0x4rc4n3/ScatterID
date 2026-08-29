@@ -380,11 +380,11 @@ app.post('/api/settings/rotate', async (req, res) => {
     }
 
     const data = await response.json();
-    console.log('[Dashboard] Key rotation triggered via crypto-service.');
-    res.json(data);
+    console.log('[Dashboard] Key rotation triggered via crypto-service:', data);
+    res.json({ success: true, ...data });
   } catch (err) {
-    console.error('Failed to proxy key rotation to crypto-service:', err.stack || err.message);
-    res.status(500).json({ success: false, error: 'Crypto service unreachable' });
+    console.error('Failed to proxy key rotation:', err.stack || err.message);
+    res.status(500).json({ success: false, error: 'Cryptographic authority is unreachable' });
   }
 });
 

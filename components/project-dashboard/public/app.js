@@ -362,21 +362,34 @@ function renderRegistryTable(items) {
       <td><span class="pill-badge ${c.status === 'anchored' ? 'active' : ''}">${c.status || 'Active'}</span></td>
       <td>${c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() + ' ' + new Date(c.issuedAt).toLocaleTimeString() : '--'}</td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="quickVerify('${c.id}')">Verify</button>
+        <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
       </td>
     </tr>
   `).join('');
 }
 
-// Global Quick Verify from table
-window.quickVerify = function(id) {
+// Global Quick Verify & Event Delegation
+function quickVerify(id) {
   switchTab('tab-studio');
   const inputVerifyId = document.getElementById('verify-cred-id');
   if (inputVerifyId) {
     inputVerifyId.value = id;
-    document.getElementById('btn-run-verify').click();
+    const btnRunVerify = document.getElementById('btn-run-verify');
+    if (btnRunVerify) btnRunVerify.click();
   }
-};
+}
+
+// Attach table event delegation for CSP compliance (no inline onclick attributes)
+const registryTbody = document.getElementById('registry-tbody');
+if (registryTbody) {
+  registryTbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-quick-verify');
+    if (btn) {
+      const id = btn.getAttribute('data-id');
+      if (id) quickVerify(id);
+    }
+  });
+}
 
 // Search filtering in Registry
 const searchInput = document.getElementById('registry-search');
@@ -443,10 +456,11 @@ function setupDiagnostics() {
       try {
         const res = await apiFetch('/api/settings/rotate', { method: 'POST' });
         const data = await res.json();
-        if (data.success) {
-          alert('Signing key rotated successfully. New public key is active.');
+        if (res.ok && (data.success || data.message || data.publicKeyId)) {
+          const keyMsg = data.publicKeyId ? `\nNew Public Key ID: ${data.publicKeyId}` : '';
+          alert(`Signing key rotated successfully in Vault KMS.${keyMsg}`);
         } else {
-          alert(`Key rotation error: ${data.error || 'Failed'}`);
+          alert(`Key rotation error: ${data.error || data.message || 'Failed'}`);
         }
       } catch (err) {
         alert(err.message || 'Key rotation failed');
