@@ -1,139 +1,149 @@
-/**
- * ScatterID Operator Console — Minimalist Client Application (Signal.org Theme)
- */
+// ScatterID Operator Dashboard Logic
+// Strictly follows Signal.org light minimalist aesthetic with CSP compliance
 
-// State
-let apiKey = sessionStorage.getItem('scatterid_gateway_key') || '';
-let latestCredentialId = '';
+const STORAGE_KEY = 'scatterid_operator_key';
+let activeApiKey = localStorage.getItem(STORAGE_KEY) || '';
 let allCredentials = [];
+let latestCredentialId = '';
 
-// DOM Elements
-const navBtns = document.querySelectorAll('.nav-btn');
-const tabContents = document.querySelectorAll('.tab-content');
-const authModal = document.getElementById('auth-modal');
-const inputApiKey = document.getElementById('input-api-key');
-const authStatusDot = document.getElementById('auth-status-dot');
-const authBtnText = document.getElementById('auth-btn-text');
-
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  setupNavigation();
-  setupAuthModal();
-  updateAuthUI();
-  fetchHealthOverview();
-  loadRegistry();
+  initAuth();
+  setupNavTabs();
   setupStudioForms();
   setupDiagnostics();
+  setupRegistryEvents();
+
+  // Initial Data Fetch
+  fetchHealthOverview();
+  loadRegistry();
 });
 
-// Helper: API Fetch Wrapper
-async function apiFetch(endpoint, options = {}) {
+// Helper for authenticated API calls to project-dashboard
+async function apiFetch(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
     ...(options.headers || {})
   };
 
-  try {
-    const res = await fetch(endpoint, { ...options, headers });
-    if (res.status === 401) {
-      promptApiKeyModal();
-      throw new Error('Unauthorized: Please set your Operator API Key');
-    }
-    return res;
-  } catch (err) {
-    console.error(`API Fetch error on ${endpoint}:`, err);
-    throw err;
+  if (activeApiKey) {
+    headers['Authorization'] = `Bearer ${activeApiKey}`;
   }
+
+  const response = await fetch(url, { ...options, headers });
+  
+  if (response.status === 401) {
+    updateAuthStatus(false);
+    openAuthModal();
+  }
+
+  return response;
 }
 
 // Navigation Tabs
-function setupNavigation() {
+function setupNavTabs() {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('.tab-content');
+
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const targetTab = btn.getAttribute('data-tab');
-      switchTab(targetTab);
+      const tabId = btn.getAttribute('data-tab');
+      switchTab(tabId);
     });
   });
 
-  const btnGotoStudio = document.getElementById('btn-goto-studio');
-  if (btnGotoStudio) {
-    btnGotoStudio.addEventListener('click', () => switchTab('tab-studio'));
-  }
-
-  const btnRefresh = document.getElementById('btn-refresh');
-  if (btnRefresh) {
-    btnRefresh.addEventListener('click', () => {
-      fetchHealthOverview();
-      loadRegistry();
-    });
-  }
-
-  // Handle URL hash routing
+  // Handle URL hash navigation
   if (window.location.hash) {
-    const hashTab = `tab-${window.location.hash.replace('#', '')}`;
-    if (document.getElementById(hashTab)) {
-      switchTab(hashTab);
+    const tabName = window.location.hash.replace('#', '');
+    const targetTab = `tab-${tabName}`;
+    if (document.getElementById(targetTab)) {
+      switchTab(targetTab);
     }
   }
 }
 
 function switchTab(tabId) {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('.tab-content');
+
   navBtns.forEach(b => {
-    if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
-    else b.classList.remove('active');
+    b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
   });
 
-  tabContents.forEach(c => {
-    if (c.id === tabId) c.classList.add('active');
-    else c.classList.remove('active');
+  sections.forEach(s => {
+    s.classList.toggle('active', s.id === tabId);
   });
 
+  window.location.hash = tabId.replace('tab-', '');
+
+  if (tabId === 'tab-overview') fetchHealthOverview();
   if (tabId === 'tab-registry') loadRegistry();
 }
 
-// Auth Key Management
-function setupAuthModal() {
+// Authentication Modal & Key Persistence
+function initAuth() {
+  const modal = document.getElementById('auth-modal');
   const btnAuth = document.getElementById('btn-auth-settings');
-  const btnClose = document.getElementById('btn-close-auth-modal');
-  const btnSave = document.getElementById('btn-save-key');
+  const btnClose = document.getElementById('btn-close-modal');
   const btnClear = document.getElementById('btn-clear-key');
+  const formAuth = document.getElementById('form-auth');
+  const inputKey = document.getElementById('input-api-key');
 
-  if (btnAuth) btnAuth.addEventListener('click', () => {
-    inputApiKey.value = apiKey;
-    authModal.classList.remove('hidden');
-  });
+  if (btnAuth) btnAuth.addEventListener('click', () => openAuthModal());
+  if (btnClose) btnClose.addEventListener('click', () => closeAuthModal());
+  
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeAuthModal();
+    });
+  }
 
-  if (btnClose) btnClose.addEventListener('click', () => authModal.classList.add('hidden'));
+  if (formAuth) {
+    formAuth.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = inputKey.value.trim();
+      if (val) {
+        activeApiKey = val;
+        localStorage.setItem(STORAGE_KEY, activeApiKey);
+        updateAuthStatus(true);
+        closeAuthModal();
+        fetchHealthOverview();
+        loadRegistry();
+      }
+    });
+  }
 
-  if (btnSave) btnSave.addEventListener('click', () => {
-    apiKey = inputApiKey.value.trim();
-    if (apiKey) {
-      sessionStorage.setItem('scatterid_gateway_key', apiKey);
-    } else {
-      sessionStorage.removeItem('scatterid_gateway_key');
-    }
-    authModal.classList.add('hidden');
-    updateAuthUI();
-    fetchHealthOverview();
-  });
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      activeApiKey = '';
+      localStorage.removeItem(STORAGE_KEY);
+      inputKey.value = '';
+      updateAuthStatus(false);
+      closeAuthModal();
+    });
+  }
 
-  if (btnClear) btnClear.addEventListener('click', () => {
-    apiKey = '';
-    inputApiKey.value = '';
-    sessionStorage.removeItem('scatterid_gateway_key');
-    authModal.classList.add('hidden');
-    updateAuthUI();
-  });
+  updateAuthStatus(Boolean(activeApiKey));
 }
 
-function promptApiKeyModal() {
-  inputApiKey.value = apiKey;
-  authModal.classList.remove('hidden');
+function openAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  const inputKey = document.getElementById('input-api-key');
+  if (inputKey) inputKey.value = activeApiKey;
+  if (modal) modal.classList.remove('hidden');
 }
 
-function updateAuthUI() {
-  if (apiKey) {
+function closeAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function updateAuthStatus(isConnected) {
+  const authStatusDot = document.getElementById('auth-status-dot');
+  const authBtnText = document.getElementById('auth-btn-text');
+
+  if (!authStatusDot || !authBtnText) return;
+
+  if (isConnected) {
     authStatusDot.style.background = '#2C6BED';
     authBtnText.textContent = 'Connected';
   } else {
@@ -166,19 +176,20 @@ async function fetchHealthOverview() {
       badgeLedger.classList.add('active');
     }
   } catch (err) {
-    // If not authenticated or error
+    // Silent catch
   }
 }
 
-// Credential Studio: Issue, Verify & Tamper
+// Credential Studio: Issue, Verify, Tamper, Revoke
 function setupStudioForms() {
   const formIssue = document.getElementById('form-issue');
   const btnVerify = document.getElementById('btn-run-verify');
   const btnTamper = document.getElementById('btn-run-tamper');
+  const btnRevoke = document.getElementById('btn-run-revoke');
   const btnUseLatest = document.getElementById('btn-use-latest');
   const inputVerifyId = document.getElementById('verify-cred-id');
 
-  // Issue Credential
+  // 1. Issue Credential
   if (formIssue) {
     formIssue.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -211,7 +222,7 @@ function setupStudioForms() {
 
         const result = await res.json();
         latestCredentialId = result.credentialId;
-        inputVerifyId.value = latestCredentialId;
+        if (inputVerifyId) inputVerifyId.value = latestCredentialId;
 
         // Display Result Box
         const resultBox = document.getElementById('issue-result-box');
@@ -226,7 +237,7 @@ function setupStudioForms() {
         alert(err.message || 'Issuance failed');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Issue & Anchor Credential';
+        submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Issue & Anchor Proof';
       }
     });
   }
@@ -234,11 +245,11 @@ function setupStudioForms() {
   // Use Latest Button
   if (btnUseLatest) {
     btnUseLatest.addEventListener('click', () => {
-      if (latestCredentialId) inputVerifyId.value = latestCredentialId;
+      if (latestCredentialId && inputVerifyId) inputVerifyId.value = latestCredentialId;
     });
   }
 
-  // Verify
+  // 2. Verify
   if (btnVerify) {
     btnVerify.addEventListener('click', async () => {
       const credId = inputVerifyId.value.trim();
@@ -274,22 +285,21 @@ function setupStudioForms() {
         alert(err.message || 'Verification check failed');
       } finally {
         btnVerify.disabled = false;
-        btnVerify.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Verify Proof';
+        btnVerify.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Verify';
       }
     });
   }
 
-  // Tamper Simulation
+  // 3. Tamper Simulation
   if (btnTamper) {
     btnTamper.addEventListener('click', async () => {
       const credId = inputVerifyId.value.trim();
       if (!credId) return alert('Please enter or issue a Credential ID first to test tampering');
 
       btnTamper.disabled = true;
-      btnTamper.textContent = 'Testing Tamper Defense...';
+      btnTamper.textContent = 'Testing...';
 
       try {
-        // Send a modified fake hash
         const fakeHash = '0000000000000000000000000000000000000000000000000000000000000000';
         const res = await apiFetch('/api/verify', {
           method: 'POST',
@@ -317,22 +327,70 @@ function setupStudioForms() {
         alert(err.message || 'Tamper test error');
       } finally {
         btnTamper.disabled = false;
-        btnTamper.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Test Tamper Defense';
+        btnTamper.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Tamper Test';
+      }
+    });
+  }
+
+  // 4. Revoke Credential
+  if (btnRevoke) {
+    btnRevoke.addEventListener('click', async () => {
+      const credId = inputVerifyId.value.trim();
+      if (!credId) return alert('Please enter a Credential ID to revoke');
+
+      if (!confirm(`Are you sure you want to revoke credential ${credId.slice(0, 8)}... on the Hyperledger Fabric ledger? This action is permanent and irreversible.`)) {
+        return;
+      }
+
+      btnRevoke.disabled = true;
+      btnRevoke.textContent = 'Revoking...';
+
+      try {
+        const res = await apiFetch('/api/revoke', {
+          method: 'POST',
+          body: JSON.stringify({ credentialId: credId })
+        });
+
+        const result = await res.json();
+        const verifyBox = document.getElementById('verify-result-box');
+        const badge = document.getElementById('verify-status-badge');
+        const exp = document.getElementById('verify-explanation-text');
+
+        verifyBox.classList.remove('hidden');
+        document.getElementById('verify-result-time').textContent = new Date().toLocaleTimeString();
+
+        if (res.ok && result.success) {
+          badge.textContent = 'Revoked on Ledger';
+          badge.className = 'badge-status tampered';
+          exp.textContent = `Credential ${credId.slice(0, 8)}... status has been permanently updated to "revoked" in the chaincode state. Future verification attempts will be rejected.`;
+          loadRegistry();
+        } else {
+          badge.textContent = 'Revocation Failed';
+          badge.className = 'badge-status tampered';
+          exp.textContent = result.error || 'Failed to revoke proof on ledger.';
+        }
+      } catch (err) {
+        alert(err.message || 'Revoke operation failed');
+      } finally {
+        btnRevoke.disabled = false;
+        btnRevoke.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Revoke';
       }
     });
   }
 }
 
-// Credentials Registry
+// Registry Data Table
 async function loadRegistry() {
   const tbody = document.getElementById('registry-tbody');
   const countEl = document.getElementById('registry-count');
   const metricTotal = document.getElementById('metric-total-credentials');
 
+  if (!tbody) return;
+
   try {
     const res = await apiFetch('/api/credentials');
     if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Authentication required to view registry records.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Authenticate with API Key to view audit records.</td></tr>`;
       return;
     }
 
@@ -355,57 +413,93 @@ function renderRegistryTable(items) {
     return;
   }
 
-  tbody.innerHTML = items.map(c => `
-    <tr>
-      <td><span class="field-value mono">${c.id}</span></td>
-      <td><span class="field-value mono">${c.dataHash ? c.dataHash.slice(0, 16) + '...' : '--'}</span></td>
-      <td><span class="pill-badge ${c.status === 'anchored' ? 'active' : ''}">${c.status || 'Active'}</span></td>
-      <td>${c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() + ' ' + new Date(c.issuedAt).toLocaleTimeString() : '--'}</td>
-      <td>
-        <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = items.map(c => {
+    const isRevoked = c.status === 'revoked';
+    const isAnchored = c.status === 'anchored' || c.status === 'active';
+    const badgeClass = isRevoked ? 'pill-badge' : (isAnchored ? 'pill-badge active' : 'pill-badge');
+    const badgeText = isRevoked ? 'Revoked' : (isAnchored ? 'Active' : (c.status || 'Active'));
+
+    return `
+      <tr>
+        <td><span class="field-value mono">${c.id}</span></td>
+        <td><span class="field-value mono">${c.dataHash ? c.dataHash.slice(0, 16) + '...' : '--'}</span></td>
+        <td><span class="${badgeClass}">${badgeText}</span></td>
+        <td>${c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() + ' ' + new Date(c.issuedAt).toLocaleTimeString() : '--'}</td>
+        <td>
+          <div class="table-actions" style="display: flex; gap: 0.4rem;">
+            <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
+            ${!isRevoked ? `<button class="btn btn-secondary btn-sm btn-quick-revoke" data-id="${c.id}">Revoke</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
-// Global Quick Verify & Event Delegation
-function quickVerify(id) {
-  switchTab('tab-studio');
-  const inputVerifyId = document.getElementById('verify-cred-id');
-  if (inputVerifyId) {
-    inputVerifyId.value = id;
-    const btnRunVerify = document.getElementById('btn-run-verify');
-    if (btnRunVerify) btnRunVerify.click();
+// Registry Event Delegation
+function setupRegistryEvents() {
+  const registryTbody = document.getElementById('registry-tbody');
+  if (registryTbody) {
+    registryTbody.addEventListener('click', async (e) => {
+      const verifyBtn = e.target.closest('.btn-quick-verify');
+      const revokeBtn = e.target.closest('.btn-quick-revoke');
+
+      if (verifyBtn) {
+        const id = verifyBtn.getAttribute('data-id');
+        if (id) {
+          switchTab('tab-studio');
+          const inputVerifyId = document.getElementById('verify-cred-id');
+          if (inputVerifyId) {
+            inputVerifyId.value = id;
+            const btnRunVerify = document.getElementById('btn-run-verify');
+            if (btnRunVerify) btnRunVerify.click();
+          }
+        }
+      }
+
+      if (revokeBtn) {
+        const id = revokeBtn.getAttribute('data-id');
+        if (id) {
+          if (!confirm(`Revoke credential ${id.slice(0, 8)}... permanently on Hyperledger Fabric?`)) return;
+          revokeBtn.disabled = true;
+          revokeBtn.textContent = '...';
+
+          try {
+            const res = await apiFetch('/api/revoke', {
+              method: 'POST',
+              body: JSON.stringify({ credentialId: id })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              alert(`Credential ${id.slice(0, 8)}... has been revoked successfully.`);
+              loadRegistry();
+            } else {
+              alert(`Revocation failed: ${data.error || 'Unknown error'}`);
+            }
+          } catch (err) {
+            alert(err.message || 'Revocation request failed');
+          }
+        }
+      }
+    });
   }
-}
 
-// Attach table event delegation for CSP compliance (no inline onclick attributes)
-const registryTbody = document.getElementById('registry-tbody');
-if (registryTbody) {
-  registryTbody.addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-quick-verify');
-    if (btn) {
-      const id = btn.getAttribute('data-id');
-      if (id) quickVerify(id);
-    }
-  });
-}
-
-// Search filtering in Registry
-const searchInput = document.getElementById('registry-search');
-if (searchInput) {
-  searchInput.addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase().trim();
-    if (!q) {
-      renderRegistryTable(allCredentials);
-      return;
-    }
-    const filtered = allCredentials.filter(c => 
-      (c.id && c.id.toLowerCase().includes(q)) || 
-      (c.dataHash && c.dataHash.toLowerCase().includes(q))
-    );
-    renderRegistryTable(filtered);
-  });
+  // Search filtering in Registry
+  const searchInput = document.getElementById('registry-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        renderRegistryTable(allCredentials);
+        return;
+      }
+      const filtered = allCredentials.filter(c => 
+        (c.id && c.id.toLowerCase().includes(q)) || 
+        (c.dataHash && c.dataHash.toLowerCase().includes(q))
+      );
+      renderRegistryTable(filtered);
+    });
+  }
 }
 
 // Diagnostics & Key Rotation
@@ -442,7 +536,7 @@ function setupDiagnostics() {
         logBox.innerHTML += `<div class="log-entry">Error: ${err.message}</div>`;
       } finally {
         btnRunDiag.disabled = false;
-        btnRunDiag.textContent = 'Run Test';
+        btnRunDiag.textContent = 'Execute Test';
       }
     });
   }

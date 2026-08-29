@@ -81,6 +81,35 @@ app.post('/verify', verifyRoute);
 // All write endpoints and the credential dump require auth.
 app.post('/issue', requireBearerAuth, issueRoute);
 app.get('/status/:id', requireBearerAuth, statusRoute);
+app.post('/revoke', requireBearerAuth, async (req, res) => {
+  try {
+    const { credentialId } = req.body;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!credentialId || !uuidRegex.test(credentialId)) {
+      return res.status(400).json({ error: 'Invalid parameter: credentialId must be a valid UUID v4', code: 'INVALID_PARAMETER' });
+    }
+
+    const { getCredentialById, updateStatus } = await import('./db/models.js');
+    const { revokeProof } = await import('./chain/fabric.js');
+
+    const record = await getCredentialById(credentialId);
+    if (!record) {
+      return res.status(404).json({ error: 'Credential not found', code: 'NOT_FOUND' });
+    }
+
+    try {
+      await revokeProof(credentialId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
+    } catch (fabricErr) {
+      console.warn('Fabric revoke warning (may already be revoked or mock):', fabricErr.message);
+    }
+
+    await updateStatus(credentialId, 'revoked');
+    res.json({ success: true, credentialId, status: 'revoked', message: 'Credential revoked successfully' });
+  } catch (err) {
+    console.error('Failed to revoke credential:', err.stack || err.message);
+    res.status(500).json({ error: 'Internal Server Error', code: 'INTERNAL_ERROR' });
+  }
+});
 app.get('/credentials', requireBearerAuth, async (req, res) => {
   try {
     const credentials = await getAllCredentials();

@@ -3,26 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScatterID — Operator Management Console</title>
+  <title>ScatterID &middot; Operator Console</title>
+  <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- App Header -->
-  <header class="header">
-    <div class="header-container">
-      <div class="brand">
-        <a href="/" class="brand-link">
-          <div class="brand-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-          </div>
-          <span class="brand-title">ScatterID</span>
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <a href="#overview" class="brand-logo">
+          <svg class="brand-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span class="brand-name">ScatterID</span>
           <span class="brand-badge">Console</span>
         </a>
       </div>
@@ -39,12 +36,6 @@
           <span class="status-indicator-dot" id="auth-status-dot"></span>
           <span id="auth-btn-text">API Key</span>
         </button>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh" title="Refresh Dashboard">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          Refresh
-        </button>
         <a href="http://localhost:8080" target="_blank" class="btn btn-secondary btn-sm">Documentation ↗</a>
       </div>
     </div>
@@ -57,7 +48,7 @@
     <section id="tab-overview" class="tab-content active">
       <div class="page-heading">
         <div>
-          <h1 class="page-title">Service Status</h1>
+          <h1 class="page-title">System Status</h1>
         </div>
         <div class="heading-badge">
           <span class="pulse-dot"></span>
@@ -75,10 +66,10 @@
         <div class="metric-card">
           <span class="metric-label">Signing Authority</span>
           <span class="metric-value text-blue" id="metric-crypto-status">Active</span>
-          <span class="metric-note">Port 5001 &middot; mTLS</span>
+          <span class="metric-note">Port 5001 &middot; ML-DSA-65</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Gateway API</span>
+          <span class="metric-label">Verification Gateway</span>
           <span class="metric-value text-blue" id="metric-gateway-status">Active</span>
           <span class="metric-note">Port 3000 &middot; REST</span>
         </div>
@@ -106,7 +97,7 @@
                 <span class="card-meta">Python Microservice &middot; Port 5001</span>
               </div>
             </div>
-            <span class="pill-badge" id="badge-crypto">Checking...</span>
+            <span class="pill-badge" id="badge-crypto">Active</span>
           </div>
           <div class="card-footer">
             <span class="footer-meta">ML-DSA-65 &middot; Vault AppRole KMS</span>
@@ -124,7 +115,7 @@
                 <span class="card-meta">Express API &middot; Port 3000</span>
               </div>
             </div>
-            <span class="pill-badge" id="badge-gateway">Checking...</span>
+            <span class="pill-badge" id="badge-gateway">Active</span>
           </div>
           <div class="card-footer">
             <span class="footer-meta">Rate Limit 30/min &middot; SQLite Registry</span>
@@ -142,7 +133,7 @@
                 <span class="card-meta">Hyperledger Fabric &middot; Port 7051</span>
               </div>
             </div>
-            <span class="pill-badge" id="badge-ledger">Checking...</span>
+            <span class="pill-badge" id="badge-ledger">Active</span>
           </div>
           <div class="card-footer">
             <span class="footer-meta">Chaincode: scatterproof &middot; Channel: scatterid-channel</span>
@@ -151,11 +142,11 @@
       </div>
     </section>
 
-    <!-- TAB 2: CREDENTIAL STUDIO (MANAGEMENT & TESTING) -->
+    <!-- TAB 2: CREDENTIAL STUDIO (OPERATIONS) -->
     <section id="tab-studio" class="tab-content">
       <div class="page-heading">
         <div>
-          <h1 class="page-title">Credential Operations</h1>
+          <h1 class="page-title">Credential Studio</h1>
         </div>
       </div>
 
@@ -215,12 +206,12 @@
           </div>
         </div>
 
-        <!-- Step 2: Verify & Tamper Test -->
+        <!-- Step 2: Verify & Tamper & Revoke -->
         <div class="studio-card">
           <div class="studio-card-header">
             <span class="step-num">2</span>
             <div>
-              <h3 class="card-title">Verification & Tamper Test</h3>
+              <h3 class="card-title">Verification & Lifecycle</h3>
             </div>
           </div>
 
@@ -236,11 +227,15 @@
             <div class="button-row">
               <button class="btn btn-primary" id="btn-run-verify">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-                Verify Proof
+                Verify
               </button>
               <button class="btn btn-secondary" id="btn-run-tamper">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Test Tamper Defense
+                Tamper Test
+              </button>
+              <button class="btn btn-secondary" id="btn-run-revoke">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Revoke
               </button>
             </div>
           </div>
@@ -265,7 +260,6 @@
         <div>
           <h1 class="page-title">Credential Registry</h1>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-registry">Refresh</button>
       </div>
 
       <div class="registry-card">
@@ -320,7 +314,7 @@
           </div>
 
           <div class="log-terminal" id="diagnostics-log-box">
-            <div class="log-entry log-muted">Click "Execute Test" to perform system diagnostics...</div>
+            <div class="log-entry log-muted">Click "Execute Test" to perform automated self-test...</div>
           </div>
         </div>
 
@@ -341,7 +335,7 @@
           
           <div class="key-info-box">
             <div class="info-row">
-              <span class="info-label">Active Key Type</span>
+              <span class="info-label">Active Algorithm</span>
               <span class="info-value">NIST FIPS 204 ML-DSA-65</span>
             </div>
             <div class="info-row">
@@ -349,8 +343,8 @@
               <span class="info-value">KV-v2 AppRole Engine</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Key Archive</span>
-              <span class="info-value" id="key-history-count">Historical Keys Retained</span>
+              <span class="info-label">Historical Keys</span>
+              <span class="info-value">Append-only Catalog</span>
             </div>
           </div>
         </div>
@@ -360,25 +354,25 @@
   </main>
 
   <!-- Auth Settings Modal -->
-  <div class="modal-backdrop hidden" id="auth-modal">
+  <div class="modal-overlay hidden" id="auth-modal">
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title">Operator API Authentication</h3>
-        <button class="modal-close" id="btn-close-auth-modal">&times;</button>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
       </div>
       <p class="modal-desc">
-        Enter the <code class="field-value mono">GATEWAY_API_KEY</code> from your root <code class="field-value mono">.env</code> file to authenticate operator actions.
+        Enter the operator secret (<code class="text-blue">GATEWAY_API_KEY</code> from your <code class="text-blue">.env</code> file) to manage credentials, perform diagnostic runs, and trigger key rotation.
       </p>
-      
-      <div class="form-group">
-        <label class="form-label" for="input-api-key">Operator Gateway API Key</label>
-        <input type="password" id="input-api-key" class="form-input mono" placeholder="Paste GATEWAY_API_KEY from .env...">
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn btn-secondary" id="btn-clear-key">Clear</button>
-        <button class="btn btn-primary" id="btn-save-key">Save & Connect</button>
-      </div>
+      <form id="form-auth" class="modal-form">
+        <div class="form-group">
+          <label class="form-label" for="input-api-key">Operator Gateway Key</label>
+          <input type="password" id="input-api-key" class="form-input mono" placeholder="Enter GATEWAY_API_KEY..." required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btn-clear-key">Disconnect</button>
+          <button type="submit" class="btn btn-primary">Save & Connect</button>
+        </div>
+      </form>
     </div>
   </div>
 
