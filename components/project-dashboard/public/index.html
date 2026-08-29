@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScatterID — Operator Console</title>
+  <title>ScatterID — Operator Management Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -55,46 +55,43 @@
 
     <!-- TAB 1: OVERVIEW -->
     <section id="tab-overview" class="tab-content active">
-      <!-- Welcome / Status Banner -->
       <div class="page-heading">
         <div>
-          <h1 class="page-title">System Overview</h1>
-          <p class="page-subtitle">Zero-knowledge credential verification and decentralized ledger health.</p>
+          <h1 class="page-title">Service Status</h1>
         </div>
         <div class="heading-badge">
           <span class="pulse-dot"></span>
-          <span>All Services Operational</span>
+          <span>Operational</span>
         </div>
       </div>
 
       <!-- Quick Metrics Grid -->
       <div class="metrics-grid">
         <div class="metric-card">
-          <span class="metric-label">Issued Credentials</span>
+          <span class="metric-label">Total Credentials</span>
           <span class="metric-value" id="metric-total-credentials">--</span>
-          <span class="metric-note">Anchored on distributed ledger</span>
+          <span class="metric-note">Anchored on ledger</span>
         </div>
         <div class="metric-card">
           <span class="metric-label">Signing Authority</span>
           <span class="metric-value text-blue" id="metric-crypto-status">Active</span>
-          <span class="metric-note">Hardware / KMS secured</span>
+          <span class="metric-note">Port 5001 &middot; mTLS</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Verification Gateway</span>
+          <span class="metric-label">Gateway API</span>
           <span class="metric-value text-blue" id="metric-gateway-status">Active</span>
-          <span class="metric-note">Port 3000 REST listener</span>
+          <span class="metric-note">Port 3000 &middot; REST</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Ledger Network</span>
+          <span class="metric-label">Ledger Consensus</span>
           <span class="metric-value text-blue" id="metric-ledger-status">Active</span>
-          <span class="metric-note">Consensus active</span>
+          <span class="metric-note">Port 7051 &middot; Raft</span>
         </div>
       </div>
 
       <!-- Services Grid -->
       <div class="section-title-row">
-        <h2 class="section-title">Core Services</h2>
-        <span class="section-subtitle">Real-time connectivity and status probes</span>
+        <h2 class="section-title">Microservice Health</h2>
       </div>
 
       <div class="cards-grid">
@@ -106,14 +103,13 @@
               </div>
               <div>
                 <h3 class="card-title">Signing Authority</h3>
-                <span class="card-meta">Internal Microservice &middot; Port 5001</span>
+                <span class="card-meta">Python Microservice &middot; Port 5001</span>
               </div>
             </div>
             <span class="pill-badge" id="badge-crypto">Checking...</span>
           </div>
-          <p class="card-desc">Signs cryptographic commitments without ever receiving or storing plain identity data.</p>
           <div class="card-footer">
-            <span class="footer-meta">Protocol: Secure mTLS &middot; Bearer Auth</span>
+            <span class="footer-meta">ML-DSA-65 &middot; Vault AppRole KMS</span>
           </div>
         </div>
 
@@ -130,9 +126,8 @@
             </div>
             <span class="pill-badge" id="badge-gateway">Checking...</span>
           </div>
-          <p class="card-desc">Processes client issuance and verification requests, verifying ledger anchor integrity.</p>
           <div class="card-footer">
-            <span class="footer-meta">Rate Limited &middot; Helmet Secured</span>
+            <span class="footer-meta">Rate Limit 30/min &middot; SQLite Registry</span>
           </div>
         </div>
 
@@ -143,35 +138,24 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               </div>
               <div>
-                <h3 class="card-title">Decentralized Ledger</h3>
-                <span class="card-meta">Smart Contract Network &middot; Port 7051</span>
+                <h3 class="card-title">Ledger Network</h3>
+                <span class="card-meta">Hyperledger Fabric &middot; Port 7051</span>
               </div>
             </div>
             <span class="pill-badge" id="badge-ledger">Checking...</span>
           </div>
-          <p class="card-desc">Provides immutable timestamps and tamper-evident proof records across validating peer nodes.</p>
           <div class="card-footer">
-            <span class="footer-meta">Distributed State &middot; Zero-Knowledge Commitments</span>
+            <span class="footer-meta">Chaincode: scatterproof &middot; Channel: scatterid-channel</span>
           </div>
         </div>
       </div>
-
-      <!-- Quick Action Bar -->
-      <div class="action-banner">
-        <div>
-          <h3 class="action-banner-title">Ready to test credential issuance?</h3>
-          <p class="action-banner-subtitle">Use the interactive studio to generate, anchor, and verify cryptographic proofs.</p>
-        </div>
-        <button class="btn btn-primary" id="btn-goto-studio">Open Credential Studio &rarr;</button>
-      </div>
     </section>
 
-    <!-- TAB 2: CREDENTIAL STUDIO (DEMO) -->
+    <!-- TAB 2: CREDENTIAL STUDIO (MANAGEMENT & TESTING) -->
     <section id="tab-studio" class="tab-content">
       <div class="page-heading">
         <div>
-          <h1 class="page-title">Credential Studio</h1>
-          <p class="page-subtitle">Generate zero-knowledge identity claims, sign them securely, and verify them against the ledger.</p>
+          <h1 class="page-title">Credential Operations</h1>
         </div>
       </div>
 
@@ -181,38 +165,37 @@
           <div class="studio-card-header">
             <span class="step-num">1</span>
             <div>
-              <h3 class="card-title">Issue New Credential</h3>
-              <p class="card-subtitle">Claim data is hashed locally on your device with a cryptographic salt.</p>
+              <h3 class="card-title">Issue Credential</h3>
             </div>
           </div>
 
           <form id="form-issue" class="studio-form">
             <div class="form-group">
-              <label class="form-label" for="issue-subject">Subject Identifier / Name</label>
+              <label class="form-label" for="issue-subject">Subject Identifier</label>
               <input type="text" id="issue-subject" class="form-input" placeholder="e.g. did:scatterid:user:alice-chen" value="did:scatterid:user:alice-chen" required>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="issue-role">Role or Title</label>
-                <input type="text" id="issue-role" class="form-input" placeholder="e.g. Senior Security Architect" value="Senior Security Architect" required>
+                <label class="form-label" for="issue-role">Role / Claim</label>
+                <input type="text" id="issue-role" class="form-input" placeholder="e.g. Senior Architect" value="Senior Architect" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="issue-org">Issuing Organization</label>
-                <input type="text" id="issue-org" class="form-input" placeholder="e.g. ScatterID Security" value="ScatterID Security" required>
+                <label class="form-label" for="issue-org">Issuing MSP</label>
+                <input type="text" id="issue-org" class="form-input" placeholder="e.g. IssuerMSP" value="IssuerMSP" required>
               </div>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block" id="btn-submit-issue">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-              Issue & Anchor Credential
+              Issue & Anchor Proof
             </button>
           </form>
 
           <!-- Issue Result Box -->
           <div class="result-box hidden" id="issue-result-box">
             <div class="result-badge-row">
-              <span class="badge-success">Anchored on Ledger</span>
+              <span class="badge-success">Anchored</span>
               <span class="result-timestamp" id="issue-result-time"></span>
             </div>
             <div class="result-fields">
@@ -221,11 +204,11 @@
                 <span class="field-value mono" id="issue-result-id">--</span>
               </div>
               <div class="field-item">
-                <span class="field-label">Commitment Hash</span>
+                <span class="field-label">Data Hash Commitment</span>
                 <span class="field-value mono" id="issue-result-hash">--</span>
               </div>
               <div class="field-item">
-                <span class="field-label">Ledger TxID</span>
+                <span class="field-label">Anchor TxID</span>
                 <span class="field-value mono" id="issue-result-txid">--</span>
               </div>
             </div>
@@ -237,14 +220,13 @@
           <div class="studio-card-header">
             <span class="step-num">2</span>
             <div>
-              <h3 class="card-title">Verify & Test Integrity</h3>
-              <p class="card-subtitle">Verify cryptographic authenticity or simulate data tampering.</p>
+              <h3 class="card-title">Verification & Tamper Test</h3>
             </div>
           </div>
 
           <div class="studio-form">
             <div class="form-group">
-              <label class="form-label" for="verify-cred-id">Credential Identifier to Verify</label>
+              <label class="form-label" for="verify-cred-id">Credential Identifier</label>
               <div class="input-with-action">
                 <input type="text" id="verify-cred-id" class="form-input mono" placeholder="Enter Credential UUID...">
                 <button class="btn btn-secondary btn-sm" id="btn-use-latest">Use Latest</button>
@@ -254,11 +236,11 @@
             <div class="button-row">
               <button class="btn btn-primary" id="btn-run-verify">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-                Verify Credential
+                Verify Proof
               </button>
               <button class="btn btn-secondary" id="btn-run-tamper">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Test Tamper Detection
+                Test Tamper Defense
               </button>
             </div>
           </div>
@@ -270,7 +252,7 @@
               <span class="result-timestamp" id="verify-result-time"></span>
             </div>
             <p class="verify-explanation" id="verify-explanation-text">
-              The credential signature and zero-knowledge hash match the immutable blockchain anchor record.
+              Status confirmed against on-chain ledger state.
             </p>
           </div>
         </div>
@@ -281,15 +263,14 @@
     <section id="tab-registry" class="tab-content">
       <div class="page-heading">
         <div>
-          <h1 class="page-title">Credentials Registry</h1>
-          <p class="page-subtitle">Immutable audit record of all credentials issued and anchored to the ledger.</p>
+          <h1 class="page-title">Credential Registry</h1>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-refresh-registry">Refresh List</button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-registry">Refresh</button>
       </div>
 
       <div class="registry-card">
         <div class="table-toolbar">
-          <input type="text" id="registry-search" class="form-input search-input" placeholder="Search by ID or Hash...">
+          <input type="text" id="registry-search" class="form-input search-input" placeholder="Filter by ID or Hash...">
           <span class="table-count" id="registry-count">0 credentials</span>
         </div>
 
@@ -314,12 +295,11 @@
       </div>
     </section>
 
-    <!-- TAB 4: DIAGNOSTICS & MAINTENANCE -->
+    <!-- TAB 4: DIAGNOSTICS & KEY ROTATION -->
     <section id="tab-diagnostics" class="tab-content">
       <div class="page-heading">
         <div>
-          <h1 class="page-title">System Diagnostics</h1>
-          <p class="page-subtitle">Run automated self-tests across all microservices and manage signing keys.</p>
+          <h1 class="page-title">Diagnostics & Maintenance</h1>
         </div>
       </div>
 
@@ -332,16 +312,15 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
               </div>
               <div>
-                <h3 class="card-title">Live End-to-End Test</h3>
-                <span class="card-meta">Automated Verification Pipeline</span>
+                <h3 class="card-title">Pipeline Smoke Test</h3>
+                <span class="card-meta">End-to-End Verification Pipeline</span>
               </div>
             </div>
-            <button class="btn btn-primary btn-sm" id="btn-run-diagnostics">Run Test</button>
+            <button class="btn btn-primary btn-sm" id="btn-run-diagnostics">Execute Test</button>
           </div>
-          <p class="card-desc">Tests port reachability, local hashing, quantum-safe signature issuance, ledger commit, and verification.</p>
 
           <div class="log-terminal" id="diagnostics-log-box">
-            <div class="log-entry log-muted">Click "Run Test" to perform system diagnostics...</div>
+            <div class="log-entry log-muted">Click "Execute Test" to perform system diagnostics...</div>
           </div>
         </div>
 
@@ -353,26 +332,25 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
               </div>
               <div>
-                <h3 class="card-title">Key Management</h3>
-                <span class="card-meta">Signing Authority Security</span>
+                <h3 class="card-title">KMS Key Rotation</h3>
+                <span class="card-meta">HashiCorp Vault KV-v2</span>
               </div>
             </div>
             <button class="btn btn-secondary btn-sm" id="btn-rotate-key">Rotate Key</button>
           </div>
-          <p class="card-desc">Generates a fresh post-quantum keypair in the KMS. Previous public keys are retained so past credentials remain valid.</p>
           
           <div class="key-info-box">
             <div class="info-row">
               <span class="info-label">Active Key Type</span>
-              <span class="info-value">Post-Quantum Lattice Signer</span>
+              <span class="info-value">NIST FIPS 204 ML-DSA-65</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Key Vault</span>
-              <span class="info-value">HashiCorp Vault KV v2</span>
+              <span class="info-label">Vault Storage</span>
+              <span class="info-value">KV-v2 AppRole Engine</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Key History</span>
-              <span class="info-value" id="key-history-count">Archived & Retained</span>
+              <span class="info-label">Key Archive</span>
+              <span class="info-value" id="key-history-count">Historical Keys Retained</span>
             </div>
           </div>
         </div>
@@ -385,11 +363,11 @@
   <div class="modal-backdrop hidden" id="auth-modal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">API Authentication</h3>
+        <h3 class="modal-title">Operator API Authentication</h3>
         <button class="modal-close" id="btn-close-auth-modal">&times;</button>
       </div>
       <p class="modal-desc">
-        Enter the <code class="field-value mono">GATEWAY_API_KEY</code> from your root <code class="field-value mono">.env</code> file. This token authenticates operator diagnostics, key rotation, and registry queries.
+        Enter the <code class="field-value mono">GATEWAY_API_KEY</code> from your root <code class="field-value mono">.env</code> file to authenticate operator actions.
       </p>
       
       <div class="form-group">
