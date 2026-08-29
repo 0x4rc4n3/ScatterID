@@ -1,6 +1,4 @@
-> NOTE: This document reflects the original v1 architecture. ScatterID has since been upgraded to a Zero-Knowledge hashing model (v2). Please refer to the root README.md and docs/ScatterID Architecture.txt for current technical specifications.
-
-# Crypto Project - Legal & Compliance Documentation
+# ScatterID - Legal & Compliance Documentation
 
 ## Data Protection & Privacy Policy
 ## Data Retention & Deletion Policy
@@ -17,16 +15,15 @@
 
 ---
 
-## 1. What Data Crypto Project Actually Touches
+## 1. What Data ScatterID Actually Touches
 
-Per the system design (see System Architecture Diagram and Database Schema Document), Crypto Project is deliberately built to minimize what personal data it directly holds:
+Per the system design, ScatterID is deliberately built to minimize what personal data it directly holds:
 
-| **Function** | **Input** | **Output** |
-|--------------|-----------|------------|
-| Raw identity claim data | Never persisted — exists only transiently in Issuance Layer memory during hashing/signing | The strongest privacy claim in this policy — keep the architecture honest to this promise |
-| Individual secret shares | Stored across distributed nodes; a share alone reveals zero information (see Secret-Sharing Scheme Specification) | Not "personal data" in a meaningful sense on its own, though jurisdictions may still classify it conservatively — confirm with counsel |
-| Hashes and metadata | Stored in the reference database (see Database Schema Document) | Hashes are one-way but may still be considered personal data under some regulations if linkable to an individual — treat conservatively |
-| API/account data | Issuer/verifier organization details, API key hashes | Standard B2B account data, not consumer PII in the traditional sense |
+| **Data Category** | **Handling** | **Notes** |
+|-------------------|--------------|-----------|
+| Raw identity claim data | Never persisted — exists only transiently in client SDK memory during local hashing | Zero PII is transmitted to gateway or blockchain |
+| Hashes and metadata | Irreversible SHA3-256 dataHash stored in SQLite reference DB and Fabric ledger | One-way cryptographic commitments only |
+| API/account data | Issuer/verifier organization details, API key hashes | Standard B2B account data |
 
 ---
 
@@ -38,15 +35,15 @@ Per the system design (see System Architecture Diagram and Database Schema Docum
 
 3. **Storage limitation**: retention periods defined in the Data Retention & Deletion Policy, not indefinite by default.
 
-4. **Right to erasure**: since raw data isn't persisted, "erasure" for Crypto Project primarily means revoking/deleting the credential's shares and anchoring record — defined in the Data Retention & Deletion Policy.
+4. **Right to erasure**: since raw data isn't persisted, "erasure" for ScatterID primarily means revoking/deleting the credential's shares and anchoring record — defined in the Data Retention & Deletion Policy.
 
-5. **Data subject access requests**: since Crypto Project is a B2B infrastructure provider, most data subject requests should route through the issuing customer (who holds the underlying relationship with the individual), with Crypto Project supporting technical fulfillment (e.g. confirming what references exist).
+5. **Data subject access requests**: since ScatterID is a B2B infrastructure provider, most data subject requests should route through the issuing customer (who holds the underlying relationship with the individual), with ScatterID supporting technical fulfillment (e.g. confirming what references exist).
 
 ---
 
 ## 3. Roles Under Data Protection Law (To Confirm With Counsel)
 
-Crypto Project likely acts as a data processor (processing data on behalf of the issuer, who is the data controller) for most of its B2B relationships. This distinction has significant legal implications — processor agreements, sub-processor disclosures, etc. — confirm this classification and its requirements with legal counsel before any real customer contract.
+ScatterID likely acts as a data processor (processing data on behalf of the issuer, who is the data controller) for most of its B2B relationships. This distinction has significant legal implications — processor agreements, sub-processor disclosures, etc. — confirm this classification and its requirements with legal counsel before any real customer contract.
 
 ---
 
@@ -57,7 +54,7 @@ Crypto Project likely acts as a data processor (processing data on behalf of the
 
 ## 5. Security Measures Statement (For the Public-Facing Policy)
 
-[Draft language — refine with counsel before publishing]: "Crypto Project employs post-quantum cryptographic signatures and threshold secret-sharing to ensure no single system component ever holds a complete, usable copy of protected data. Technical and organizational measures are documented in our internal Threat Model, Secure Coding Guidelines, and Key Management Policy."
+[Draft language — refine with counsel before publishing]: "ScatterID employs post-quantum cryptographic signatures and threshold secret-sharing to ensure no single system component ever holds a complete, usable copy of protected data. Technical and organizational measures are documented in our internal Threat Model, Secure Coding Guidelines, and Key Management Policy."
 
 ---
 
@@ -123,7 +120,7 @@ The anchored proof hash contains no personal data itself — only a cryptographi
 | **Function** | **Input** | **Output** |
 |--------------|-----------|------------|
 | Issuer-initiated (customer deletes/revokes a credential they issued) | Direct API call or dashboard action — straightforward technical process per Section 2 | Primary expected deletion path in the B2B model |
-| Individual-initiated (a data subject requests deletion directly from Crypto Project, not through the issuer) | Route to the relevant issuer per the Privacy Policy's processor/controller role clarification; Crypto Project supports but doesn't unilaterally act without issuer involvement, pending legal confirmation of this process | Requires legal review before finalizing — flagged as an open item |
+| Individual-initiated (a data subject requests deletion directly from ScatterID, not through the issuer) | Route to the relevant issuer per the Privacy Policy's processor/controller role clarification; ScatterID supports but doesn't unilaterally act without issuer involvement, pending legal confirmation of this process | Requires legal review before finalizing — flagged as an open item |
 
 ---
 
@@ -147,7 +144,7 @@ The anchored proof hash contains no personal data itself — only a cryptographi
 
 ## 1. Structure Overview
 
-A B2B ToS for an API/SDK product like Crypto Project typically needs the sections below. Each includes placeholder guidance on what should go there — fill in with counsel, not with this draft's language verbatim.
+A B2B ToS for an API/SDK product like ScatterID typically needs the sections below. Each includes placeholder guidance on what should go there — fill in with counsel, not with this draft's language verbatim.
 
 ---
 
@@ -167,7 +164,7 @@ A B2B ToS for an API/SDK product like Crypto Project typically needs the section
 
 ## 4. Customer Responsibilities (Data Controller Obligations)
 
-- [Customer confirms they have appropriate legal basis/consent to submit the identity data they issue credentials for — Crypto Project is not verifying this on the customer's behalf]
+- [Customer confirms they have appropriate legal basis/consent to submit the identity data they issue credentials for — ScatterID is not verifying this on the customer's behalf]
 
 - [Customer responsible for their own API key security — reference the Secrets Management Policy's principles in customer-facing language]
 
@@ -201,7 +198,7 @@ A B2B ToS for an API/SDK product like Crypto Project typically needs the section
 
 ## 9. Intellectual Property
 
-- [Crypto Project retains ownership of the underlying SDK/API/platform]
+- [ScatterID retains ownership of the underlying SDK/API/platform]
 
 - [Customer retains ownership of their own data/credentials issued through the platform]
 
@@ -287,7 +284,7 @@ For a first pilot customer, an honest, conservative SLA builds more trust than a
 
 ## 6. Incident Communication
 
-In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response Runbook's classification) affecting this customer, Crypto Project will: notify the customer within [1 hour of confirmed impact], provide updates at [defined interval] until resolved, and provide a post-incident summary within [5 business days] of resolution.
+In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response Runbook's classification) affecting this customer, ScatterID will: notify the customer within [1 hour of confirmed impact], provide updates at [defined interval] until resolved, and provide a post-incident summary within [5 business days] of resolution.
 
 ---
 
@@ -309,7 +306,7 @@ In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response 
 
 - Force majeure events
 
-- Third-party infrastructure outages outside Crypto Project's control (e.g. underlying cloud provider outage) — though note your own multi-node/multi-region design should reduce this risk relative to competitors
+- Third-party infrastructure outages outside ScatterID's control (e.g. underlying cloud provider outage) — though note your own multi-node/multi-region design should reduce this risk relative to competitors
 
 ---
 
@@ -350,7 +347,7 @@ In the event of a SEV-1 or SEV-2 incident (per the Rollback & Incident Response 
 
 | Party | Role |
 |-------|------|
-| Crypto Project | Data Processor (likely — confirm with counsel) |
+| ScatterID | Data Processor (likely — confirm with counsel) |
 | Issuing Customer | Data Controller |
 | Individual | Data Subject |
 

@@ -1,6 +1,4 @@
-> NOTE: This document reflects the original v1 architecture. ScatterID has since been upgraded to a Zero-Knowledge hashing model (v2). Please refer to the root README.md and docs/ScatterID Architecture.txt for current technical specifications.
-
-# Crypto Project - Integration Case Study Template & Security Whitepaper
+# ScatterID - Integration Case Study Template & Security Whitepaper
 
 ## Overview
 
@@ -25,16 +23,16 @@ A case study is one of the highest-leverage sales assets for a B2B security prod
 |--------------|-----------|------------|
 | Industry | [e.g. Higher Education / KYC Verification / Fintech] | |
 | Challenge | [One sentence — the core problem they had] | |
-| Solution | [One sentence — what Crypto Project provided] | |
+| Solution | [One sentence — what ScatterID provided] | |
 | Result | [One sentence, ideally with a number — credentials issued, integration time, etc.] | |
 
 ### The Challenge
 
-[2-3 paragraphs: what problem was the customer facing before Crypto Project? Ground this in specifics — e.g. "X credentials verified manually per month," "liability concerns over storing Y type of data centrally." Pull language from the Target Customer & Use Case Document's relevant persona if helpful, but always ground the final version in the real customer's actual words/situation.]
+[2-3 paragraphs: what problem was the customer facing before ScatterID? Ground this in specifics — e.g. "X credentials verified manually per month," "liability concerns over storing Y type of data centrally." Pull language from the Target Customer & Use Case Document's relevant persona if helpful, but always ground the final version in the real customer's actual words/situation.]
 
 ### The Solution
 
-[2-3 paragraphs: how was Crypto Project integrated? Reference the actual integration experience — how long did it take using the SDK, what did the technical team say about the process. Avoid overly technical jargon here; this is for a business/compliance audience, not engineers — save deep technical detail for the Security Whitepaper instead.]
+[2-3 paragraphs: how was ScatterID integrated? Reference the actual integration experience — how long did it take using the SDK, what did the technical team say about the process. Avoid overly technical jargon here; this is for a business/compliance audience, not engineers — save deep technical detail for the Security Whitepaper instead.]
 
 - [Specific technical highlight: e.g. "Integration completed in under a day using the JavaScript SDK" — only include if factually true and measured, per the SDK's Definition of Done target]
 
@@ -147,13 +145,13 @@ With the default k=3, n=5 configuration, the system tolerates the loss, compromi
 
 ## 8. Incident Response
 
-Crypto Project maintains a documented incident response process with defined severity classifications and response time targets. [Once established, and appropriate to disclose publicly:] Security incidents affecting customer data are communicated within [X hours] of confirmed impact.
+ScatterID maintains a documented incident response process with defined severity classifications and response time targets. [Once established, and appropriate to disclose publicly:] Security incidents affecting customer data are communicated within [X hours] of confirmed impact.
 
 ---
 
 ## 9. Vulnerability Disclosure
 
-Crypto Project maintains a responsible disclosure policy for external security researchers. [Insert public security contact once established, per the Vulnerability Disclosure & Bug Bounty Policy.]
+ScatterID maintains a responsible disclosure policy for external security researchers. [Insert public security contact once established, per the Vulnerability Disclosure & Bug Bounty Policy.]
 
 ---
 
@@ -181,7 +179,7 @@ Crypto Project maintains a responsible disclosure policy for external security r
 # Key Information Summary
 
 ## Product Name
-**Crypto Project**
+**ScatterID**
 
 ## Core Value Proposition
 

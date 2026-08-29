@@ -6,7 +6,7 @@
 
 ### Framework
 
-These guidelines follow the OWASP Top 10 and OWASP Application Security Verification Standard (ASVS), adapted for Crypto Project's specific architecture. Every module team and reviewer should be familiar with this document, and the Security track team's testing (see Security Testing Plan) should verify adherence directly.
+These guidelines follow the OWASP Top 10 and OWASP Application Security Verification Standard (ASVS), adapted for ScatterID's specific architecture. Every module team and reviewer should be familiar with this document, and the Security track team's testing (see Security Testing Plan) should verify adherence directly.
 
 ### Injection Prevention
 
@@ -337,7 +337,7 @@ Before any Phase 3 deployment handling real customer data, a founder must explic
 
 | Topic | Key Points |
 |-------|------------|
-| **Secure Coding Framework** | OWASP Top 10 + ASVS adapted for Crypto Project |
+| **Secure Coding Framework** | OWASP Top 10 + ASVS adapted for ScatterID |
 | **Injection Prevention** | Parameterized queries; strict schema validation; chaincode input validation |
 | **Access Control** | Every endpoint requires auth; role-scoped keys; MSP enforcement in chaincode |
 | **Cryptographic Failures** | NIST-standardized algorithms only; CSPRNG; TLS everywhere |
@@ -365,4 +365,4 @@ Before any Phase 3 deployment handling real customer data, a founder must explic
 
 ---
 
-*This document consolidates all security and compliance specifications for ScatterID / Crypto Project.*
+*This document consolidates all security and compliance specifications for ScatterID.*

@@ -1,6 +1,4 @@
-> NOTE: This document reflects the original v1 architecture. ScatterID has since been upgraded to a Zero-Knowledge hashing model (v2). Please refer to the root README.md and docs/ScatterID Architecture.txt for current technical specifications.
-
-# ScatterID / Crypto Project - Complete Technical Documentation
+# ScatterID - Architecture & Technical Design
 
 ## Architecture Decision Record (ADR)
 
@@ -264,7 +262,7 @@ Do not hand this full document to intern teams — it reveals the whole system s
 ```
 ┌──────────┐  issue claim   ┌──────────────────┐
 │  Issuer  │───────────────▶│                  │
-│(external)│                │  CRYPTO PROJECT  │
+│(external)│                │    SCATTERID     │
 └──────────┘                │     SYSTEM       │
 ┌──────────┐  verify request│                  │
 │ Verifier │───────────────▶│                  │
@@ -573,17 +571,17 @@ Default recommendation for MVP: require endorsement from a majority of participa
 ```yaml
 openapi: 3.0.3
 info:
-  title: Crypto Project Verification API
+  title: ScatterID Verification Gateway API
   description: >
     verification API. This service never accepts or returns raw claim data,
     private keys, or complete secret shares.
   version: 1.0.0
   contact:
-    name: Crypto Project Engineering
+    name: ScatterID Engineering
 servers:
-  - url: https://api.cryptoproject.internal/v1
-    description: Production (placeholder — replace with real domain before launch)
-  - url: http://localhost:3000/v1
+  - url: https://api.scatterid.com/v1
+    description: Production gateway
+  - url: http://localhost:3000
     description: Local development
 
 security:

@@ -1,6 +1,4 @@
-> NOTE: This document reflects the original v1 architecture. ScatterID has since been upgraded to a Zero-Knowledge hashing model (v2). Please refer to the root README.md and docs/ScatterID Architecture.txt for current technical specifications.
-
-# Crypto Project - Complete Documentation
+# ScatterID - Strategy & Product Documentation
 
 ## Product Requirements Document
 
@@ -184,19 +182,18 @@ Post-quantum cryptography adoption is accelerating across the blockchain and sec
 
 ### Explicitly Deprioritized (Not v1 Targets)
 
-- Physical access control companies (fingerprint/door lock systems) — requires fuzzy/biometric matching, which is a v2+ research track, not v1
-- Consumer-facing apps — Crypto Project is B2B infrastructure, not a consumer product
+- Physical access control companies (fingerprint/door lock systems) — requires fuzzy/biometric matching, which is a research track, not core
+- Consumer-facing apps — ScatterID is B2B infrastructure, not a consumer product
 
 ### Core Use Case (v1): University Credential Verification
 
 
 **Process:**
 
-1. University (issuer) submits a claim ("Student X earned Degree Y in Year Z") to Crypto Project's issuance API
-2. Crypto Project hashes the claim, signs it with a post-quantum signature, splits it into k-of-n shares, and stores shares across distributed nodes
-3. A proof hash is anchored on the private blockchain — tamper-evident, timestamped
-4. Employer (verifier) queries the verification API with the credential ID — receives a valid/invalid response without ever seeing or needing the raw underlying data
-5. If any single storage node is compromised or destroyed, the credential remains fully verifiable as long as the threshold number of shares survive
+1. University (issuer) submits a claim ("Student X earned Degree Y in Year Z") through ScatterID's SDK
+2. Client SDK canonicalizes the claim (RFC 8785), generates a 16-byte random salt, and computes `dataHash = SHA3-256(Salt || CanonicalClaim)` locally
+3. ScatterID signs the dataHash using NIST ML-DSA-65 post-quantum lattice signatures and anchors the proof on Hyperledger Fabric — tamper-evident, timestamped
+4. Employer (verifier) queries the verification API with the claim and salt — receives a valid/invalid cryptographic response without raw data ever being stored on servers or ledger
 
 ### Core Use Case (v1, Alternative): KYC Status Verification
 
@@ -294,4 +291,4 @@ B2B SDK and verification API, licensed per-verification or via subscription. No 
 
 ---
 
-*This documentation represents the complete, finalized product strategy for Crypto Project — Post-Quantum Identity Verification Infrastructure.*
+*This documentation represents the complete, finalized product strategy for ScatterID — Post-Quantum Identity Verification Infrastructure.*

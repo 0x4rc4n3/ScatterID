@@ -10,21 +10,21 @@
 
 ## 1. Testing Philosophy
 
-Tests exist to catch mistakes before they reach a customer, not to hit a coverage number for its own sake. Given this is a cryptographic identity product, the cost of an undetected bug (a false "valid" verification, a silently corrupted share) is much higher than in most software — test the failure paths as rigorously as the success paths.
+Tests exist to catch mistakes before they reach a customer, not to hit a coverage number for its own sake. Given this is a cryptographic identity product, the cost of an undetected bug (a false "valid" verification, an unvalidated tampered hash) is much higher than in most software — test the failure paths as rigorously as the success paths.
 
 ---
 
-## 2. Test Pyramid for Crypto Project
+## 2. Test Pyramid for ScatterID
 
 ```
                     ▲
                    / ╲
                   / E2E ╲           End-to-End (few, slow, highest confidence)
                 /         ╲
-               / Integration ╲      Integration (moderate count)
+               / Integration ╲      Integration (cross-module, Docker & TLS)
              /                 ╲
-            /      Unit          ╲  Unit (many, fast, run on every commit)
-           /───────────────────────╲ per-function: split_secret(), verify_signature(), etc.
+            /      Unit          ╲  Unit (fast, run on every commit in CI)
+           /───────────────────────╲ per-function: hash_commitment(), pq_sign(), verify(), etc.
 ```
 
 ---
