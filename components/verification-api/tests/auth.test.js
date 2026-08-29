@@ -1,67 +1,33 @@
 /**
- * HTTP-level authentication enforcement tests.
+ * HTTP-level authentication enforcement tests on the REAL Express server.
  *
- * These tests boot the real Express application (including the middleware stack)
- * and send actual HTTP requests via supertest. They exist specifically to catch
- * regressions where a route is added or reorganized in a way that bypasses the
- * auth middleware — the kind of bug that in-process route-handler unit tests
- * (which call issueRoute(req, res) directly, bypassing all middleware) can
- * never detect.
+ * These tests boot the actual `app` exported from `src/server.js` (including
+ * its complete middleware pipeline, helmet security headers, rate limiters,
+ * and real route registrations).
  *
- * The TEST_API_KEY environment variable must be set before the app is imported
- * so the startup key-presence check passes.
+ * Unlike unit tests that call route functions in isolation, this suite
+ * verifies that the live Express application wiring correctly gates all
+ * protected endpoints behind timing-safe authentication.
  */
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Set the key before the app module is imported so the fail-fast check passes.
-process.env.VERIFICATION_API_KEY = 'test-auth-key-for-ci-only';
+// Set required environment variables before importing the real server module
+const TEST_KEY = 'test-auth-key-for-ci-only';
+process.env.VERIFICATION_API_KEY = TEST_KEY;
 process.env.SQLITE_DB_PATH = ':memory:';
+process.env.NODE_ENV = 'test';
 
-// Dynamically import the app after env is set.
-// The app must export the Express instance (not call listen) for testability.
-// Until the app exports `app`, we use supertest's agent on the running server.
-// For now we test via raw fetch against a listening server on a free port.
-
-// ── Minimal Express app clone for auth-only testing ──────────────────────────
-// Rather than importing the full server (which starts listening and may try to
-// connect to Fabric/Vault), we reconstruct just the auth middleware logic here.
-// This is the single source of truth for what auth must look like, independent
-// of the server bootstrap side-effects.
-
-import express from 'express';
-import { timingSafeEqual, createHash } from 'crypto';
-
-const TEST_KEY = process.env.VERIFICATION_API_KEY;
-
-function requireBearerAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized', code: 'MISSING_AUTH' });
-  }
-  const token = authHeader.slice(7);
-  const tokenHash = createHash('sha256').update(token).digest();
-  const keyHash   = createHash('sha256').update(TEST_KEY).digest();
-  if (!timingSafeEqual(tokenHash, keyHash)) {
-    return res.status(401).json({ error: 'Unauthorized', code: 'INVALID_AUTH' });
-  }
-  next();
-}
-
-const testApp = express();
-testApp.use(express.json());
-testApp.post('/issue',        requireBearerAuth, (req, res) => res.status(201).json({ ok: true }));
-testApp.get('/status/:id',    requireBearerAuth, (req, res) => res.status(200).json({ ok: true }));
-testApp.get('/credentials',   requireBearerAuth, (req, res) => res.status(200).json({ ok: true }));
-testApp.post('/verify',       (req, res) => res.status(200).json({ ok: true })); // public
+// Import the REAL Express application from server.js (NOT a testApp clone)
+const { app } = await import('../src/server.js');
 
 let server;
 let baseUrl;
 
 function startServer() {
   return new Promise((resolve) => {
-    server = testApp.listen(0, '127.0.0.1', () => {
+    server = app.listen(0, '127.0.0.1', () => {
       const { port } = server.address();
       baseUrl = `http://127.0.0.1:${port}`;
       resolve();
@@ -73,12 +39,12 @@ function stopServer() {
   return new Promise((resolve) => server.close(resolve));
 }
 
-// Boot the server once before all tests
+// Boot the real server instance once before all tests
 before(async () => {
   await startServer();
 });
 
-// ── Auth enforcement tests ────────────────────────────────────────────────────
+// ── Auth enforcement tests on the REAL Express application ────────────────────
 
 test('POST /issue — 401 with no Authorization header', async () => {
   const res = await fetch(`${baseUrl}/issue`, {
@@ -105,16 +71,19 @@ test('POST /issue — 401 with wrong Bearer token', async () => {
   assert.equal(body.code, 'INVALID_AUTH');
 });
 
-test('POST /issue — 201 with correct Bearer token', async () => {
+test('POST /issue — auth passes with valid Bearer token and reaches route handler', async () => {
+  // With bad params, it returns 400 INVALID_PARAMETER, proving it passed auth and reached issueRoute
   const res = await fetch(`${baseUrl}/issue`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${TEST_KEY}`
     },
-    body: JSON.stringify({ dataHash: 'a'.repeat(64) })
+    body: JSON.stringify({ dataHash: 'invalid-non-hex' })
   });
-  assert.equal(res.status, 201);
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_PARAMETER');
 });
 
 test('GET /status/:id — 401 with no auth', async () => {
@@ -122,6 +91,15 @@ test('GET /status/:id — 401 with no auth', async () => {
   assert.equal(res.status, 401);
   const body = await res.json();
   assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('GET /status/:id — auth passes with valid Bearer token and queries DB', async () => {
+  const res = await fetch(`${baseUrl}/status/00000000-0000-4000-8000-000000000000`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(res.status, 404);
+  const body = await res.json();
+  assert.equal(body.code, 'NOT_FOUND');
 });
 
 test('GET /credentials — 401 with no auth', async () => {
@@ -132,33 +110,43 @@ test('GET /credentials — 401 with no auth', async () => {
 });
 
 test('GET /credentials — 401 with length-mismatched token (no length oracle)', async () => {
-  // A token that is a prefix of the real key — verifies that length mismatch
-  // returns 401 and not a 500 or a timing-distinguishable response path.
   const shortToken = TEST_KEY.slice(0, 4);
   const res = await fetch(`${baseUrl}/credentials`, {
     headers: { 'Authorization': `Bearer ${shortToken}` }
   });
   assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_AUTH');
 });
 
-test('POST /verify — 200 without any auth (public endpoint)', async () => {
+test('GET /credentials — 200 with correct Bearer token', async () => {
+  const res = await fetch(`${baseUrl}/credentials`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.ok(Array.isArray(body.credentials));
+});
+
+test('POST /verify — 400 or valid response without any auth (public endpoint)', async () => {
   // /verify is intentionally open to third-party verifiers.
   const res = await fetch(`${baseUrl}/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dataHash: 'a'.repeat(64) })
+    body: JSON.stringify({ dataHash: 'invalid-hash' })
   });
-  assert.equal(res.status, 200, '/verify should be accessible without auth');
+  assert.equal(res.status, 400, '/verify should be accessible without auth and validate inputs');
 });
 
-test('GET /status/:id — 200 with correct Bearer token', async () => {
-  const res = await fetch(`${baseUrl}/status/00000000-0000-4000-8000-000000000000`, {
-    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
-  });
+test('GET /healthz — 200 without any auth (health probe)', async () => {
+  const res = await fetch(`${baseUrl}/healthz`);
   assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.status, 'ok');
 });
 
-// Shut down the test server after all tests
+// Shut down the real test server after all tests
 after(async () => {
   await stopServer();
 });

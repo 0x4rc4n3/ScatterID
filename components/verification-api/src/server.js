@@ -5,6 +5,8 @@ import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { timingSafeEqual, createHash } from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { issueRoute } from './routes/issue.js';
 import { statusRoute } from './routes/status.js';
 import { verifyRoute } from './routes/verify.js';
@@ -48,7 +50,7 @@ app.use('/credentials', apiLimiter);
  * The SHA-256 operation itself is constant-time with respect to content,
  * and timingSafeEqual ensures the comparison is constant-time.
  */
-function requireBearerAuth(req, res, next) {
+export function requireBearerAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized', code: 'MISSING_AUTH' });
@@ -89,17 +91,24 @@ app.get('/credentials', requireBearerAuth, async (req, res) => {
   }
 });
 
-const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Verification API listening on port ${PORT}`);
-});
+export { app };
 
-process.on('SIGTERM', () => {
-  console.log('Verification API received SIGTERM, exiting...');
-  process.exit(0);
-});
+const __filename = fileURLToPath(import.meta.url);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === __filename;
 
-process.on('SIGINT', () => {
-  console.log('Verification API received SIGINT, exiting...');
-  process.exit(0);
-});
+if (isMain) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Verification API listening on port ${PORT}`);
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('Verification API received SIGTERM, exiting...');
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    console.log('Verification API received SIGINT, exiting...');
+    process.exit(0);
+  });
+}
