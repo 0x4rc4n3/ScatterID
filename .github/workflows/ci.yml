@@ -51,7 +51,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install system dependencies for liboqs
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake ninja-build libssl-dev
       - run: pip install -r requirements.txt
+      - name: Build liboqs C library bindings
+        run: |
+          python -c "import oqs" || true
       - run: python -m pytest --tb=short -q
 
   docker-build:
@@ -59,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker network create scatterid_net || true
+      - run: docker network create scatterid_net 2>/dev/null || true
       - run: docker compose build
 
   dependency-audit:
@@ -74,14 +80,12 @@ jobs:
         working-directory: sdk
         run: |
           npm ci
-          # Fail the build on any HIGH or CRITICAL vulnerability.
-          # If a specific advisory needs to be overridden, use --ignore-vulnerability, not || true.
-          npm audit --production --audit-level=high
+          npm audit --omit=dev --audit-level=high
       - name: Audit Verification API dependencies
         working-directory: components/verification-api
         run: |
           npm ci
-          npm audit --production --audit-level=high
+          npm audit --omit=dev --audit-level=high
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -89,10 +93,7 @@ jobs:
         working-directory: components/crypto/crypto-service
         run: |
           pip install pip-audit
-          pip install -r requirements.txt
-          # Fail on any known vulnerability. To suppress a false-positive use:
-          # pip-audit --ignore-vuln <VULN-ID>
-          pip-audit
+          pip-audit -r requirements.txt
 
   secret-scan:
     name: Gitleaks Secret Scanning
