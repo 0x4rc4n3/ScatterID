@@ -23,7 +23,7 @@ If you discover a security vulnerability in ScatterID, **please do not open a pu
 
 Instead, report it responsibly via email:
 
-- **Email:** security@scatterid.com
+- **Email:** mudassirbhatti276@gmail.com
 - **Subject:** `[SECURITY] <Brief description>`
 
 Please include:

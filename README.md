@@ -5,74 +5,85 @@
 [![Security: Gitleaks](https://img.shields.io/badge/Security-Gitleaks-blue.svg)](https://github.com/gitleaks/gitleaks)
 [![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-blue.svg)](LICENSE)
 
-ScatterID is an open-source, post-quantum, zero-knowledge identity verification infrastructure combining NIST FIPS 204 (ML-DSA-65) digital signatures, RFC 8785 JSON canonicalization commitments, and Hyperledger Fabric blockchain anchoring.
+**ScatterID** is an open-source, decentralized, zero-knowledge identity verification framework. It empowers organizations to issue, anchor, and mathematically verify privacy-preserving digital credentials resilient against future quantum computer attacks.
+
+By uniting **NIST FIPS 204 (ML-DSA-65)** post-quantum digital signatures, client-side **RFC 8785 (JCS)** canonicalization with cryptographic salting, and **Hyperledger Fabric** blockchain anchoring, ScatterID guarantees that private personal data never leaves the client device.
 
 ---
 
-## 📚 Master Documentation Hub
+## 🌟 Key Highlights
 
-All architecture, cryptographic specifications, deployment runbooks, and compliance guides are organized in the central docs index:
-
-👉 **[ScatterID Master Documentation Index](docs/README.md)**
+* **🛡️ Post-Quantum Cryptography (NIST FIPS 204):** Uses ML-DSA-65 (formerly CRYSTALS-Dilithium3) lattice-based digital signatures to secure credentials against quantum decryption and forgery (Shor's algorithm).
+* **🔒 Zero-Knowledge Privacy & Data Minimization:** Raw claim data (PII) is canonicalized locally and salted with a 16-byte CSPRNG secret. Only a one-way `SHA3-256` commitment is ever transmitted to the network. ScatterID never stores, sees, or logs raw identity data.
+* **⛓️ Immutable Blockchain Anchoring:** Proof commitments and revocation states are permanently anchored to a permissioned Hyperledger Fabric ledger with Raft consensus.
+* **🔌 Standalone Offline Verification ("Don't Trust, Verify"):** Verifiers and auditors can validate credentials air-gapped without internet access or blockchain connections using zero-dependency CLI tools.
+* **⚡ One-Command Turnkey Deployment:** Full microservice stack (Vault KMS, PQC Crypto Microservice, Verification Gateway, Fabric Consortium, and Web Operator Console) launches out of the box with zero manual configuration.
 
 ---
 
 ## 🚀 Quickstart (Zero-to-Running in 60 Seconds)
 
-ScatterID is runnable on any standard Linux or macOS host with Docker installed:
+ScatterID runs on any Linux or macOS machine with **Docker** and **Docker Compose** installed.
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/0x4rc4n3/ScatterID-product.git
 cd ScatterID-product
 
-# 2. Launch the turnkey stack (auto-provisions keys, certs, blockchain, and microservices)
+# 2. Launch the turnkey stack (auto-provisions random keys, mTLS certs, blockchain, and containers)
 ./scripts/quickstart.sh
 
 # Option: Start with the Web Operator Dashboard enabled:
 ./scripts/quickstart.sh --with-dashboard
 ```
 
-### ⚙️ Run Modes: Backend-Only vs. Backend + Operator Dashboard
-ScatterID supports Docker Compose profiles (`profiles: ["dashboard"]`) to match different operational use cases:
-
-* **Core Backend Only (`./scripts/start.sh` or `docker compose up -d`):**
-  Starts strictly the essential microservices (ML-DSA-65 Crypto Service, Verification API Gateway, Hyperledger Fabric ledger, HashiCorp Vault). Ideal for headless deployments or embedding ScatterID behind another service without exposing administrative console ports.
-* **Full Stack with Dashboard (`./scripts/start.sh --with-dashboard` or `docker compose --profile dashboard up -d`):**
-  Starts all core backend microservices PLUS the web-based Operator Diagnostics Console on port 4000.
+### ⚙️ Run Modes
+* **Core Backend Only (`./scripts/start.sh` or `docker compose up -d`):**  
+  Starts strictly the essential headless services (PQC Crypto Engine, Verification Gateway API, Hyperledger Fabric ledger, HashiCorp Vault). Ideal for production microservice architectures.
+* **Full Stack with Dashboard (`./scripts/start.sh --with-dashboard` or `docker compose --profile dashboard up -d`):**  
+  Starts the core backend plus the web-based Operator Diagnostics Console on port `4000`.
 
 ---
 
 ### Active Endpoints Once Started:
-- **Verification Gateway API:** `http://localhost:3000`
-- **Post-Quantum Crypto Microservice (ML-DSA-65):** `https://localhost:5001`
-- **HashiCorp Vault KMS:** `http://localhost:8200`
-- **Operator Diagnostics Console:** `http://localhost:4000` *(when run with `--with-dashboard`)*
-- **Visual SDK Playground Web App:** `http://localhost:5050` *(run via `cd examples/web-app && npm start`)*
+| Service | Endpoint | Description |
+| :--- | :--- | :--- |
+| **Verification Gateway API** | `http://localhost:3000` | REST API for credential issuance, verification, and revocation |
+| **PQC Crypto Service** | `https://localhost:5001` | High-security ML-DSA-65 signing engine (internal mTLS) |
+| **HashiCorp Vault KMS** | `http://localhost:8200` | Key management service holding post-quantum keypairs |
+| **Operator Dashboard** | `http://localhost:4000` | Real-time observability, ledger explorer, and key rotation UI |
+| **Visual SDK Playground** | `http://localhost:5050` | Interactive browser sandbox (`cd examples/web-app && npm start`) |
 
-### Verify the Stack with the E2E Test Suite:
+---
+
+### Verify the Stack with the Built-in Test Suite:
 ```bash
 ./scripts/test_all.sh
 ```
 
 ---
 
-## 🎮 Visual SDK Playground & Interactive Demo
-ScatterID includes a dedicated graphical web app that connects directly to the TypeScript/JavaScript SDK:
+## 🎮 Interactive Visual Playground
+
+ScatterID includes a pre-built interactive browser application to explore credential issuance and verification in real time:
 
 ```bash
-cd examples/web-app && npm start
+cd examples/web-app
+npm install
+npm start
 # Open http://localhost:5050 in your browser
 ```
-- **Live 10-Preset Selector:** Load realistic sample claims across 10 industries (Medicine, Aviation, Cybersecurity, Legal, KYC).
-- **Real-Time Cryptographic Telemetry:** Inspect local RFC 8785 canonicalization, CSPRNG salting, SHA3-256 zero-knowledge hashing, and ML-DSA-65 signing.
-- **Interactive Tamper Testing:** Corrupt a single field in the presented claim with 1-click and watch the verification engine detect and reject the forgery.
-- **Lifecycle & Updates:** Experience the "Revoke & Supersede" pattern by updating an active credential on the blockchain.
+
+* **10 Industry Presets:** Test realistic credentials across Medicine, Aviation, Cyber Defense, FinTech, and KYC.
+* **Live Cryptographic Telemetry:** Inspect raw JSON canonicalization (RFC 8785), salt generation, SHA3-256 hashing, and ML-DSA-65 signatures.
+* **1-Click Tamper Simulation:** Modify a single character in the claim and watch the verification engine instantly detect and reject the tamper attempt.
+* **Credential Lifecycle:** Experience live credential revocation and status tracking on the blockchain.
 
 ---
 
-## 🛡️ "Don't Trust, Verify" — Standalone Offline CLI Verifiers
-ScatterID empowers third-party auditors and relying parties to mathematically verify any issued credential **100% offline** with zero external network or server dependencies:
+## 🛡️ Standalone Offline Verification
+
+Third-party auditors, border authorities, or offline verifiers can mathematically validate any issued credential **100% offline** without any internet connection, API keys, or blockchain dependencies:
 
 ```bash
 # Node.js Verifier (zero external dependencies)
@@ -82,63 +93,17 @@ node tools/verify_offline.js <path-to-credential.json>
 python3 tools/verify_offline.py <path-to-credential.json>
 ```
 
-Cross-language parity between both verifiers is continuously asserted via `./tests/offline_verify_parity.test.sh`.
+Cross-language parity is asserted across both verifiers via `./tests/offline_verify_parity.test.sh`.
 
 ---
 
-## 🏛 Core Architectural Flow
+## 🏛 Architecture & Technical Documentation
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant SDK (Org Backend)
-    participant Gateway as Verification API
-    participant Crypto as Crypto Service (PQC)
-    participant Fabric as Hyperledger Fabric
+For detailed architectural flowcharts, sequence diagrams, cryptographic proofs, and deployment specifications, explore the dedicated documentation guides:
 
-    rect rgb(230, 245, 255)
-    note right of User: Phase 1: Issuance
-    User->>SDK (Org Backend): Provide Claim Data
-    SDK (Org Backend)->>SDK (Org Backend): Canonicalize (RFC 8785 JCS)
-    SDK (Org Backend)->>SDK (Org Backend): Generate 16-byte CSPRNG Salt
-    SDK (Org Backend)->>SDK (Org Backend): Compute dataHash = SHA3-256(Salt || CanonicalizedClaim)
-    SDK (Org Backend)->>Gateway: POST /issue { dataHash, idempotencyKey }
-    Gateway->>Crypto: POST /sign_hash { dataHash } (HTTPS + Bearer Auth)
-    Crypto->>Crypto: Sign dataHash using NIST ML-DSA-65 (Dilithium3)
-    Crypto-->>Gateway: Return { credentialId, dataHash, signature, publicKeyId }
-    Gateway->>Fabric: Invoke AnchorCredential(credentialId, dataHash, algo, sig)
-    Fabric-->>Gateway: Return TxID (Committed)
-    Gateway-->>SDK (Org Backend): Return { status: "anchored", credentialId, signature, publicKeyId }
-    SDK (Org Backend)-->>User: Return full credential object including salt (Store Safely)
-    end
-
-    rect rgb(255, 245, 238)
-    note right of User: Phase 2: Zero-Knowledge Verification
-    User->>SDK (Org Backend): Present Claim + Salt + Credential ID
-    SDK (Org Backend)->>SDK (Org Backend): Recompute dataHash = SHA3-256(Salt || CanonicalizedClaim)
-    SDK (Org Backend)->>Gateway: POST /verify { dataHash, credentialId }
-    Gateway->>Crypto: POST /verify_hash { dataHash, signature, publicKeyId }
-    Crypto->>Crypto: Lookup Public Key by publicKeyId (from internal registry)
-    Crypto->>Crypto: Verify ML-DSA-65 Signature
-    Crypto-->>Gateway: Return { valid: true }
-    Gateway->>Fabric: Query VerifyAnchor(credentialId, dataHash)
-    Fabric-->>Gateway: Return { anchorStatus: "active" }
-    Gateway-->>SDK (Org Backend): Return { valid: true, anchorStatus: "active" }
-    SDK (Org Backend)-->>User: Validated!
-    end
-```
-
----
-
-## 🏛 Cryptographic Security Guarantees & Boundaries
-
-1. **Post-Quantum Signature Scheme (ML-DSA-65 / Dilithium3):**
-   - **Standard**: NIST FIPS 204 Standard (Category 3 EUF-CMA).
-2. **Zero-Knowledge Hashing Model:**
-   - **Scheme**: SHA3-256 over RFC 8785 (JCS) canonicalized payload concatenated with a 16-byte CSPRNG salt.
-   - **Data Retention Guarantee**: ScatterID NEVER stores raw claim data, salts, or fragments. It stores strictly the UUID, dataHash, signature, publicKeyId, and ledger anchor info.
-3. **Public Key Trust Boundary:**
-   - Verification exclusively resolves the issuer's public key from ScatterID's internal trusted key registry.
+* 📐 **[Comprehensive Architecture Overview & Diagrams](docs/architecture-overview.md)** — Interactive Mermaid flowcharts covering system topology, zero-knowledge issuance sequences, dual-mode verification protocols, and KMS memory zeroization.
+* 📚 **[Master Documentation Index](docs/README.md)** — Complete catalog of technical specs, cryptography models, DevOps runbooks, security engineering, and compliance analysis.
+* ⚙️ **[Configuration Reference (.env.example)](.env.example)** — Master environment variable template and port settings.
 
 ---
 
@@ -147,42 +112,34 @@ sequenceDiagram
 ```
 ScatterID/
 ├── components/
-│   ├── crypto/                 # PQC Engine & ML-DSA-65 Signer (Python / mTLS)
-│   ├── verification-api/       # Core Express Verification Gateway & Reconciliation
-│   ├── project-dashboard/      # Operator Diagnostics Console & Audit Viewer
-│   └── blockchain/             # Hyperledger Fabric Network & Go Chaincode
-├── sdk/                        # TypeScript/JavaScript Client SDK (@scatterid/sdk)
-├── examples/                   # Visual Web Playground & Batch/Revoke Demos
-├── docs/                       # Master Documentation Library & Specifications
-├── scripts/                    # Turnkey Provisioning, Startup, & Test Automation
+│   ├── crypto/                 # PQC Engine & ML-DSA-65 Signer (Python / liboqs / mTLS)
+│   ├── verification-api/       # Verification Gateway API, SQLite Models & Reconciliation
+│   ├── project-dashboard/      # Web Operator Diagnostics Console & Audit Viewer
+│   └── blockchain/             # Hyperledger Fabric Network, Raft Consensus & Go Chaincode
+├── sdk/                        # Client SDK (@scatterid/sdk for TypeScript / JavaScript)
+├── examples/                   # Visual Web Playground & Integration Demos
+├── docs/                       # Master Architecture, Cryptography & Compliance Specifications
+├── scripts/                    # Turnkey Provisioning, Startup, & E2E Test Automation
 ├── tools/                      # Standalone Cross-Language Offline Verifiers (JS & Python)
 ├── tests/                      # Integration & Cross-Language Parity Test Suites
-├── docker-compose.yml          # Container Topology Orchestration (with profiles)
+├── docker-compose.yml          # Container Topology Orchestration (with profile support)
 ├── .env.example                # Authoritative Configuration Template
 ├── CHANGELOG.md                # Milestone & Release History
-├── SECURITY.md                 # Security Disclosure & API Key Tier Definitions
+├── SECURITY.md                 # Security Policy & Vulnerability Reporting
 ├── CONTRIBUTING.md             # Developer Contribution Guidelines
 ├── LICENSE                     # PolyForm Noncommercial License 1.0.0
-└── README.md                   # Master Overview & Quickstart Guide
+└── README.md                   # Master Project Overview
 ```
 
 ---
 
-## Current Limitations
+## 📬 Contact & Security Reporting
 
-ScatterID is an active open-source research and engineering project:
+For general questions, product inquiries, research collaboration, or responsible vulnerability disclosures:
 
-- **No external security audit** has yet been performed.
-- **The default `docker-compose.yml` configuration is for local evaluation and testing**; production deployment requires hardening Vault with external TLS certificates and disabling `VAULT_DEV_MODE`.
-- **CI includes linting, testing, and secret scanning**, with dependency vulnerability audits configured for Node.js and Python runtimes.
-
-See [CHANGELOG.md](CHANGELOG.md) for the full version history and remediations.
-
----
-
-## Security & Contributions
-
-For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md). For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+* **Contact & Security Lead:** Mudassir Javed
+* **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
+* **Security Policy:** See [SECURITY.md](SECURITY.md) for our responsible disclosure process and vulnerability response commitments.
 
 ---
 
@@ -199,4 +156,3 @@ This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
 * Use this software (or any modified version) for commercial purposes.
 * Integrate this verification framework or API into a for-profit product or service.
 * Sell access to the code.
-
