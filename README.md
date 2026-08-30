@@ -3,7 +3,7 @@
 [![CI](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/ci.yml/badge.svg)](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/codeql.yml/badge.svg)](https://github.com/0x4rc4n3/ScatterID-product/actions/workflows/codeql.yml)
 [![Security: Gitleaks](https://img.shields.io/badge/Security-Gitleaks-blue.svg)](https://github.com/gitleaks/gitleaks)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-blue.svg)](LICENSE)
 
 ScatterID is an open-source, post-quantum, zero-knowledge identity verification infrastructure combining NIST FIPS 204 (ML-DSA-65) digital signatures, RFC 8785 JSON canonicalization commitments, and Hyperledger Fabric blockchain anchoring.
 
@@ -162,7 +162,7 @@ ScatterID/
 ├── CHANGELOG.md                # Milestone & Release History
 ├── SECURITY.md                 # Security Disclosure & API Key Tier Definitions
 ├── CONTRIBUTING.md             # Developer Contribution Guidelines
-├── LICENSE                     # MIT Open Source License
+├── LICENSE                     # PolyForm Noncommercial License 1.0.0
 └── README.md                   # Master Overview & Quickstart Guide
 ```
 
@@ -183,3 +183,20 @@ See [CHANGELOG.md](CHANGELOG.md) for the full version history and remediations.
 ## Security & Contributions
 
 For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md). For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## License
+
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+**You are free to:**
+* View, modify, and run the framework for personal use.
+* Use the code for academic, educational, and research purposes.
+* Fork and contribute to the project.
+
+**You are NOT permitted to:**
+* Use this software (or any modified version) for commercial purposes.
+* Integrate this verification framework or API into a for-profit product or service.
+* Sell access to the code.
+

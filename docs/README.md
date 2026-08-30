@@ -81,4 +81,4 @@ Legal compliance, development guidelines, and customer onboarding:
 * **SDK Documentation:** [sdk/README.md](../sdk/package.json)
 * **Visual SDK Playground:** [examples/web-app](../examples/web-app)
 * **Project Changelog:** [CHANGELOG.md](../CHANGELOG.md)
-* **Open Source License (MIT):** [LICENSE](../LICENSE)
+* **License (PolyForm Noncommercial 1.0.0):** [LICENSE](../LICENSE)
