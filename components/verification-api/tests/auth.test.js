@@ -146,6 +146,45 @@ test('GET /healthz — 200 without any auth (health probe)', async () => {
   assert.equal(body.status, 'ok');
 });
 
+test('POST /revoke — 401 with no Authorization header', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('POST /revoke — 401 with wrong Bearer token', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer wrong-token'
+    },
+    body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_AUTH');
+});
+
+test('POST /revoke — auth passes with valid Bearer token and validates input', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${TEST_KEY}`
+    },
+    body: JSON.stringify({ credentialId: 'invalid-uuid' })
+  });
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_PARAMETER');
+});
+
 // Shut down the real test server after all tests
 after(async () => {
   await stopServer();

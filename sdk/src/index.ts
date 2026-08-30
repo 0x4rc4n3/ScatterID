@@ -11,7 +11,7 @@ import {
 
 export * from './errors.js';
 export * from './types.js';
-import { ScatterIDClientOptions } from './types.js';
+import { ScatterIDClientOptions, RevokeResponse } from './types.js';
 
 export class ScatterIDClient {
     private apiKey: string;
@@ -117,5 +117,27 @@ export class ScatterIDClient {
         }
 
         return data;
+    }
+
+    public async revoke(credentialId: string): Promise<RevokeResponse> {
+        if (!credentialId || typeof credentialId !== 'string') {
+            throw new InvalidClaimError("credentialId is required and must be a string", "INVALID_PARAMETER");
+        }
+
+        const res = await fetch(`${this.issuanceUrl}/revoke`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify({ credentialId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            this.handleError(data, res.status);
+        }
+
+        return data as RevokeResponse;
     }
 }

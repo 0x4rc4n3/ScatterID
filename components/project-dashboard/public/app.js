@@ -331,52 +331,6 @@ function setupStudioForms() {
       }
     });
   }
-
-  // 4. Revoke Credential
-  if (btnRevoke) {
-    btnRevoke.addEventListener('click', async () => {
-      const credId = inputVerifyId.value.trim();
-      if (!credId) return alert('Please enter a Credential ID to revoke');
-
-      if (!confirm(`Are you sure you want to revoke credential ${credId.slice(0, 8)}... on the Hyperledger Fabric ledger? This action is permanent and irreversible.`)) {
-        return;
-      }
-
-      btnRevoke.disabled = true;
-      btnRevoke.textContent = 'Revoking...';
-
-      try {
-        const res = await apiFetch('/api/revoke', {
-          method: 'POST',
-          body: JSON.stringify({ credentialId: credId })
-        });
-
-        const result = await res.json();
-        const verifyBox = document.getElementById('verify-result-box');
-        const badge = document.getElementById('verify-status-badge');
-        const exp = document.getElementById('verify-explanation-text');
-
-        verifyBox.classList.remove('hidden');
-        document.getElementById('verify-result-time').textContent = new Date().toLocaleTimeString();
-
-        if (res.ok && result.success) {
-          badge.textContent = 'Revoked on Ledger';
-          badge.className = 'badge-status tampered';
-          exp.textContent = `Credential ${credId.slice(0, 8)}... status has been permanently updated to "revoked" in the chaincode state. Future verification attempts will be rejected.`;
-          loadRegistry();
-        } else {
-          badge.textContent = 'Revocation Failed';
-          badge.className = 'badge-status tampered';
-          exp.textContent = result.error || 'Failed to revoke proof on ledger.';
-        }
-      } catch (err) {
-        alert(err.message || 'Revoke operation failed');
-      } finally {
-        btnRevoke.disabled = false;
-        btnRevoke.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Revoke';
-      }
-    });
-  }
 }
 
 // Registry Data Table
@@ -426,10 +380,7 @@ function renderRegistryTable(items) {
         <td><span class="${badgeClass}">${badgeText}</span></td>
         <td>${c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() + ' ' + new Date(c.issuedAt).toLocaleTimeString() : '--'}</td>
         <td>
-          <div class="table-actions" style="display: flex; gap: 0.4rem;">
-            <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
-            ${!isRevoked ? `<button class="btn btn-secondary btn-sm btn-quick-revoke" data-id="${c.id}">Revoke</button>` : ''}
-          </div>
+          <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
         </td>
       </tr>
     `;
@@ -442,7 +393,6 @@ function setupRegistryEvents() {
   if (registryTbody) {
     registryTbody.addEventListener('click', async (e) => {
       const verifyBtn = e.target.closest('.btn-quick-verify');
-      const revokeBtn = e.target.closest('.btn-quick-revoke');
 
       if (verifyBtn) {
         const id = verifyBtn.getAttribute('data-id');
@@ -453,31 +403,6 @@ function setupRegistryEvents() {
             inputVerifyId.value = id;
             const btnRunVerify = document.getElementById('btn-run-verify');
             if (btnRunVerify) btnRunVerify.click();
-          }
-        }
-      }
-
-      if (revokeBtn) {
-        const id = revokeBtn.getAttribute('data-id');
-        if (id) {
-          if (!confirm(`Revoke credential ${id.slice(0, 8)}... permanently on Hyperledger Fabric?`)) return;
-          revokeBtn.disabled = true;
-          revokeBtn.textContent = '...';
-
-          try {
-            const res = await apiFetch('/api/revoke', {
-              method: 'POST',
-              body: JSON.stringify({ credentialId: id })
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-              alert(`Credential ${id.slice(0, 8)}... has been revoked successfully.`);
-              loadRegistry();
-            } else {
-              alert(`Revocation failed: ${data.error || 'Unknown error'}`);
-            }
-          } catch (err) {
-            alert(err.message || 'Revocation request failed');
           }
         }
       }

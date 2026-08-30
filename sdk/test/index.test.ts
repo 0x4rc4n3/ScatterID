@@ -65,4 +65,33 @@ describe('ScatterIDClient', () => {
         expect(JSON.parse((calls[0][1] as any).body).idempotencyKey).toEqual(idKey);
         expect(JSON.parse((calls[1][1] as any).body).idempotencyKey).toEqual(idKey);
     });
+
+    it('should send a properly formatted POST request to /revoke with Bearer auth', async () => {
+        const client = new ScatterIDClient({ apiKey: 'my-secret-key', issuanceUrl: 'http://gateway:3000' });
+        const testCredId = '77777777-8888-4999-aaaa-bbbbbbbbbbbb';
+
+        global.fetch = (jest.fn as any)().mockImplementation(async (url: any, options: any) => {
+            expect(url).toEqual('http://gateway:3000/revoke');
+            expect(options.method).toEqual('POST');
+            expect(options.headers['Authorization']).toEqual('Bearer my-secret-key');
+            expect(JSON.parse(options.body)).toEqual({ credentialId: testCredId });
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    success: true,
+                    credentialId: testCredId,
+                    status: 'revoked',
+                    message: 'Credential revoked successfully on ledger'
+                })
+            };
+        });
+
+        const result = await client.revoke(testCredId);
+        expect(result.success).toBe(true);
+        expect(result.status).toEqual('revoked');
+        expect(result.credentialId).toEqual(testCredId);
+    });
 });
+

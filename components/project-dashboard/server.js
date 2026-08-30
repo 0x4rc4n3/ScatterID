@@ -142,28 +142,7 @@ app.post('/api/verify', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// /api/revoke — proxy to verification-api
-// ---------------------------------------------------------------------------
-app.post('/api/revoke', async (req, res) => {
-  const { credentialId } = req.body;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!credentialId || !uuidRegex.test(credentialId)) {
-    return res.status(400).json({ error: 'Invalid parameter: credentialId must be a valid UUID v4' });
-  }
-
-  try {
-    const response = await fetch(`${VERIFICATION_API_URL}/revoke`, {
-      method: 'POST',
-      headers: getVerificationApiHeaders(),
-      body: JSON.stringify({ credentialId }),
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error('Failed to proxy revoke route:', err.stack || err.message);
-    res.status(500).json({ error: 'Verification API is unreachable' });
-  }
-});
+// /api/status — system health check via port probes
 // ---------------------------------------------------------------------------
 app.get('/api/status', async (req, res) => {
   const cryptoServiceUp    = await checkPort(5001, CRYPTO_SERVICE_HOST) || await checkPort(5001, '127.0.0.1');

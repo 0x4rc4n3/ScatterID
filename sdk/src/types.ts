@@ -117,3 +117,10 @@ export interface ListCredentialsResponse {
   success: boolean;
   credentials: CredentialSummary[];
 }
+
+export interface RevokeResponse {
+  success: boolean;
+  credentialId: string;
+  status: 'revoked';
+  message: string;
+}
