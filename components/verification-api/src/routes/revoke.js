@@ -1,4 +1,4 @@
-import { getCredentialById, updateStatus } from '../db/models.js';
+import { getCredentialById, updateStatus, recordAuditLog } from '../db/models.js';
 import { revokeProof } from '../chain/fabric.js';
 
 export async function revokeRoute(req, res) {
@@ -29,15 +29,35 @@ export async function revokeRoute(req, res) {
       });
     }
 
-    // Invoke Hyperledger Fabric chaincode method: RevokeProof(credentialId, issuerMSP)
+    // Call Fabric chaincode smart contract: RevokeProof(credentialID, issuerID)
     try {
       await revokeProof(credentialId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
+      // Update local SQLite registry state ONLY AFTER ledger transaction succeeds
+      await updateStatus(credentialId, 'revoked');
+      
+      recordAuditLog({
+        credentialId,
+        action: 'revoke',
+        status: 'revoked',
+        details: { previousStatus: record.status },
+        callerTier: req.callerTier || 'revoke_api_key'
+      });
     } catch (fabricErr) {
-      console.warn(`[Fabric] RevokeProof ledger notice for ${credentialId}:`, fabricErr.message);
-    }
+      console.error(`[Fabric] RevokeProof failed for ${credentialId}:`, fabricErr.message);
+      
+      recordAuditLog({
+        credentialId,
+        action: 'revoke',
+        status: 'failed',
+        details: { error: fabricErr.message, previousStatus: record.status },
+        callerTier: req.callerTier || 'revoke_api_key'
+      });
 
-    // Update local SQLite registry state
-    await updateStatus(credentialId, 'revoked');
+      return res.status(502).json({
+        error: `Ledger revocation failed: ${fabricErr.message}`,
+        code: 'LEDGER_UNREACHABLE',
+      });
+    }
 
     return res.status(200).json({
       success: true,

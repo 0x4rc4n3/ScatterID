@@ -22,10 +22,22 @@ db.exec(`
     issued_at TEXT NOT NULL,
     idempotency_key TEXT UNIQUE
   );
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    credential_id TEXT,
+    action TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    status TEXT NOT NULL,
+    details TEXT,
+    caller_tier TEXT DEFAULT 'bearer_api_key'
+  );
 `);
 
-// Index for efficient lookup by data_hash (used in /verify without credentialId)
+// Indexes for high-performance lookups
 db.exec(`CREATE INDEX IF NOT EXISTS idx_credentials_data_hash ON credentials(data_hash);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp DESC);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_credential_id ON audit_log(credential_id);`);
 
 /**
  * Converts a raw SQLite row (snake_case columns) into a canonical camelCase API shape.
@@ -47,6 +59,19 @@ export function toApiShape(row) {
   };
 }
 
+export function toAuditShape(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    credentialId: row.credential_id || null,
+    action: row.action,
+    timestamp: row.timestamp,
+    status: row.status,
+    details: row.details ? (() => { try { return JSON.parse(row.details); } catch { return row.details; } })() : null,
+    callerTier: row.caller_tier || 'bearer_api_key'
+  };
+}
+
 const stmts = {
   insertCred: db.prepare(`
     INSERT OR IGNORE INTO credentials (id, data_hash, algorithm, signature, public_key_id, anchor_tx_id, status, issued_at, idempotency_key)
@@ -57,7 +82,12 @@ const stmts = {
   getCredByDataHash: db.prepare('SELECT * FROM credentials WHERE data_hash = ?'),
   updateStatus: db.prepare('UPDATE credentials SET status = ? WHERE id = ?'),
   updateAnchor: db.prepare('UPDATE credentials SET anchor_tx_id = ?, status = ? WHERE id = ?'),
-  getAll: db.prepare('SELECT * FROM credentials ORDER BY issued_at DESC')
+  getAll: db.prepare('SELECT * FROM credentials ORDER BY issued_at DESC'),
+  insertAudit: db.prepare(`
+    INSERT INTO audit_log (credential_id, action, timestamp, status, details, caller_tier)
+    VALUES (@credentialId, @action, @timestamp, @status, @details, @callerTier)
+  `),
+  getRecentAudit: db.prepare('SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ?')
 };
 
 export async function createCredential(record) {
@@ -97,4 +127,30 @@ export async function updateAnchorInfo(id, anchorTxId, status) {
 
 export async function getAllCredentials() {
   return stmts.getAll.all().map(toApiShape);
+}
+
+export function recordAuditLog({ credentialId, action, status, details, callerTier = 'bearer_api_key' }) {
+  try {
+    const timestamp = new Date().toISOString();
+    const detailsStr = typeof details === 'object' ? JSON.stringify(details) : (details || null);
+    stmts.insertAudit.run({
+      credentialId: credentialId || null,
+      action,
+      timestamp,
+      status,
+      details: detailsStr,
+      callerTier
+    });
+  } catch (err) {
+    console.error('Failed to record audit log:', err.message);
+  }
+}
+
+export function getAuditLogs(limit = 50) {
+  try {
+    return stmts.getRecentAudit.all(limit).map(toAuditShape);
+  } catch (err) {
+    console.error('Failed to get audit logs:', err.message);
+    return [];
+  }
 }

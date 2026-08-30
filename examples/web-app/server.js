@@ -119,7 +119,27 @@ app.post('/api/update', async (req, res) => {
   }
 
   try {
-    // A: Issue v2 with link to old credential
+    // Step 1: Revoke the prior credential on-chain via SDK
+    let revokeResult;
+    try {
+      revokeResult = await client.revoke(oldCredentialId);
+    } catch (revokeErr) {
+      return res.status(502).json({
+        success: false,
+        error: `Failed to revoke prior credential on ledger: ${revokeErr.message}. Supersede aborted.`,
+        code: 'REVOKE_FAILED'
+      });
+    }
+
+    if (!revokeResult || revokeResult.status !== 'revoked') {
+      return res.status(502).json({
+        success: false,
+        error: `Prior credential revocation returned unexpected status (${revokeResult?.status || 'unknown'}). Supersede aborted.`,
+        code: 'REVOKE_FAILED'
+      });
+    }
+
+    // Step 2: Issue replacement credential chained to the revoked ID
     const claimWithChain = {
       ...updatedClaim,
       replacesCredentialId: oldCredentialId,
@@ -129,8 +149,8 @@ app.post('/api/update', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Credential superseding complete. Version 2 issued with ID ${v2Result.credentialId}.`,
-      v1: { credentialId: oldCredentialId, status: 'superseded' },
+      message: `Credential superseding complete. Prior credential revoked on ledger and Version 2 issued with ID ${v2Result.credentialId}.`,
+      v1: { credentialId: oldCredentialId, status: 'revoked' },
       v2: {
         credentialId: v2Result.credentialId,
         dataHash: v2Result.dataHash,

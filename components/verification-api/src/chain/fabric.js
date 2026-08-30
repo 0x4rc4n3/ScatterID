@@ -101,7 +101,13 @@ export async function queryProof(credentialId) {
 export async function revokeProof(credentialId, issuerId) {
   const contract = await getContract();
   const resultBytes = await contract.submitTransaction('RevokeProof', credentialId, issuerId);
-  return JSON.parse(new TextDecoder().decode(resultBytes));
+  const resultStr = new TextDecoder().decode(resultBytes);
+  if (!resultStr || resultStr.trim() === '') return { success: true };
+  try {
+    return JSON.parse(resultStr);
+  } catch {
+    return { success: true, raw: resultStr };
+  }
 }
 
 export async function proofExists(credentialId) {

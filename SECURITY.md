@@ -6,6 +6,17 @@
 | ------- | ------------------ |
 | main    | :white_check_mark: |
 
+## Key Hierarchy & Least-Privilege Access Control
+
+ScatterID separates cryptographic operational roles into tiered authorization scopes to ensure zero-trust boundaries:
+
+| Key Name | Scope / Target | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| **`VERIFICATION_API_KEY`** | Gateway (`/issue`, `/status/:id`, `/credentials`, `/audit`) | Operator / Application | Required for standard issuance, audit inspections, and status queries. |
+| **`REVOKE_API_KEY`** | Gateway (`POST /revoke`) | Tier-1 Administrative Authority | Narrowly scoped secret required for irreversible on-chain revocation (`RevokeProof`). Must be restricted to authorized compliance officers. |
+| **`GATEWAY_API_KEY`** | Dashboard Console (`/api/*`) | Dashboard Proxy | Session access key for the local operator observability console. |
+| **`CRYPTO_SERVICE_API_KEY`** | Crypto Service (`https://localhost:5001`) | Internal mTLS / Vault | Internal bearer secret for post-quantum signing (`ML-DSA-65`) and Vault key rotation. |
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in ScatterID, **please do not open a public GitHub issue.**

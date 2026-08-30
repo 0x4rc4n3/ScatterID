@@ -97,7 +97,8 @@ test('issueRoute deduplicates identical idempotency keys', async () => {
     const mockReq1 = { body: { dataHash, idempotencyKey: idKey } };
     await issueRoute(mockReq1, mockRes1);
     
-    assert.equal(mockRes1.statusCode, 201, 'First call should return 201 Created');
+    assert.ok(mockRes1.statusCode === 201 || mockRes1.statusCode === 202, 'First call should return 201 Created or 202 Accepted');
+    assert.ok(mockRes1.responseJson.credentialId, 'First call should return a credential ID');
     const firstId = mockRes1.responseJson.credentialId;
 
     const mockRes2 = {
@@ -290,3 +291,100 @@ test('toApiShape normalizes snake_case DB row to camelCase API shape', async () 
   assert.equal(mapped.idempotencyKey, 'ik1', 'idempotency_key should map to idempotencyKey');
   assert.equal(mapped.data_hash, undefined, 'snake_case data_hash should not be present in output');
 });
+
+test('issueRoute returns 202 and sets DB to anchor_failed when anchorProof throws', async () => {
+  const { retryAnchorRoute } = await import('../src/routes/issue.js');
+  const dataHash = '1111111122222222333333334444444455555555666666667777777788888888';
+  const originalFetch = global.fetch;
+
+  // Mock crypto-service response
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      credentialId: randomUUID(),
+      dataHash,
+      signature: 'sig-test',
+      publicKeyId: 'key-test',
+      algorithm: 'ML-DSA-65',
+      issuedAt: new Date().toISOString()
+    })
+  });
+
+  try {
+    let responseStatus = null;
+    let responseData = null;
+    const mockRes = {
+      status(s) { responseStatus = s; return this; },
+      json(data) { responseData = data; return this; }
+    };
+
+    await issueRoute({ body: { dataHash } }, mockRes);
+
+    // Assert HTTP status is 202 Accepted, NOT 201 or silent 200
+    assert.equal(responseStatus, 202, 'Should return 202 Accepted on anchor failure');
+    assert.equal(responseData.status, 'anchor_failed', 'Response status must indicate anchor_failed');
+    assert.ok(responseData.reason, 'Response must include error reason');
+
+    // Assert DB status matches HTTP status
+    const dbRecord = await getCredentialById(responseData.credentialId);
+    assert.ok(dbRecord, 'Record must exist in DB');
+    assert.equal(dbRecord.status, 'anchor_failed', 'Database status must match anchor_failed');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('revokeRoute returns 502 and does NOT alter local DB status when revokeProof throws', async () => {
+  const { revokeRoute } = await import('../src/routes/revoke.js');
+  const testId = randomUUID();
+
+  // Create an active credential in DB
+  await createCredential({
+    id: testId,
+    dataHash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    algorithm: 'ML-DSA-65',
+    signature: 'sig-valid',
+    publicKeyId: 'key-1',
+    anchorTxId: 'tx-initial',
+    status: 'anchored',
+    issuedAt: new Date().toISOString()
+  });
+
+  let responseStatus = null;
+  let responseData = null;
+  const mockRes = {
+    status(s) { responseStatus = s; return this; },
+    json(data) { responseData = data; return this; }
+  };
+
+  await revokeRoute({ body: { credentialId: testId } }, mockRes);
+
+  // In test environment without Fabric running, revokeProof throws
+  assert.equal(responseStatus, 502, 'Should return 502 Bad Gateway when Fabric ledger call fails');
+  assert.equal(responseData.code, 'LEDGER_UNREACHABLE', 'Error code should be LEDGER_UNREACHABLE');
+
+  // Verify that local database status remains 'anchored', NOT prematurely set to 'revoked'
+  const recordAfter = await getCredentialById(testId);
+  assert.equal(recordAfter.status, 'anchored', 'Database status must remain unchanged on Fabric failure');
+});
+
+test('audit log records events and provides query interface', async () => {
+  const { recordAuditLog, getAuditLogs } = await import('../src/db/models.js');
+  const testId = randomUUID();
+
+  recordAuditLog({
+    credentialId: testId,
+    action: 'test_action',
+    status: 'success',
+    details: { test: true },
+    callerTier: 'bearer_api_key'
+  });
+
+  const logs = getAuditLogs(10);
+  assert.ok(Array.isArray(logs), 'Audit logs should be an array');
+  const found = logs.find(l => l.credentialId === testId);
+  assert.ok(found, 'Should find the recorded audit event');
+  assert.equal(found.action, 'test_action');
+  assert.equal(found.status, 'success');
+});
+

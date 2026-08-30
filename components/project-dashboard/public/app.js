@@ -1,195 +1,243 @@
-// ScatterID Operator Dashboard Logic
-// Strictly follows Signal.org light minimalist aesthetic with CSP compliance
+/**
+ * ScatterID Operator Dashboard — Frontend Application
+ * Signal.org Minimalist Organic Theme
+ */
 
-const STORAGE_KEY = 'scatterid_operator_key';
-let activeApiKey = localStorage.getItem(STORAGE_KEY) || '';
 let allCredentials = [];
-let latestCredentialId = '';
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
-  setupNavTabs();
+  initNavigation();
   setupStudioForms();
-  setupDiagnostics();
   setupRegistryEvents();
+  setupDiagnostics();
+  setupAuditLogs();
 
-  // Initial Data Fetch
-  fetchHealthOverview();
+  // Initial load
+  loadSystemHealth();
   loadRegistry();
+  loadAuditLogs();
+
+  // Periodic health poll (every 15s)
+  setInterval(() => {
+    loadSystemHealth();
+  }, 15000);
 });
 
-// Helper for authenticated API calls to project-dashboard
-async function apiFetch(url, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  };
-
-  if (activeApiKey) {
-    headers['Authorization'] = `Bearer ${activeApiKey}`;
-  }
-
-  const response = await fetch(url, { ...options, headers });
-  
-  if (response.status === 401) {
-    updateAuthStatus(false);
-    openAuthModal();
-  }
-
-  return response;
-}
-
-// Navigation Tabs
-function setupNavTabs() {
-  const navBtns = document.querySelectorAll('.nav-btn');
-  const sections = document.querySelectorAll('.tab-content');
-
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-tab');
-      switchTab(tabId);
-    });
-  });
-
-  // Handle URL hash navigation
-  if (window.location.hash) {
-    const tabName = window.location.hash.replace('#', '');
-    const targetTab = `tab-${tabName}`;
-    if (document.getElementById(targetTab)) {
-      switchTab(targetTab);
-    }
-  }
-}
-
-function switchTab(tabId) {
-  const navBtns = document.querySelectorAll('.nav-btn');
-  const sections = document.querySelectorAll('.tab-content');
-
-  navBtns.forEach(b => {
-    b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
-  });
-
-  sections.forEach(s => {
-    s.classList.toggle('active', s.id === tabId);
-  });
-
-  window.location.hash = tabId.replace('tab-', '');
-
-  if (tabId === 'tab-overview') fetchHealthOverview();
-  if (tabId === 'tab-registry') loadRegistry();
-}
-
-// Authentication Modal & Key Persistence
+// Authentication Management
 function initAuth() {
+  const btnAuth = document.getElementById('btn-auth-status');
   const modal = document.getElementById('auth-modal');
-  const btnAuth = document.getElementById('btn-auth-settings');
-  const btnClose = document.getElementById('btn-close-modal');
-  const btnClear = document.getElementById('btn-clear-key');
+  const btnCloseModal = document.getElementById('btn-close-modal');
   const formAuth = document.getElementById('form-auth');
-  const inputKey = document.getElementById('input-api-key');
+  const inputApiKey = document.getElementById('input-api-key');
+  const btnClearKey = document.getElementById('btn-clear-key');
 
-  if (btnAuth) btnAuth.addEventListener('click', () => openAuthModal());
-  if (btnClose) btnClose.addEventListener('click', () => closeAuthModal());
-  
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeAuthModal();
+  const savedKey = localStorage.getItem('scatterid_gateway_key');
+  updateAuthUI(savedKey);
+
+  if (btnAuth) {
+    btnAuth.addEventListener('click', () => {
+      if (savedKey) {
+        inputApiKey.value = savedKey;
+      }
+      modal.classList.remove('hidden');
+    });
+  }
+
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', () => {
+      modal.classList.add('hidden');
     });
   }
 
   if (formAuth) {
     formAuth.addEventListener('submit', (e) => {
       e.preventDefault();
-      const val = inputKey.value.trim();
-      if (val) {
-        activeApiKey = val;
-        localStorage.setItem(STORAGE_KEY, activeApiKey);
-        updateAuthStatus(true);
-        closeAuthModal();
-        fetchHealthOverview();
+      const key = inputApiKey.value.trim();
+      if (key) {
+        localStorage.setItem('scatterid_gateway_key', key);
+        updateAuthUI(key);
+        modal.classList.add('hidden');
+        loadSystemHealth();
         loadRegistry();
+        loadAuditLogs();
       }
     });
   }
 
-  if (btnClear) {
-    btnClear.addEventListener('click', () => {
-      activeApiKey = '';
-      localStorage.removeItem(STORAGE_KEY);
-      inputKey.value = '';
-      updateAuthStatus(false);
-      closeAuthModal();
+  if (btnClearKey) {
+    btnClearKey.addEventListener('click', () => {
+      localStorage.removeItem('scatterid_gateway_key');
+      updateAuthUI(null);
+      inputApiKey.value = '';
+      modal.classList.add('hidden');
+      loadRegistry();
+      loadAuditLogs();
     });
   }
-
-  updateAuthStatus(Boolean(activeApiKey));
 }
 
-function openAuthModal() {
-  const modal = document.getElementById('auth-modal');
-  const inputKey = document.getElementById('input-api-key');
-  if (inputKey) inputKey.value = activeApiKey;
-  if (modal) modal.classList.remove('hidden');
-}
+function updateAuthUI(key) {
+  const authLabel = document.getElementById('auth-label');
+  const btnAuth = document.getElementById('btn-auth-status');
+  if (!authLabel || !btnAuth) return;
 
-function closeAuthModal() {
-  const modal = document.getElementById('auth-modal');
-  if (modal) modal.classList.add('hidden');
-}
-
-function updateAuthStatus(isConnected) {
-  const authStatusDot = document.getElementById('auth-status-dot');
-  const authBtnText = document.getElementById('auth-btn-text');
-
-  if (!authStatusDot || !authBtnText) return;
-
-  if (isConnected) {
-    authStatusDot.style.background = '#2C6BED';
-    authBtnText.textContent = 'Connected';
+  if (key) {
+    authLabel.textContent = 'Connected';
+    btnAuth.classList.remove('btn-secondary');
+    btnAuth.classList.add('btn-primary');
   } else {
-    authStatusDot.style.background = '#888888';
-    authBtnText.textContent = 'Set Key';
+    authLabel.textContent = 'Set API Key';
+    btnAuth.classList.remove('btn-primary');
+    btnAuth.classList.add('btn-secondary');
   }
 }
 
-// Health Overview
-async function fetchHealthOverview() {
+function getApiKey() {
+  return localStorage.getItem('scatterid_gateway_key') || '';
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const key = getApiKey();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(key ? { 'Authorization': `Bearer ${key}` } : {}),
+    ...(options.headers || {})
+  };
+
+  return fetch(endpoint, {
+    ...options,
+    headers
+  });
+}
+
+// Navigation Tabs
+function initNavigation() {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.getAttribute('data-tab');
+      switchTab(targetTab);
+    });
+  });
+}
+
+function switchTab(tabId) {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  navBtns.forEach(b => {
+    if (b.getAttribute('data-tab') === tabId) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+
+  tabContents.forEach(content => {
+    if (content.id === tabId) {
+      content.classList.add('active');
+    } else {
+      content.classList.remove('active');
+    }
+  });
+
+  if (tabId === 'tab-registry') {
+    loadRegistry();
+  } else if (tabId === 'tab-diagnostics') {
+    loadAuditLogs();
+  }
+}
+
+// System Health & Metrics
+async function loadSystemHealth() {
+  const badgeCrypto = document.getElementById('badge-crypto');
+  const badgeGateway = document.getElementById('badge-gateway');
+  const badgeLedger = document.getElementById('badge-ledger');
+  const metricActive = document.getElementById('metric-active-services');
+  const metricDrift = document.getElementById('metric-reconciliation-drift');
+  const metricDriftNote = document.getElementById('metric-reconciliation-note');
+
   try {
     const res = await apiFetch('/api/status');
     if (!res.ok) return;
+
     const data = await res.json();
+    let onlineCount = 0;
+    const totalServices = 5;
 
-    const badgeCrypto = document.getElementById('badge-crypto');
-    const badgeGateway = document.getElementById('badge-gateway');
-    const badgeLedger = document.getElementById('badge-ledger');
+    // Crypto authority
+    if (data.services && data.services.cryptoService === 'RUNNING') {
+      onlineCount++;
+      if (badgeCrypto) { badgeCrypto.textContent = 'Active'; badgeCrypto.className = 'pill-badge active'; }
+    } else if (badgeCrypto) {
+      badgeCrypto.textContent = 'Offline'; badgeCrypto.className = 'pill-badge';
+    }
 
-    if (data.services?.cryptoService === 'RUNNING') {
-      badgeCrypto.textContent = 'Active';
-      badgeCrypto.classList.add('active');
+    // Verification gateway
+    if (data.services && data.services.verificationApi === 'RUNNING') {
+      onlineCount++;
+      if (badgeGateway) { badgeGateway.textContent = 'Active'; badgeGateway.className = 'pill-badge active'; }
+    } else if (badgeGateway) {
+      badgeGateway.textContent = 'Offline'; badgeGateway.className = 'pill-badge';
     }
-    if (data.services?.verificationApi === 'RUNNING') {
-      badgeGateway.textContent = 'Active';
-      badgeGateway.classList.add('active');
+
+    // Fabric nodes (orderer, issuerPeer, verifierPeer)
+    let fabricUp = 0;
+    if (data.blockchain) {
+      if (data.blockchain.orderer === 'RUNNING') { onlineCount++; fabricUp++; }
+      if (data.blockchain.issuerPeer === 'RUNNING') { onlineCount++; fabricUp++; }
+      if (data.blockchain.verifierPeer === 'RUNNING') { onlineCount++; fabricUp++; }
     }
-    if (data.blockchain?.orderer === 'RUNNING') {
-      badgeLedger.textContent = 'Active';
-      badgeLedger.classList.add('active');
+
+    if (badgeLedger) {
+      if (fabricUp === 3) {
+        badgeLedger.textContent = 'Active';
+        badgeLedger.className = 'pill-badge active';
+      } else if (fabricUp > 0) {
+        badgeLedger.textContent = 'Degraded';
+        badgeLedger.className = 'pill-badge';
+      } else {
+        badgeLedger.textContent = 'Offline';
+        badgeLedger.className = 'pill-badge';
+      }
+    }
+
+    if (metricActive) {
+      metricActive.textContent = `${onlineCount}/${totalServices}`;
+    }
+
+    // Reconciliation status
+    if (data.reconciliation && metricDrift) {
+      const mismatches = data.reconciliation.mismatchCount || 0;
+      if (mismatches > 0) {
+        metricDrift.textContent = `${mismatches} Discrepancies`;
+        metricDrift.className = 'metric-value text-blue';
+        if (metricDriftNote) metricDriftNote.textContent = 'Ledger drift flagged — review audit logs';
+      } else {
+        metricDrift.textContent = '0 Discrepancies';
+        metricDrift.className = 'metric-value';
+        if (metricDriftNote) {
+          const lastTime = data.reconciliation.lastReconciledAt ? new Date(data.reconciliation.lastReconciledAt).toLocaleTimeString() : 'active';
+          metricDriftNote.textContent = `Ledger state reconciled (${lastTime})`;
+        }
+      }
     }
   } catch (err) {
-    // Silent catch
+    console.warn('Could not poll health status:', err.message);
   }
 }
 
-// Credential Studio: Issue, Verify, Tamper, Revoke
+// Credential Studio: Issue, Verify, Tamper
 function setupStudioForms() {
   const formIssue = document.getElementById('form-issue');
   const btnVerify = document.getElementById('btn-run-verify');
   const btnTamper = document.getElementById('btn-run-tamper');
-  const btnRevoke = document.getElementById('btn-run-revoke');
   const btnUseLatest = document.getElementById('btn-use-latest');
   const inputVerifyId = document.getElementById('verify-cred-id');
 
-  // 1. Issue Credential
+  // 1. Unified SDK Issuance
   if (formIssue) {
     formIssue.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -199,42 +247,50 @@ function setupStudioForms() {
       const submitBtn = document.getElementById('btn-submit-issue');
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Computing Hash & Anchoring...';
+      submitBtn.textContent = 'Canonicalizing & Anchoring via SDK...';
 
       try {
-        // Compute SHA-256 hash commitment on client side
-        const claimPayload = { subject, role, org, timestamp: new Date().toISOString() };
-        const canonical = JSON.stringify(claimPayload, Object.keys(claimPayload).sort());
-        const enc = new TextEncoder().encode(canonical);
-        const hashBuf = await crypto.subtle.digest('SHA-256', enc);
-        const dataHash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        const claimPayload = { subject, role, org, issuedAt: new Date().toISOString() };
 
         const res = await apiFetch('/api/issue', {
           method: 'POST',
-          body: JSON.stringify({ dataHash })
+          body: JSON.stringify({ claim: claimPayload })
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          alert(`Issuance failed: ${errData.error || res.statusText}`);
+        const data = await res.json();
+        if (!res.ok && res.status !== 202) {
+          alert(`Issuance failed: ${data.error || res.statusText}`);
           return;
         }
 
-        const result = await res.json();
-        latestCredentialId = result.credentialId;
-        if (inputVerifyId) inputVerifyId.value = latestCredentialId;
-
-        // Display Result Box
-        const resultBox = document.getElementById('issue-result-box');
-        document.getElementById('issue-result-id').textContent = result.credentialId;
-        document.getElementById('issue-result-hash').textContent = dataHash;
-        document.getElementById('issue-result-txid').textContent = result.anchorTxId || 'Pending Block Consensus';
+        const issueBox = document.getElementById('issue-result-box');
+        const issueBadge = document.getElementById('issue-result-badge');
+        issueBox.classList.remove('hidden');
         document.getElementById('issue-result-time').textContent = new Date().toLocaleTimeString();
-        resultBox.classList.remove('hidden');
+        document.getElementById('issue-result-id').textContent = data.credentialId || '--';
+        document.getElementById('issue-result-hash').textContent = data.dataHash || '--';
+        document.getElementById('issue-result-txid').textContent = data.anchorTxId || 'Not Anchored';
+
+        if (data.status === 'anchor_failed') {
+          if (issueBadge) {
+            issueBadge.textContent = 'Anchor Failed (Saved Locally)';
+            issueBadge.className = 'badge-status tampered';
+          }
+        } else {
+          if (issueBadge) {
+            issueBadge.textContent = 'Anchored';
+            issueBadge.className = 'badge-success';
+          }
+        }
+
+        if (inputVerifyId && data.credentialId) {
+          inputVerifyId.value = data.credentialId;
+        }
 
         loadRegistry();
+        loadAuditLogs();
       } catch (err) {
-        alert(err.message || 'Issuance failed');
+        alert(err.message || 'Issuance network failure');
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Issue & Anchor Proof';
@@ -242,18 +298,22 @@ function setupStudioForms() {
     });
   }
 
-  // Use Latest Button
-  if (btnUseLatest) {
+  // 2. Use Latest Credential
+  if (btnUseLatest && inputVerifyId) {
     btnUseLatest.addEventListener('click', () => {
-      if (latestCredentialId && inputVerifyId) inputVerifyId.value = latestCredentialId;
+      if (allCredentials.length > 0) {
+        inputVerifyId.value = allCredentials[0].id;
+      } else {
+        alert('No credentials found in registry. Issue one first.');
+      }
     });
   }
 
-  // 2. Verify
+  // 3. Verify Credential
   if (btnVerify) {
     btnVerify.addEventListener('click', async () => {
       const credId = inputVerifyId.value.trim();
-      if (!credId) return alert('Please enter a Credential ID');
+      if (!credId) return alert('Please enter a Credential ID to verify');
 
       btnVerify.disabled = true;
       btnVerify.textContent = 'Verifying...';
@@ -290,7 +350,7 @@ function setupStudioForms() {
     });
   }
 
-  // 3. Tamper Simulation
+  // 4. Tamper Simulation
   if (btnTamper) {
     btnTamper.addEventListener('click', async () => {
       const credId = inputVerifyId.value.trim();
@@ -338,6 +398,7 @@ async function loadRegistry() {
   const tbody = document.getElementById('registry-tbody');
   const countEl = document.getElementById('registry-count');
   const metricTotal = document.getElementById('metric-total-credentials');
+  const metricAnchored = document.getElementById('metric-anchored-credentials');
 
   if (!tbody) return;
 
@@ -353,6 +414,10 @@ async function loadRegistry() {
     
     if (countEl) countEl.textContent = `${allCredentials.length} credentials`;
     if (metricTotal) metricTotal.textContent = allCredentials.length;
+    if (metricAnchored) {
+      const anchoredCount = allCredentials.filter(c => c.status === 'anchored' || c.status === 'active').length;
+      metricAnchored.textContent = anchoredCount;
+    }
 
     renderRegistryTable(allCredentials);
   } catch (err) {
@@ -368,10 +433,27 @@ function renderRegistryTable(items) {
   }
 
   tbody.innerHTML = items.map(c => {
+    const isAnchorFailed = c.status === 'anchor_failed';
     const isRevoked = c.status === 'revoked';
     const isAnchored = c.status === 'anchored' || c.status === 'active';
-    const badgeClass = isRevoked ? 'pill-badge' : (isAnchored ? 'pill-badge active' : 'pill-badge');
-    const badgeText = isRevoked ? 'Revoked' : (isAnchored ? 'Active' : (c.status || 'Active'));
+
+    let badgeClass = 'pill-badge';
+    let badgeText = c.status;
+
+    if (isAnchorFailed) {
+      badgeClass = 'pill-badge tampered';
+      badgeText = 'Anchor Failed';
+    } else if (isRevoked) {
+      badgeClass = 'pill-badge';
+      badgeText = 'Revoked';
+    } else if (isAnchored) {
+      badgeClass = 'pill-badge active';
+      badgeText = 'Active';
+    }
+
+    const actionHtml = isAnchorFailed
+      ? `<button class="btn btn-primary btn-sm btn-retry-anchor" data-id="${c.id}">Retry Anchor</button>`
+      : `<button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>`;
 
     return `
       <tr>
@@ -379,9 +461,7 @@ function renderRegistryTable(items) {
         <td><span class="field-value mono">${c.dataHash ? c.dataHash.slice(0, 16) + '...' : '--'}</span></td>
         <td><span class="${badgeClass}">${badgeText}</span></td>
         <td>${c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() + ' ' + new Date(c.issuedAt).toLocaleTimeString() : '--'}</td>
-        <td>
-          <button class="btn btn-secondary btn-sm btn-quick-verify" data-id="${c.id}">Verify</button>
-        </td>
+        <td>${actionHtml}</td>
       </tr>
     `;
   }).join('');
@@ -390,9 +470,28 @@ function renderRegistryTable(items) {
 // Registry Event Delegation
 function setupRegistryEvents() {
   const registryTbody = document.getElementById('registry-tbody');
+  const searchInput = document.getElementById('registry-search');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        renderRegistryTable(allCredentials);
+        return;
+      }
+      const filtered = allCredentials.filter(c => 
+        (c.id && c.id.toLowerCase().includes(q)) ||
+        (c.dataHash && c.dataHash.toLowerCase().includes(q)) ||
+        (c.status && c.status.toLowerCase().includes(q))
+      );
+      renderRegistryTable(filtered);
+    });
+  }
+
   if (registryTbody) {
     registryTbody.addEventListener('click', async (e) => {
       const verifyBtn = e.target.closest('.btn-quick-verify');
+      const retryBtn = e.target.closest('.btn-retry-anchor');
 
       if (verifyBtn) {
         const id = verifyBtn.getAttribute('data-id');
@@ -406,83 +505,155 @@ function setupRegistryEvents() {
           }
         }
       }
-    });
-  }
 
-  // Search filtering in Registry
-  const searchInput = document.getElementById('registry-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      if (!q) {
-        renderRegistryTable(allCredentials);
-        return;
+      if (retryBtn) {
+        const id = retryBtn.getAttribute('data-id');
+        if (!id) return;
+        retryBtn.disabled = true;
+        retryBtn.textContent = 'Retrying...';
+
+        try {
+          const res = await apiFetch(`/api/issue/${id}/retry-anchor`, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok && data.status === 'anchored') {
+            alert(`Credential ${id.slice(0, 8)}... successfully anchored on Fabric! (TxID: ${data.anchorTxId})`);
+            loadRegistry();
+            loadAuditLogs();
+          } else {
+            alert(`Anchor retry failed: ${data.error || 'Ledger unreachable'}`);
+          }
+        } catch (err) {
+          alert(`Network error during retry: ${err.message}`);
+        } finally {
+          retryBtn.disabled = false;
+          retryBtn.textContent = 'Retry Anchor';
+        }
       }
-      const filtered = allCredentials.filter(c => 
-        (c.id && c.id.toLowerCase().includes(q)) || 
-        (c.dataHash && c.dataHash.toLowerCase().includes(q))
-      );
-      renderRegistryTable(filtered);
     });
   }
 }
 
-// Diagnostics & Key Rotation
+// Audit Logs
+async function loadAuditLogs() {
+  const tbody = document.getElementById('audit-tbody');
+  if (!tbody) return;
+
+  try {
+    const res = await apiFetch('/api/audit?limit=25');
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Authenticate to view durable audit trail.</td></tr>`;
+      return;
+    }
+
+    const data = await res.json();
+    const logs = data.logs || [];
+
+    if (logs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">No audit events recorded yet.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = logs.map(l => {
+      const isSuccess = l.status === 'anchored' || l.status === 'revoked' || l.status === 'success';
+      const outcomeBadge = isSuccess ? 'pill-badge active' : 'pill-badge tampered';
+      return `
+        <tr>
+          <td>${l.timestamp ? new Date(l.timestamp).toLocaleTimeString() : '--'}</td>
+          <td><strong style="text-transform: uppercase; font-size: 0.75rem;">${l.action}</strong></td>
+          <td><span class="field-value mono">${l.credentialId ? l.credentialId.slice(0, 18) + '...' : '--'}</span></td>
+          <td><span class="${outcomeBadge}">${l.status}</span></td>
+          <td><span class="field-value mono" style="font-size: 0.75rem;">${l.callerTier || 'standard'}</span></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Could not load audit activity.</td></tr>`;
+  }
+}
+
+function setupAuditLogs() {
+  const btnRefresh = document.getElementById('btn-refresh-audit');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', () => {
+      loadAuditLogs();
+    });
+  }
+}
+
+// Diagnostics Pipeline Smoke Test & Key Rotation
 function setupDiagnostics() {
-  const btnRunDiag = document.getElementById('btn-run-diagnostics');
+  const btnDiag = document.getElementById('btn-run-diagnostics');
   const btnRotate = document.getElementById('btn-rotate-key');
   const logBox = document.getElementById('diagnostics-log-box');
 
-  if (btnRunDiag) {
-    btnRunDiag.addEventListener('click', async () => {
-      btnRunDiag.disabled = true;
-      btnRunDiag.textContent = 'Testing Pipeline...';
-      logBox.innerHTML = '<div class="log-entry log-blue">[1/5] Initiating automated self-test...</div>';
+  if (btnDiag) {
+    btnDiag.addEventListener('click', async () => {
+      btnDiag.disabled = true;
+      btnDiag.textContent = 'Running...';
+      logBox.innerHTML = '<div class="log-entry log-blue">Initiating end-to-end verification pipeline test...</div>';
 
       try {
-        const res = await apiFetch('/api/diagnostics/run', { method: 'POST' });
-        const data = await res.json();
+        // Step 1: Issue via SDK
+        logBox.innerHTML += '<div class="log-entry">[1/3] Canonicalizing test claim and computing SHA3-256...</div>';
+        const claim = { subject: "did:scatterid:test:probe-" + Date.now(), role: "Security Probe", org: "Automated Self-Test" };
         
-        logBox.innerHTML = '';
-        if (data.logs && Array.isArray(data.logs)) {
-          data.logs.forEach(l => {
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${l.status === 'success' ? 'log-blue' : ''}`;
-            entry.textContent = `[${l.step}] ${l.detail}`;
-            logBox.appendChild(entry);
-          });
+        const issueRes = await apiFetch('/api/issue', {
+          method: 'POST',
+          body: JSON.stringify({ claim })
+        });
+        const issueData = await issueRes.json();
+
+        if (!issueRes.ok && issueRes.status !== 202) {
+          throw new Error(`Issuance failed: ${issueData.error || issueRes.statusText}`);
+        }
+        logBox.innerHTML += `<div class="log-entry log-blue">[2/3] Credential anchored: ${issueData.credentialId.slice(0, 16)}...</div>`;
+
+        // Step 2: Verify
+        const verifyRes = await apiFetch('/api/verify', {
+          method: 'POST',
+          body: JSON.stringify({ credentialId: issueData.credentialId })
+        });
+        const verifyData = await verifyRes.json();
+
+        if (verifyRes.ok && verifyData.valid) {
+          logBox.innerHTML += '<div class="log-entry log-blue">[3/3] On-chain verification validated successfully.</div>';
+          logBox.innerHTML += '<div class="log-entry" style="font-weight: 600;">✓ Automated pipeline self-test PASSED (All systems nominal)</div>';
+        } else {
+          throw new Error(`Verification check failed: ${verifyData.reason || 'Status mismatch'}`);
         }
 
-        const finalEntry = document.createElement('div');
-        finalEntry.className = 'log-entry log-blue';
-        finalEntry.textContent = data.success ? '✓ All pipeline tests passed successfully.' : '✕ Diagnostic check found issues.';
-        logBox.appendChild(finalEntry);
+        loadRegistry();
+        loadAuditLogs();
       } catch (err) {
-        logBox.innerHTML += `<div class="log-entry">Error: ${err.message}</div>`;
+        logBox.innerHTML += `<div class="log-entry" style="color: #c00;">✕ Test FAILED: ${err.message}</div>`;
       } finally {
-        btnRunDiag.disabled = false;
-        btnRunDiag.textContent = 'Execute Test';
+        btnDiag.disabled = false;
+        btnDiag.textContent = 'Execute Test';
       }
     });
   }
 
   if (btnRotate) {
     btnRotate.addEventListener('click', async () => {
-      if (!confirm('Rotate the active signing key in HashiCorp Vault KMS? Existing credentials will continue to verify.')) return;
+      if (!confirm('Are you sure you want to rotate the active post-quantum ML-DSA signing key in HashiCorp Vault?')) {
+        return;
+      }
+
       btnRotate.disabled = true;
       btnRotate.textContent = 'Rotating...';
 
       try {
-        const res = await apiFetch('/api/settings/rotate', { method: 'POST' });
+        const res = await apiFetch('/api/rotate-key', { method: 'POST' });
         const data = await res.json();
-        if (res.ok && (data.success || data.message || data.publicKeyId)) {
-          const keyMsg = data.publicKeyId ? `\nNew Public Key ID: ${data.publicKeyId}` : '';
-          alert(`Signing key rotated successfully in Vault KMS.${keyMsg}`);
+
+        if (res.ok && data.success) {
+          alert(`KMS Key Rotated Successfully!\nNew Public Key ID: ${data.publicKeyId}`);
+          loadAuditLogs();
         } else {
-          alert(`Key rotation error: ${data.error || data.message || 'Failed'}`);
+          alert(`Key rotation error: ${data.error || 'Failed'}`);
         }
       } catch (err) {
-        alert(err.message || 'Key rotation failed');
+        alert(`Key rotation network error: ${err.message}`);
       } finally {
         btnRotate.disabled = false;
         btnRotate.textContent = 'Rotate Key';

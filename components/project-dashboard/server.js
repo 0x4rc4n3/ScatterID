@@ -1,12 +1,13 @@
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import fsSync from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
+import { ScatterIDClient } from '../../sdk/dist/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +30,6 @@ if (!GATEWAY_API_KEY || GATEWAY_API_KEY === 'disabled') {
 }
 
 // Returns headers for calls the dashboard makes to verification-api.
-// Includes the Bearer token so verification-api's inbound auth check passes.
 function getVerificationApiHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ app.use(helmet());
 
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later', code: 'RATE_LIMITED' }
@@ -58,7 +58,7 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
-// Static files and demo page — no auth required (serves the frontend)
+// Static files and demo page
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/healthz', (req, res) => {
@@ -71,11 +71,6 @@ app.get('/demo', (req, res) => {
 
 // ---------------------------------------------------------------------------
 // Inbound authentication middleware for all /api/* routes.
-//
-// Both the supplied token and the expected key are hashed with SHA-256 before
-// comparison. This produces a fixed-length digest regardless of the input
-// length, eliminating the length-oracle side-channel that would exist if we
-// compared raw buffers and short-circuited on a length mismatch first.
 // ---------------------------------------------------------------------------
 app.use('/api', (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -142,7 +137,7 @@ app.post('/api/verify', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// /api/status — system health check via port probes
+// /api/status — system health check + reconciliation status
 // ---------------------------------------------------------------------------
 app.get('/api/status', async (req, res) => {
   const cryptoServiceUp    = await checkPort(5001, CRYPTO_SERVICE_HOST) || await checkPort(5001, '127.0.0.1');
@@ -150,6 +145,19 @@ app.get('/api/status', async (req, res) => {
   const ordererUp          = await checkPort(7050, 'orderer.scatterid.com') || await checkPort(7050, '127.0.0.1');
   const issuerPeerUp       = await checkPort(7051, 'peer0.issuer.scatterid.com') || await checkPort(7051, '127.0.0.1');
   const verifierPeerUp     = await checkPort(8051, 'peer0.verifier.scatterid.com') || await checkPort(8051, '127.0.0.1');
+
+  let reconciliation = { lastReconciledAt: null, mismatchCount: 0, discrepancies: [] };
+  if (verificationApiUp) {
+    try {
+      const reconRes = await fetch(`${VERIFICATION_API_URL}/reconciliation`, {
+        headers: getVerificationApiHeaders(),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (reconRes.ok) {
+        reconciliation = await reconRes.json();
+      }
+    } catch (_) {}
+  }
 
   res.json({
     services: {
@@ -160,6 +168,11 @@ app.get('/api/status', async (req, res) => {
       orderer: ordererUp ? 'RUNNING' : 'OFFLINE',
       issuerPeer: issuerPeerUp ? 'RUNNING' : 'OFFLINE',
       verifierPeer: verifierPeerUp ? 'RUNNING' : 'OFFLINE'
+    },
+    reconciliation: {
+      lastReconciledAt: reconciliation.lastReconciledAt,
+      mismatchCount: reconciliation.mismatchCount || 0,
+      discrepancies: reconciliation.discrepancies || []
     }
   });
 });
@@ -182,53 +195,75 @@ app.get('/api/credentials', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// /api/issue — demo issuance endpoint.
-//
-// The zero-knowledge design requires that raw claim data never reaches the
-// verification-api — only a SHA3-256 hash commitment may be forwarded.
-// This endpoint hashes the claim server-side (in the dashboard process) and
-// forwards only { dataHash } to verification-api, preserving that invariant.
-//
-// NOTE: In production flows callers should hash client-side via the SDK so
-// that the raw claim is never transmitted over any network boundary at all.
-// This dashboard path is a convenience for the operator demo only.
+// /api/audit — proxy audit log from verification-api
+// ---------------------------------------------------------------------------
+app.get('/api/audit', async (req, res) => {
+  try {
+    const limit = req.query.limit || 50;
+    const response = await fetch(`${VERIFICATION_API_URL}/audit?limit=${limit}`, {
+      headers: getVerificationApiHeaders(),
+      signal: AbortSignal.timeout(5000)
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Failed to proxy audit log query:', err.stack || err.message);
+    res.json({ success: false, error: 'Verification API unreachable', logs: [] });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// /api/issue — unified SDK issuance endpoint
+// Uses official ScatterIDClient with RFC 8785 canonicalization + 16-byte salt + SHA3-256
 // ---------------------------------------------------------------------------
 app.post('/api/issue', async (req, res) => {
-  const { claim, dataHash: precomputedHash } = req.body;
-
-  let dataHash;
-
-  if (precomputedHash) {
-    // Caller already hashed via the SDK — validate format and forward directly.
-    if (!/^[0-9a-fA-F]{64}$/.test(precomputedHash)) {
-      return res.status(400).json({ error: 'Invalid dataHash: must be a 64-character hex string' });
-    }
-    dataHash = precomputedHash;
-  } else if (claim && typeof claim === 'object') {
-    // Dashboard demo: hash the claim server-side. Raw claim data goes no further
-    // than this process — only the hash is forwarded to verification-api.
-    // Uses SHA-256 for simplicity here; production clients should use the SDK
-    // (SHA3-256 + CSPRNG salt for unlinkable commitments).
-    const canonical = JSON.stringify(claim, Object.keys(claim).sort());
-    dataHash = createHash('sha256').update(canonical).digest('hex');
-  } else {
-    return res.status(400).json({
-      error: 'Request must include either a "claim" object or a pre-computed "dataHash" string'
-    });
-  }
-
-  const idempotencyKey = `dashboard-${createHash('sha256').update(dataHash).digest('hex').slice(0, 16)}`;
+  const { claim, dataHash: precomputedHash, idempotencyKey } = req.body;
 
   try {
-    const response = await fetch(`${VERIFICATION_API_URL}/issue`, {
+    if (claim && typeof claim === 'object') {
+      const sdkClient = new ScatterIDClient({
+        apiKey: VERIFICATION_API_KEY,
+        issuanceUrl: VERIFICATION_API_URL,
+        verificationUrl: VERIFICATION_API_URL
+      });
+      const result = await sdkClient.issue(claim, idempotencyKey);
+      return res.status(201).json(result);
+    } else if (precomputedHash) {
+      if (!/^[0-9a-fA-F]{64}$/.test(precomputedHash)) {
+        return res.status(400).json({ error: 'Invalid dataHash: must be a 64-character hex string' });
+      }
+      const response = await fetch(`${VERIFICATION_API_URL}/issue`, {
+        method: 'POST',
+        headers: getVerificationApiHeaders(),
+        body: JSON.stringify({ dataHash: precomputedHash, idempotencyKey }),
+      });
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } else {
+      return res.status(400).json({
+        error: 'Request must include either a "claim" object or a pre-computed "dataHash" string'
+      });
+    }
+  } catch (err) {
+    console.error('Failed in issue route:', err.stack || err.message);
+    res.status(500).json({ error: err.message || 'Issuance failed' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// /api/issue/:credentialId/retry-anchor — proxy retry-anchor to verification-api
+// ---------------------------------------------------------------------------
+app.post('/api/issue/:credentialId/retry-anchor', async (req, res) => {
+  const { credentialId } = req.params;
+  try {
+    const response = await fetch(`${VERIFICATION_API_URL}/issue/${credentialId}/retry-anchor`, {
       method: 'POST',
       headers: getVerificationApiHeaders(),
-      body: JSON.stringify({ dataHash, idempotencyKey }),
     });
     const data = await response.json();
     res.status(response.status).json(data);
   } catch (err) {
-    console.error('Failed to proxy issue route:', err.stack || err.message);
+    console.error('Failed to proxy retry-anchor:', err.stack || err.message);
     res.status(500).json({ error: 'Verification API unreachable' });
   }
 });
@@ -249,145 +284,49 @@ app.get('/api/credentials/:id', async (req, res) => {
       signal: AbortSignal.timeout(5000)
     });
     const data = await response.json();
-    res.json({ success: true, credential: data });
+    res.status(response.status).json(data);
   } catch (err) {
-    console.error('Failed to fetch credential detail:', err.stack || err.message);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
+    res.status(500).json({ success: false, error: 'Verification API unreachable' });
   }
 });
 
 // ---------------------------------------------------------------------------
-// /api/diagnostics/run — E2E smoke test
+// /api/rotate-key — POST /rotate to Python Crypto Service via mTLS
 // ---------------------------------------------------------------------------
-app.post('/api/diagnostics/run', async (req, res) => {
-  const logs = [];
-  const addLog = (step, detail, status = 'info') => {
-    logs.push({ timestamp: new Date().toISOString(), step, detail, status });
-  };
-
+app.post('/api/rotate-key', async (req, res) => {
   try {
-    addLog('Start', 'Initiating E2E Diagnostics Smoke Test', 'info');
-
-    const apiUp = await checkPort(3000, VERIFICATION_API_HOST) || await checkPort(3000, '127.0.0.1');
-    if (!apiUp) {
-      addLog('Verification API Check', 'Verification API is offline on port 3000', 'error');
-      return res.json({ success: false, logs });
-    }
-    addLog('Verification API Check', 'Verification API is active on port 3000', 'success');
-
-    const cryptoUp = await checkPort(5001, CRYPTO_SERVICE_HOST) || await checkPort(5001, '127.0.0.1');
-    if (!cryptoUp) {
-      addLog('Crypto Service Check', 'Crypto Service is offline on port 5001', 'error');
-      return res.json({ success: false, logs });
-    }
-    addLog('Crypto Service Check', 'Crypto Service is active on port 5001', 'success');
-
-    // Hash the claim here so verification-api only ever sees a dataHash.
-    const claim = {
-      subject: 'Diagnostic Test User',
-      role: 'Master of Science in Cybersecurity',
-      timestamp: new Date().toISOString()
-    };
-    const canonical = JSON.stringify(claim, Object.keys(claim).sort());
-    const dataHash = createHash('sha256').update(canonical).digest('hex');
-
-    addLog('Credential Issuance', `Sending POST to ${VERIFICATION_API_URL}/issue`, 'info');
-    const issueResponse = await fetch(`${VERIFICATION_API_URL}/issue`, {
-      method: 'POST',
-      headers: getVerificationApiHeaders(),
-      body: JSON.stringify({ dataHash })
-    });
-
-    if (!issueResponse.ok) {
-      const errText = await issueResponse.text();
-      addLog('Credential Issuance', `API rejected issuance: ${errText}`, 'error');
-      return res.json({ success: false, logs });
-    }
-
-    const issueResult = await issueResponse.json();
-    addLog('Credential Issuance', `Issued. ID: ${issueResult.credentialId}. TxID: ${issueResult.anchorTxId || 'Pending'}`, 'success');
-
-    const credId = issueResult.credentialId;
-    addLog('Credential Verification', `Sending POST to ${VERIFICATION_API_URL}/verify`, 'info');
-    const verifyResponse = await fetch(`${VERIFICATION_API_URL}/verify`, {
-      method: 'POST',
-      headers: getVerificationApiHeaders(),
-      body: JSON.stringify({ dataHash, credentialId: credId })
-    });
-
-    if (!verifyResponse.ok) {
-      const errText = await verifyResponse.text();
-      addLog('Credential Verification', `API rejected verification: ${errText}`, 'error');
-      return res.json({ success: false, logs });
-    }
-
-    const verifyResult = await verifyResponse.json();
-    if (verifyResult.valid) {
-      addLog('Credential Verification', `Verification SUCCEEDED. Anchor: ${verifyResult.anchorStatus}`, 'success');
-    } else {
-      addLog('Credential Verification', `Verification FAILED. Reason: ${verifyResult.reason || 'Unknown'}`, 'error');
-    }
-
-    res.json({ success: true, logs });
-  } catch (err) {
-    addLog('Exception', `Unexpected error during smoke test: ${err.message}`, 'error');
-    res.json({ success: false, logs });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// /api/logs/:container — Docker socket access was removed for security.
-// ---------------------------------------------------------------------------
-app.get('/api/logs/:container', (req, res) => {
-  res.json({
-    success: true,
-    content: 'Container log streaming requires direct Docker access. Use `docker logs <container>` from the host.'
-  });
-});
-
-// ---------------------------------------------------------------------------
-// /api/settings
-// ---------------------------------------------------------------------------
-app.get('/api/settings', (req, res) => {
-  res.status(204).end();
-});
-
-// ---------------------------------------------------------------------------
-// /api/settings/rotate — proxies to crypto-service POST /rotate.
-//
-// The previous implementation targeted verification-api's /rotate-key which
-// does not exist. Key rotation is an operation on the KMS (crypto-service),
-// not the gateway.
-// ---------------------------------------------------------------------------
-app.post('/api/settings/rotate', async (req, res) => {
-  if (!CRYPTO_SERVICE_URL || !CRYPTO_SERVICE_API_KEY) {
-    return res.status(503).json({
-      success: false,
-      error: 'CRYPTO_SERVICE_URL or CRYPTO_SERVICE_API_KEY is not configured on the dashboard.'
-    });
-  }
-
-  try {
-    const response = await fetch(`${CRYPTO_SERVICE_URL}/rotate`, {
+    const cryptoUrl = `${CRYPTO_SERVICE_URL}/rotate`;
+    const response = await fetch(cryptoUrl, {
       method: 'POST',
       headers: getCryptoServiceHeaders(),
-      body: JSON.stringify({})
+      signal: AbortSignal.timeout(10000)
     });
 
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const errText = await response.text();
-      return res.status(response.status).json({ success: false, error: errText });
+      return res.status(response.status).json({
+        success: false,
+        error: data.error || `Crypto service returned HTTP ${response.status}`,
+        details: data
+      });
     }
 
-    const data = await response.json();
-    console.log('[Dashboard] Key rotation triggered via crypto-service:', data);
-    res.json({ success: true, ...data });
+    res.json({
+      success: true,
+      message: 'Key rotation executed successfully',
+      publicKeyId: data.publicKeyId || data.new_key_id,
+      algorithm: data.algorithm || 'ML-DSA-65',
+      rotatedAt: new Date().toISOString()
+    });
   } catch (err) {
-    console.error('Failed to proxy key rotation:', err.stack || err.message);
-    res.status(500).json({ success: false, error: 'Cryptographic authority is unreachable' });
+    console.error('Key rotation failed:', err.stack || err.message);
+    res.status(502).json({
+      success: false,
+      error: `Failed to communicate with crypto-service: ${err.message}`
+    });
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`ScatterID Project Dashboard running at http://0.0.0.0:${PORT}`);
+  console.log(`ScatterID Operator Dashboard running at http://0.0.0.0:${PORT}`);
 });

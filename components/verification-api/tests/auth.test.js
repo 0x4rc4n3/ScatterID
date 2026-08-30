@@ -154,10 +154,10 @@ test('POST /revoke — 401 with no Authorization header', async () => {
   });
   assert.equal(res.status, 401);
   const body = await res.json();
-  assert.equal(body.code, 'MISSING_AUTH');
+  assert.equal(body.code, 'MISSING_REVOKE_AUTH');
 });
 
-test('POST /revoke — 401 with wrong Bearer token', async () => {
+test('POST /revoke — 403 with wrong Bearer token or invalid revoke key', async () => {
   const res = await fetch(`${baseUrl}/revoke`, {
     method: 'POST',
     headers: {
@@ -166,9 +166,9 @@ test('POST /revoke — 401 with wrong Bearer token', async () => {
     },
     body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
   });
-  assert.equal(res.status, 401);
+  assert.equal(res.status, 403);
   const body = await res.json();
-  assert.equal(body.code, 'INVALID_AUTH');
+  assert.equal(body.code, 'REVOCATION_UNAUTHORIZED');
 });
 
 test('POST /revoke — auth passes with valid Bearer token and validates input', async () => {
@@ -185,7 +185,41 @@ test('POST /revoke — auth passes with valid Bearer token and validates input',
   assert.equal(body.code, 'INVALID_PARAMETER');
 });
 
+test('POST /issue/:id/retry-anchor — 401 without auth', async () => {
+  const res = await fetch(`${baseUrl}/issue/00000000-0000-4000-8000-000000000000/retry-anchor`, {
+    method: 'POST'
+  });
+  assert.equal(res.status, 401);
+});
+
+test('GET /audit — 401 without auth, 200 with auth', async () => {
+  const unauthRes = await fetch(`${baseUrl}/audit`);
+  assert.equal(unauthRes.status, 401);
+
+  const authRes = await fetch(`${baseUrl}/audit`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(authRes.status, 200);
+  const body = await authRes.json();
+  assert.equal(body.success, true);
+  assert.ok(Array.isArray(body.logs));
+});
+
+test('GET /reconciliation — 401 without auth, 200 with auth', async () => {
+  const unauthRes = await fetch(`${baseUrl}/reconciliation`);
+  assert.equal(unauthRes.status, 401);
+
+  const authRes = await fetch(`${baseUrl}/reconciliation`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(authRes.status, 200);
+  const body = await authRes.json();
+  assert.equal(body.success, true);
+  assert.equal(typeof body.mismatchCount, 'number');
+});
+
 // Shut down the real test server after all tests
 after(async () => {
   await stopServer();
 });
+
