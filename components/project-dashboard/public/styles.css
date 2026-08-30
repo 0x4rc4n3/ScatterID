@@ -51,6 +51,26 @@ body {
   min-height: 100vh;
 }
 
+::selection {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+pre ::selection, code ::selection {
+  background-color: var(--accent);
+  color: #1b1b1b;
+}
+
+pre ::-moz-selection, code ::-moz-selection {
+  background-color: var(--accent);
+  color: #1b1b1b;
+}
+
 /* Header */
 .app-header,
 .header {

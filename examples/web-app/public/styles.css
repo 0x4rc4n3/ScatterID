@@ -34,6 +34,26 @@ body {
   padding: 24px;
 }
 
+::selection {
+  background-color: #32b696;
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: #32b696;
+  color: #ffffff;
+}
+
+pre ::selection, code ::selection {
+  background-color: #32b696;
+  color: #1b1b1b;
+}
+
+pre ::-moz-selection, code ::-moz-selection {
+  background-color: #32b696;
+  color: #1b1b1b;
+}
+
 .app-container {
   max-width: 1280px;
   margin: 0 auto;
