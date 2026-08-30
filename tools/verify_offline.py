@@ -7,6 +7,10 @@ This tool allows third-party auditors and verifiers to mathematically verify
 the cryptographic authenticity of an issued ScatterID credential COMPLETELY
 OFFLINE with pure Python standard library math (zero dependencies).
 
+Ecosystem Role:
+  - Python standard library for data science, security auditor, and CLI pipelines.
+  - For Node.js / TypeScript environments, use: node tools/verify_offline.js
+
 Usage:
   python3 tools/verify_offline.py <path-to-credential.json>
   cat credential.json | python3 tools/verify_offline.py

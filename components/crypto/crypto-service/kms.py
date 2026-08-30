@@ -4,7 +4,6 @@ import hvac
 import ctypes
 import threading
 from keygen import generate_keypair
-from config import get_config
 
 DATA_DIR = '/app/data' if os.path.exists('/app/data') else (
     '/app/certs' if os.path.exists('/app/certs') else os.path.dirname(os.path.abspath(__file__))
@@ -45,10 +44,10 @@ class KMS:
     def __init__(self):
         self.lock = threading.RLock()
         
-        self.vault_url = get_config("network.vault_addr", os.environ.get("VAULT_ADDR", "https://localhost:8200"))
-        self.vault_token = get_config("security.vault_token", os.environ.get("VAULT_TOKEN"))
-        self.vault_role_id = get_config("security.vault_role_id", os.environ.get("VAULT_ROLE_ID"))
-        self.vault_secret_id = get_config("security.vault_secret_id", os.environ.get("VAULT_SECRET_ID"))
+        self.vault_url = os.environ.get("VAULT_ADDR", "https://localhost:8200")
+        self.vault_token = os.environ.get("VAULT_TOKEN")
+        self.vault_role_id = os.environ.get("VAULT_ROLE_ID")
+        self.vault_secret_id = os.environ.get("VAULT_SECRET_ID")
         
         # Enforce HTTPS unless explicitly running in dev mode.
         # Set VAULT_DEV_MODE=true in the environment for local/dev deployments only.
@@ -63,7 +62,7 @@ class KMS:
         if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
             raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
             
-        self.secret_path = get_config("security.vault_secret_path", os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa"))
+        self.secret_path = os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa")
         self.client = None
         self.public_key_history = []
         

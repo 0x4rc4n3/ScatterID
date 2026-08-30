@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
 if [ -f .env ]; then
@@ -16,12 +16,12 @@ echo "======================================================="
 
 # Verify required keys are configured
 if [ -z "$CRYPTO_SERVICE_API_KEY" ] || [ -z "$VERIFICATION_API_KEY" ] || [ -z "$GATEWAY_API_KEY" ]; then
-    echo "ERROR: Environment keys are not set. Run ./quickstart.sh first to initialize .env"
+    echo "ERROR: Environment keys are not set. Run ./scripts/quickstart.sh first to initialize .env"
     exit 1
 fi
 
 echo "[1/4] Checking running stack..."
-docker compose up -d
+docker compose --profile dashboard up -d
 
 # Give containers a moment to settle
 sleep 2

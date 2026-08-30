@@ -2,13 +2,15 @@
 
 /**
  * ============================================================================
- * ScatterID — "Don't Trust, Verify" Standalone Offline CLI Verifier
+ * ScatterID — "Don't Trust, Verify" Standalone Offline CLI Verifier (Node.js)
  * ============================================================================
  * This tool allows any third-party verifier, auditor, or relying party to
  * verify the cryptographic authenticity of an issued ScatterID credential
- * COMPLETELY OFFLINE using pure mathematics and standards.
+ * COMPLETELY OFFLINE using pure mathematics and standards (RFC 8785 + SHA3-256).
  *
- * No network connections. No API calls. No database or blockchain trust needed.
+ * Ecosystem Role:
+ *   - Node.js runtime for JavaScript / TypeScript developers (zero external dependencies).
+ *   - For Python environments, use: python3 tools/verify_offline.py
  *
  * Usage:
  *   node tools/verify_offline.js <credential.json>

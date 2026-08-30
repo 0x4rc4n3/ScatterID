@@ -6,11 +6,10 @@ Thank you for your interest in contributing to ScatterID!
 
 1. Fork and clone the repository
 2. Follow the setup instructions in [`docs/SETUP_AND_USAGE.md`](docs/SETUP_AND_USAGE.md)
-3. Run `./check_deps.sh` to verify your local environment has all required tools
-4. Copy `.env.example` to `.env` and fill in required secrets
-5. Copy `config.example.json` to `config.json` and configure local values
+3. Run `./scripts/check_deps.sh` to verify your local environment has all required tools
+4. Run `./scripts/quickstart.sh` to automatically provision cryptographic keys and start the stack (or manually copy `.env.example` to `.env`)
 
-> **Never commit `.env` or `config.json`** — both are gitignored to protect secrets.
+> **Never commit `.env`** — it is gitignored to protect secrets.
 
 ## Development Workflow
 

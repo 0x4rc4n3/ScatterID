@@ -6,17 +6,31 @@
 # It validates host tools, provisions 256-bit entropy keys in .env, compiles the
 # TypeScript SDK, generates internal mTLS certs, and bootstraps the Fabric blockchain.
 #
-# For routine startup of an already-provisioned environment, use: ./start.sh
-#
 # Usage:
-#   ./quickstart.sh          # Turnkey automated bootstrap
-#   ./quickstart.sh --build  # Force container image rebuilds
+#   ./scripts/quickstart.sh                   # Core backend only (Crypto + Gateway + Fabric + Vault)
+#   ./scripts/quickstart.sh --with-dashboard  # Core backend + Operator Dashboard
+#   ./scripts/quickstart.sh --build           # Force rebuild of container images
+#
+# For routine day-to-day startup, use: ./scripts/start.sh
 # ==============================================================================
 
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
 cd "$DIR"
+
+WITH_DASHBOARD=false
+BUILD_FLAG=""
+for arg in "$@"; do
+  case $arg in
+    --with-dashboard|--dashboard|-d)
+      WITH_DASHBOARD=true
+      ;;
+    --build)
+      BUILD_FLAG="--build"
+      ;;
+  esac
+done
 
 # Colors for terminal output
 BOLD="\033[1m"
@@ -39,7 +53,7 @@ echo -e "${BOLD}[1/6] Validating host prerequisites...${RESET}"
 for cmd in docker openssl curl; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo -e "${RED}[ERROR] Required tool '$cmd' is not installed or not in PATH.${RESET}"
-    echo -e "Please run: ${CYAN}./check_deps.sh --install${RESET}"
+    echo -e "Please run: ${CYAN}./scripts/check_deps.sh --install${RESET}"
     exit 1
   fi
 done
@@ -62,7 +76,7 @@ fi
 echo -e "  ${GREEN}✓${RESET} Docker engine & tools validated."
 
 # ------------------------------------------------------------------------------
-# 2. Automated Secrets & Environment Setup (.env & config.json)
+# 2. Automated Secrets & Environment Setup (.env)
 # ------------------------------------------------------------------------------
 echo -e "${BOLD}[2/6] Provisioning cryptographic environment secrets...${RESET}"
 
@@ -103,6 +117,7 @@ VAULT_TOKEN=scatterid-vault-root-token
 VAULT_ROLE_ID=
 VAULT_SECRET_ID=
 VAULT_SECRET_PATH=scatterid/mldsa
+VAULT_DEV_MODE=true
 
 # TLS CA Certificate Trust Path
 NODE_EXTRA_CA_CERTS=/app/certs/ca.crt
@@ -136,14 +151,6 @@ if [ -d "sdk" ]; then
   echo -e "  [+] Compiling TypeScript SDK..."
   (cd sdk && npm install --silent && npm run build --silent) >/dev/null 2>&1 || true
   echo -e "  ${GREEN}✓${RESET} TypeScript SDK compiled."
-fi
-
-# Initialize config.json template if absent
-if [ ! -f config.json ]; then
-  if [ -f config.example.json ]; then
-    cp config.example.json config.json
-    echo -e "  ${GREEN}✓${RESET} Initialized config.json from template."
-  fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -195,14 +202,17 @@ export VAULT_SECRET_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAUL
 # ------------------------------------------------------------------------------
 # 5. Launch Containerized Microservices
 # ------------------------------------------------------------------------------
-echo -e "${BOLD}[5/6] Starting ScatterID microservices (Crypto, Gateway, Dashboard)...${RESET}"
+echo -e "${BOLD}[5/6] Starting ScatterID microservices...${RESET}"
 
-BUILD_FLAG=""
-if [ "$1" == "--build" ]; then
-  BUILD_FLAG="--build"
+PROFILE_ARG=""
+if [ "$WITH_DASHBOARD" = true ]; then
+  PROFILE_ARG="--profile dashboard"
+  echo -e "  [+] Profile: Full Stack (Backend + Web Operator Console)"
+else
+  echo -e "  [+] Profile: Core Backend Only (Crypto + Gateway + Vault)"
 fi
 
-$COMPOSE_CMD up -d $BUILD_FLAG
+$COMPOSE_CMD $PROFILE_ARG up -d $BUILD_FLAG
 
 # Bridge network connectivity between Fabric and compose stack
 NET_NAME=$(docker network ls --format "{{.Name}}" | grep "scatterid_net" | head -n 1)
@@ -246,7 +256,9 @@ wait_for_health() {
 
 wait_for_health "Crypto Service"  "https://localhost:5001/healthz" "true"
 wait_for_health "Verification API" "http://localhost:3000/healthz"  "false"
-wait_for_health "Dashboard UI"    "http://localhost:4000/healthz"  "false"
+if [ "$WITH_DASHBOARD" = true ]; then
+  wait_for_health "Dashboard UI"    "http://localhost:4000/healthz"  "false"
+fi
 
 echo ""
 echo -e "${BOLD}${GREEN}======================================================================${RESET}"
@@ -254,11 +266,13 @@ echo -e "${BOLD}${GREEN}   ScatterID Post-Quantum Stack is Ready & Operational! 
 echo -e "${BOLD}${GREEN}======================================================================${RESET}"
 echo ""
 echo -e "  ${BOLD}Active Endpoints:${RESET}"
-echo -e "    - Operator Dashboard:     ${CYAN}http://localhost:4000${RESET}"
-echo -e "    - Interactive Live Demo:  ${CYAN}http://localhost:4000/demo${RESET}"
 echo -e "    - Verification Gateway:   ${CYAN}http://localhost:3000${RESET}"
 echo -e "    - Crypto Microservice:    ${CYAN}https://localhost:5001${RESET} (ML-DSA-65 / Vault)"
 echo -e "    - HashiCorp Vault:        ${CYAN}http://localhost:8200${RESET}"
+if [ "$WITH_DASHBOARD" = true ]; then
+  echo -e "    - Operator Dashboard:     ${CYAN}http://localhost:4000${RESET}"
+fi
+echo -e "    - Visual SDK Playground:  ${CYAN}http://localhost:5050${RESET} (Start with: cd examples/web-app && npm start)"
 echo ""
 echo -e "  ${BOLD}Try Issuing a Post-Quantum Credential Right Now:${RESET}"
 echo -e "  ${YELLOW}curl -s -X POST http://localhost:3000/issue \\"
@@ -266,7 +280,7 @@ echo -e "    -H \"Authorization: Bearer $VERIFICATION_API_KEY\" \\"
 echo -e "    -H \"Content-Type: application/json\" \\"
 echo -e "    -d '{\"dataHash\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}' | jq .${RESET}"
 echo ""
-echo -e "  ${BOLD}Run Full End-to-End Test Suite:${RESET}"
-echo -e "    ${CYAN}./test_all.sh${RESET}"
+echo -e "  ${BOLD}Run Full Test Suite:${RESET}"
+echo -e "    ${CYAN}./scripts/test_all.sh${RESET}"
 echo ""
 echo -e "${BOLD}${CYAN}======================================================================${RESET}"

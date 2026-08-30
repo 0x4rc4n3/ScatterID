@@ -23,22 +23,25 @@ ScatterID containerizes all runtimes (Python 3.13, Node 24, Go 1.24) and native 
 
 ```bash
 # Audit system dependencies
-./check_deps.sh
+./scripts/check_deps.sh
 
 # Auto-install missing host packages
-./check_deps.sh --install
+./scripts/check_deps.sh --install
 ```
 
 ---
 
 ## 2. Environment Configuration
 
-All deployment settings are configured in `.env`.
+All deployment settings are configured in `.env` (template in `.env.example`).
 
 ### Recommended: Automated 1-Command Bootstrap
 ```bash
-# Automatically generates secure keys, certificates, config files, and launches stack
-./quickstart.sh
+# Turnkey provisioning: generates secure keys, certificates, and launches core stack
+./scripts/quickstart.sh
+
+# Launch full stack including the Web Operator Dashboard:
+./scripts/quickstart.sh --with-dashboard
 ```
 
 ### Manual Configuration
@@ -56,6 +59,7 @@ cp .env.example .env
 CRYPTO_SERVICE_API_KEY=<your-crypto-service-bearer-key>
 VERIFICATION_API_KEY=<your-verification-api-bearer-key>
 GATEWAY_API_KEY=<your-dashboard-bearer-key>
+REVOKE_API_KEY=<your-revoke-bearer-key>
 VAULT_TOKEN=scatterid-vault-root-token
 
 # Service Endpoints
@@ -68,7 +72,6 @@ PORT_VERIFICATION_API=3000
 PORT_CRYPTO_SERVICE=5001
 PORT_DASHBOARD=4000
 PORT_VAULT=8200
-```
 
 # Hyperledger Fabric Network
 FABRIC_PEER_ENDPOINT=peer0.issuer.scatterid.com:7051
@@ -85,7 +88,7 @@ FABRIC_MSP_ID=IssuerMSP
 ScatterID requires internal mutual TLS between `verification-api` and `crypto-service`.
 
 ### Option A: Auto-Generated Self-Signed Certificates (Default)
-The startup script (`./start.sh`) auto-detects missing certs and invokes `components/crypto/certs/generate_certs.sh`.
+The startup script (`./scripts/start.sh`) auto-detects missing certs and invokes `components/crypto/certs/generate_certs.sh`.
 
 ### Option B: Custom Enterprise CA Certificates
 1. Copy your Root CA to `components/crypto/certs/ca.crt`.
@@ -98,7 +101,11 @@ The startup script (`./start.sh`) auto-detects missing certs and invokes `compon
 ## 4. Stack Orchestration & Startup
 
 ```bash
-./start.sh
+# Start core backend (Crypto + Gateway + Fabric + Vault)
+./scripts/start.sh
+
+# Start with Web Operator Dashboard (Port 4000)
+./scripts/start.sh --with-dashboard
 ```
 
 **What `start.sh` performs:**
@@ -106,7 +113,7 @@ The startup script (`./start.sh`) auto-detects missing certs and invokes `compon
 2. Checks Docker Daemon availability.
 3. Generates TLS certificates if missing.
 4. Starts Hyperledger Fabric Network (Orderer, Issuer Peer, Verifier Peer).
-5. Launches Vault, Crypto Service, Verification API Gateway, and Control Dashboard via `docker compose up -d`.
+5. Launches Vault, Crypto Service, and Verification API Gateway (and Dashboard if requested).
 6. Performs health probes on all service endpoints.
 
 ---
@@ -114,7 +121,7 @@ The startup script (`./start.sh`) auto-detects missing certs and invokes `compon
 ## 5. End-to-End Test Suite
 
 ```bash
-./test_all.sh
+./scripts/test_all.sh
 ```
 
 ### Test Sequence:

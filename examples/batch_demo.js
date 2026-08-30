@@ -46,7 +46,7 @@ const API_URL = rawApiUrl.replace('verification-api', 'localhost');
 
 if (!API_KEY) {
   console.error('\x1b[31m[ERROR] VERIFICATION_API_KEY is not set in .env or environment.\x1b[0m');
-  console.error('Please run ./quickstart.sh to provision keys, or set VERIFICATION_API_KEY.');
+  console.error('Please run ./scripts/quickstart.sh to provision keys, or set VERIFICATION_API_KEY.');
   process.exit(1);
 }
 

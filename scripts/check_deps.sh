@@ -149,7 +149,7 @@ echo -e "${BOLD}${CYAN}=========================================================
 
 if [ ${#MISSING_DEPS[@]} -eq 0 ]; then
     echo -e "${GREEN}${BOLD}SUCCESS: All required system dependencies are satisfied!${RESET}"
-    echo -e "You can now run: ${CYAN}./quickstart.sh${RESET} or ${CYAN}./test_all.sh${RESET}"
+    echo -e "You can now run: ${CYAN}./scripts/quickstart.sh${RESET} or ${CYAN}./scripts/test_all.sh${RESET}"
 else
     echo -e "${RED}${BOLD}ATTENTION: Missing dependencies detected:${RESET}"
     for dep in "${MISSING_DEPS[@]}"; do
@@ -173,7 +173,7 @@ else
         fi
     else
         echo -e "${YELLOW}To automatically install missing dependencies, run:${RESET}"
-        echo -e "  ${CYAN}./check_deps.sh --install${RESET}"
+        echo -e "  ${CYAN}./scripts/check_deps.sh --install${RESET}"
         echo ""
         echo -e "${YELLOW}Manual Installation Command (Ubuntu / Debian):${RESET}"
         echo -e "${CYAN}sudo apt-get update && sudo apt-get install -y ${MISSING_PACKAGES[*]}${RESET}"

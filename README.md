@@ -5,56 +5,84 @@
 [![Security: Gitleaks](https://img.shields.io/badge/Security-Gitleaks-blue.svg)](https://github.com/gitleaks/gitleaks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-ScatterID is a decentralized, zero-knowledge, post-quantum identity verification system.
+ScatterID is an open-source, post-quantum, zero-knowledge identity verification infrastructure combining NIST FIPS 204 (ML-DSA-65) digital signatures, RFC 8785 JSON canonicalization commitments, and Hyperledger Fabric blockchain anchoring.
+
+---
+
+## 📚 Master Documentation Hub
+
+All architecture, cryptographic specifications, deployment runbooks, and compliance guides are organized in the central docs index:
+
+👉 **[ScatterID Master Documentation Index](docs/README.md)**
 
 ---
 
 ## 🚀 Quickstart (Zero-to-Running in 60 Seconds)
 
-ScatterID is designed to be completely self-sufficient and runnable on any standard Linux/macOS host with Docker installed:
+ScatterID is runnable on any standard Linux or macOS host with Docker installed:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/0x4rc4n3/ScatterID-product.git
 cd ScatterID-product
 
-# 2. Launch the full turnkey stack (initial provisioning & bootstrap)
-./quickstart.sh
+# 2. Launch the turnkey stack (auto-provisions keys, certs, blockchain, and microservices)
+./scripts/quickstart.sh
 
-# Note: For routine day-to-day startup of an already provisioned environment, use:
-# ./start.sh
+# Option: Start with the Web Operator Dashboard enabled:
+./scripts/quickstart.sh --with-dashboard
 ```
 
-Once initialized, the following services are live:
-- **Operator Diagnostics Console:** [http://localhost:4000](http://localhost:4000)
-- **Interactive Web App & SDK Playground:** [http://localhost:5050](http://localhost:5050) (Run via `cd examples/web-app && npm start`)
+### ⚙️ Run Modes: Backend-Only vs. Backend + Operator Dashboard
+ScatterID supports Docker Compose profiles (`profiles: ["dashboard"]`) to match different operational use cases:
+
+* **Core Backend Only (`./scripts/start.sh` or `docker compose up -d`):**
+  Starts strictly the essential microservices (ML-DSA-65 Crypto Service, Verification API Gateway, Hyperledger Fabric ledger, HashiCorp Vault). Ideal for headless deployments or embedding ScatterID behind another service without exposing administrative console ports.
+* **Full Stack with Dashboard (`./scripts/start.sh --with-dashboard` or `docker compose --profile dashboard up -d`):**
+  Starts all core backend microservices PLUS the web-based Operator Diagnostics Console on port 4000.
+
+---
+
+### Active Endpoints Once Started:
 - **Verification Gateway API:** `http://localhost:3000`
 - **Post-Quantum Crypto Microservice (ML-DSA-65):** `https://localhost:5001`
 - **HashiCorp Vault KMS:** `http://localhost:8200`
+- **Operator Diagnostics Console:** `http://localhost:4000` *(when run with `--with-dashboard`)*
+- **Visual SDK Playground Web App:** `http://localhost:5050` *(run via `cd examples/web-app && npm start`)*
 
 ### Verify the Stack with the E2E Test Suite:
 ```bash
-./test_all.sh
+./scripts/test_all.sh
 ```
 
-### 🎮 Visual SDK Playground & Interactive Demo:
+---
+
+## 🎮 Visual SDK Playground & Interactive Demo
 ScatterID includes a dedicated graphical web app that connects directly to the TypeScript/JavaScript SDK:
+
 ```bash
 cd examples/web-app && npm start
 # Open http://localhost:5050 in your browser
 ```
 - **Live 10-Preset Selector:** Load realistic sample claims across 10 industries (Medicine, Aviation, Cybersecurity, Legal, KYC).
-- **Real-Time Cryptographic Telemetry:** Watch the local RFC 8785 canonicalization, CSPRNG salting, SHA3-256 zero-knowledge hashing, and ML-DSA-65 signing pipeline.
+- **Real-Time Cryptographic Telemetry:** Inspect local RFC 8785 canonicalization, CSPRNG salting, SHA3-256 zero-knowledge hashing, and ML-DSA-65 signing.
 - **Interactive Tamper Testing:** Corrupt a single field in the presented claim with 1-click and watch the verification engine detect and reject the forgery.
 - **Lifecycle & Updates:** Experience the "Revoke & Supersede" pattern by updating an active credential on the blockchain.
 
-### 🛡️ "Don't Trust, Verify" — Standalone Offline CLI Verifier:
+---
+
+## 🛡️ "Don't Trust, Verify" — Standalone Offline CLI Verifiers
 ScatterID empowers third-party auditors and relying parties to mathematically verify any issued credential **100% offline** with zero external network or server dependencies:
 
 ```bash
-# Verify a credential JSON file completely offline (pure math, no server needed)
+# Node.js Verifier (zero external dependencies)
 node tools/verify_offline.js <path-to-credential.json>
+
+# Python Verifier (pure standard library math, zero dependencies)
+python3 tools/verify_offline.py <path-to-credential.json>
 ```
+
+Cross-language parity between both verifiers is continuously asserted via `./tests/offline_verify_parity.test.sh`.
 
 ---
 
@@ -104,26 +132,13 @@ sequenceDiagram
 
 ## 🏛 Cryptographic Security Guarantees & Boundaries
 
-### 1. Post-Quantum Signature Scheme (ML-DSA-65 / Dilithium3)
-- **Standard**: NIST FIPS 204 Standard.
-- **Security Category**: Category 3.
-- **Security Property**: EUF-CMA.
-
-### 2. Zero-Knowledge Hashing Model
-- **Hashing Algorithm**: SHA3-256 over an RFC 8785 (JCS) canonicalized JSON payload, concatenated with a 16-byte CSPRNG Salt.
-- **Data Retention Guarantee**: ScatterID NEVER stores raw claim data, salts, or any reconstructable fragments. It stores strictly the UUID, dataHash, signature, publicKeyId, and ledger anchor info.
-
-### 3. Public Key Trust Boundary
-- Verification exclusively resolves the issuer's public key from ScatterID's internal trusted key registry.
-
----
-
-## 🔒 Inter-Service Network Security
-
-1. **Bearer Token Authentication**:
-   - `CRYPTO_SERVICE_API_KEY`: Every request to `crypto-service:5001` enforces TLS 1.3 encryption and Bearer Token header validation.
-2. **HashiCorp Vault Key Management**:
-   - Root keys are provisioned in HashiCorp Vault KV v2 secret engine.
+1. **Post-Quantum Signature Scheme (ML-DSA-65 / Dilithium3):**
+   - **Standard**: NIST FIPS 204 Standard (Category 3 EUF-CMA).
+2. **Zero-Knowledge Hashing Model:**
+   - **Scheme**: SHA3-256 over RFC 8785 (JCS) canonicalized payload concatenated with a 16-byte CSPRNG salt.
+   - **Data Retention Guarantee**: ScatterID NEVER stores raw claim data, salts, or fragments. It stores strictly the UUID, dataHash, signature, publicKeyId, and ledger anchor info.
+3. **Public Key Trust Boundary:**
+   - Verification exclusively resolves the issuer's public key from ScatterID's internal trusted key registry.
 
 ---
 
@@ -132,35 +147,39 @@ sequenceDiagram
 ```
 ScatterID/
 ├── components/
-│   ├── crypto/                 # PQC Engine & Zero-Knowledge ML-DSA Signer
-│   ├── verification-api/       # Core Express Verification Gateway
-│   ├── project-dashboard/      # Deep-Tech Operator Dashboard & Diagnostics Engine
-│   └── blockchain/             # Hyperledger Fabric Go Chaincode & Mutual TLS Network
-├── sdk/                        # TypeScript/JavaScript SDK for issuing and verifying credentials
-├── docs/                       # Architectural & Technical Design Specifications
-├── docker-compose.yml          # Multi-Container Topology Orchestration
-├── test_all.sh                 # E2E Integration Test Suite
-└── README.md                   # Master Architectural Documentation
+│   ├── crypto/                 # PQC Engine & ML-DSA-65 Signer (Python / mTLS)
+│   ├── verification-api/       # Core Express Verification Gateway & Reconciliation
+│   ├── project-dashboard/      # Operator Diagnostics Console & Audit Viewer
+│   └── blockchain/             # Hyperledger Fabric Network & Go Chaincode
+├── sdk/                        # TypeScript/JavaScript Client SDK (@scatterid/sdk)
+├── examples/                   # Visual Web Playground & Batch/Revoke Demos
+├── docs/                       # Master Documentation Library & Specifications
+├── scripts/                    # Turnkey Provisioning, Startup, & Test Automation
+├── tools/                      # Standalone Cross-Language Offline Verifiers (JS & Python)
+├── tests/                      # Integration & Cross-Language Parity Test Suites
+├── docker-compose.yml          # Container Topology Orchestration (with profiles)
+├── .env.example                # Authoritative Configuration Template
+├── CHANGELOG.md                # Milestone & Release History
+├── SECURITY.md                 # Security Disclosure & API Key Tier Definitions
+├── CONTRIBUTING.md             # Developer Contribution Guidelines
+├── LICENSE                     # MIT Open Source License
+└── README.md                   # Master Overview & Quickstart Guide
 ```
 
 ---
 
 ## Current Limitations
 
-ScatterID is an active research and development project. The following limitations are acknowledged honestly:
+ScatterID is an active open-source research and engineering project:
 
-- **No independent security audit** has been performed. The codebase has undergone internal review but has not been evaluated by an external security firm.
-- **Test coverage is smoke-level**, not comprehensive. Unit and integration tests exist for core flows, but full edge-case and failure-mode coverage is a work in progress.
-- **The default `docker-compose.yml` configuration is for local development only** and is not hardened for production deployment. Vault runs in dev mode (`VAULT_DEV_MODE=true`) over HTTP, and TLS certificates are self-signed.
-- **CI includes linting, tests, and build verification** but does not yet include SAST or comprehensive dependency scanning beyond `npm audit` / `pip-audit`.
-- **Documentation reflects the current v2 zero-knowledge architecture**; supplementary docs in `docs/` may reference design decisions that predate the current implementation.
+- **No external security audit** has yet been performed.
+- **The default `docker-compose.yml` configuration is for local evaluation and testing**; production deployment requires hardening Vault with external TLS certificates and disabling `VAULT_DEV_MODE`.
+- **CI includes linting, testing, and secret scanning**, with dependency vulnerability audits configured for Node.js and Python runtimes.
 
-See [CHANGELOG.md](CHANGELOG.md) for the full history of changes and resolved issues.
+See [CHANGELOG.md](CHANGELOG.md) for the full version history and remediations.
 
 ---
 
-## Security Note
-**MANUAL REVIEW REQUIRED**: Any version bumps to cryptographic dependencies (`flask`, `hvac`, `liboqs-python`, and any `crypto` JS packages) require manual review of changelogs before upgrading. Do not use caret (`^`) or tilde (`~`) version ranges for these packages.
+## Security & Contributions
 
-For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md). For contributing, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
+For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md). For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).

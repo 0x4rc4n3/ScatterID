@@ -7,7 +7,7 @@ import threading
 from flask import Flask, request, jsonify
 from kms import KMS, zeroize
 from interface import issue_credential, verify_credential
-from config import get_config
+from interface import issue_credential, verify_credential
 
 app = Flask(__name__)
 
@@ -17,7 +17,7 @@ PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
 
 state_lock = threading.RLock()
 
-API_KEY = get_config("security.crypto_service_api_key", os.environ.get("CRYPTO_SERVICE_API_KEY"))
+API_KEY = os.environ.get("CRYPTO_SERVICE_API_KEY")
 if not API_KEY:
     raise ValueError(
         "CRITICAL: CRYPTO_SERVICE_API_KEY is not configured. "
