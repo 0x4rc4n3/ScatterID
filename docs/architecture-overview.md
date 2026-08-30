@@ -118,7 +118,7 @@ graph TD
         Proof["Proof Bundle (dataHash, signature, publicKeyId, credentialId)"]
     end
 
-    subgraph ModeSelection{"Verification Mode"}
+    subgraph ModeSelection["Verification Mode Selection"]
         Online["1. Online Verification (Real-Time)"]
         Offline["2. Offline Verification (Air-Gapped)"]
     end
