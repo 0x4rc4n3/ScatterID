@@ -18,13 +18,16 @@ ScatterID is designed to be completely self-sufficient and runnable on any stand
 git clone https://github.com/0x4rc4n3/ScatterID-product.git
 cd ScatterID-product
 
-# 2. Launch the full turnkey stack (auto-generates keys, certs, and boots ledger & services)
+# 2. Launch the full turnkey stack (initial provisioning & bootstrap)
 ./quickstart.sh
+
+# Note: For routine day-to-day startup of an already provisioned environment, use:
+# ./start.sh
 ```
 
 Once initialized, the following services are live:
-- **Interactive Live Presentation Demo:** [http://localhost:4000/demo](http://localhost:4000/demo)
 - **Operator Diagnostics Console:** [http://localhost:4000](http://localhost:4000)
+- **Interactive Web App & SDK Playground:** [http://localhost:5050](http://localhost:5050) (Run via `cd examples/web-app && npm start`)
 - **Verification Gateway API:** `http://localhost:3000`
 - **Post-Quantum Crypto Microservice (ML-DSA-65):** `https://localhost:5001`
 - **HashiCorp Vault KMS:** `http://localhost:8200`

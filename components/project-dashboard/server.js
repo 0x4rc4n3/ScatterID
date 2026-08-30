@@ -7,10 +7,33 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
-import { ScatterIDClient } from '../../sdk/dist/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Dynamically resolve ScatterIDClient from local monorepo (../../sdk) or container (/app/sdk)
+const candidateSdkPaths = [
+  path.resolve(__dirname, 'sdk/dist/index.js'),
+  path.resolve(__dirname, '../../sdk/dist/index.js'),
+  path.resolve('/app/sdk/dist/index.js')
+];
+
+let ScatterIDClient = null;
+for (const p of candidateSdkPaths) {
+  try {
+    if (fsSync.existsSync(p)) {
+      const mod = await import(p);
+      if (mod && mod.ScatterIDClient) {
+        ScatterIDClient = mod.ScatterIDClient;
+        break;
+      }
+    }
+  } catch (_) {}
+}
+
+if (!ScatterIDClient) {
+  throw new Error('Fatal: @scatterid/sdk distribution not found. Please run `npm run build` in sdk/.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -58,15 +81,11 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
-// Static files and demo page
+// Static files (serves the operator console frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/healthz', (req, res) => {
   res.json({ status: 'ok', service: 'project-dashboard' });
-});
-
-app.get('/demo', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/demo.html'));
 });
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 import { getCredentialById, getCredentialByDataHash } from '../db/models.js';
 import { queryProof } from '../chain/fabric.js';
-import { getConfig } from '../config.js';
 
 export async function verifyRoute(req, res) {
   try {
@@ -88,8 +87,8 @@ export async function verifyRoute(req, res) {
     }
 
     try {
-      const cryptoUrl = getConfig('network.crypto_service_url', process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001');
-      const cryptoApiKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY);
+      const cryptoUrl = process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001';
+      const cryptoApiKey = process.env.CRYPTO_SERVICE_API_KEY || '';
       
       const payload = {
         dataHash: recDataHash,

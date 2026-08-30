@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# ==============================================================================
+# ScatterID — Routine Stack Startup & Orchestration Manager
+# ==============================================================================
+# Use this script for everyday startup of an already-provisioned ScatterID stack.
+# It starts Fabric ledger containers, configures Vault KMS AppRole, boots
+# microservices, and runs readiness health probes.
+#
+# If you are setting up ScatterID for the first time, run: ./quickstart.sh
+# ==============================================================================
+
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -11,7 +21,7 @@ if [ -f .env ]; then
 fi
 
 echo "=========================================================="
-echo "   ScatterID System Startup & Orchestration Manager     "
+echo "   ScatterID System Startup & Orchestration Manager       "
 echo "=========================================================="
 
 # 1. Verify Docker Daemon is accessible

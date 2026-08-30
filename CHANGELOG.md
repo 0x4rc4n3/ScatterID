@@ -6,7 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [Unreleased] — Security Remediation Pass
+## [0.4.0] — 2026-08-30 · Backend Correctness, Reconciliation & SDK Lifecycle
+
+### Fixed
+- **[ROOT CAUSE] Issuance Silent Failure:** `POST /issue` returns HTTP 202 Accepted with `status: 'anchor_failed'` when ledger anchoring throws, avoiding false positive `'pending'` reporting. Added `POST /issue/:credentialId/retry-anchor` endpoint for deterministic anchor retry.
+- **[ROOT CAUSE] Revocation Silent Failure:** `POST /revoke` now strictly updates local DB status to `'revoked'` only after Hyperledger Fabric `RevokeProof` transaction successfully commits. If ledger throws, returns HTTP 502 (`LEDGER_UNREACHABLE`) and leaves local record untouched.
+- **SDK Build & Docker Resolution:** Added TypeScript `tsc` build step to `sdk/`, integrated multi-stage Docker build for `project-dashboard`, and automated SDK builds in GitHub Actions CI.
+- **Unified Cryptographic Hashing:** Replaced naive duplicate SHA-256 in `project-dashboard` with official `@scatterid/sdk` client using RFC 8785 canonicalization + 16-byte CSPRNG salt + SHA3-256.
+
+### Added
+- **Ledger Reconciliation Daemon:** Periodic background reconciliation engine comparing local SQLite credentials against Hyperledger Fabric `QueryProof` states, detecting and alerting on state divergence.
+- **Durable Audit Trail:** Added `audit_log` table tracking cryptographic actions, caller authorization tiers (`bearer_api_key`, `revoke_api_key`), and outcomes.
+- **Tiered Revocation Authorization:** Gated `/revoke` behind a dedicated, scoped `REVOKE_API_KEY`.
+- **Cross-Language Verifier Parity:** Added automated test suite validating 100% mathematical output parity between Node.js (`verify_offline.js`) and Python (`verify_offline.py`).
+
+### Removed
+- Removed empty `fabric-samples` directory and packaged self-contained Fabric binaries and configurations.
+- Removed obsolete `todoo.md` and redundant `demo.html` surfaces.
+
+---
+
+## [0.3.5] — 2026-08-26 · Security Remediation Pass
 
 ### Added
 - GitHub Actions CI/CD pipeline with SDK, verification-api, crypto-service, Docker build, and dependency audit jobs

@@ -54,8 +54,8 @@ services:
 
   project-dashboard:
     build:
-      context: ./components/project-dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./components/project-dashboard/Dockerfile
     container_name: scatterid-dashboard
     ports:
       - "${PORT_DASHBOARD:-4000}:4000"
@@ -72,10 +72,9 @@ services:
       NODE_EXTRA_CA_CERTS: "/app/certs/ca.crt"
     volumes:
       - ./components/crypto/certs:/app/certs
-      - ./Progress.md:/app/Progress.md
       - ./components/project-dashboard/public:/app/public
       - ./components/project-dashboard/server.js:/app/server.js
-      - ./components/project-dashboard/config.js:/app/config.js
+      - ./sdk:/app/sdk
       - ./components/verification-api:/app/verification-api
       - verification_data:/app/data:ro
       - ./config.json:/app/config.json:ro

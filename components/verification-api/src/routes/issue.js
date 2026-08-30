@@ -1,7 +1,6 @@
 import { randomUUID } from 'crypto';
 import { createCredential, updateAnchorInfo, updateStatus, getCredentialById, getCredentialByIdempotencyKey, recordAuditLog } from '../db/models.js';
 import { anchorProof } from '../chain/fabric.js';
-import { getConfig } from '../config.js';
 
 export async function issueRoute(req, res) {
   try {
@@ -33,8 +32,8 @@ export async function issueRoute(req, res) {
 
     let credential;
     try {
-      const cryptoUrl = getConfig('network.crypto_service_url', process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001');
-      const cryptoApiKey = getConfig('security.crypto_service_api_key', process.env.CRYPTO_SERVICE_API_KEY);
+      const cryptoUrl = process.env.CRYPTO_SERVICE_URL || 'https://localhost:5001';
+      const cryptoApiKey = process.env.CRYPTO_SERVICE_API_KEY || '';
       const response = await fetch(`${cryptoUrl}/sign_hash`, {
         method: 'POST',
         headers: {

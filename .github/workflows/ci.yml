@@ -21,6 +21,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: sdk/package-lock.json
       - run: npm ci
+      - run: npm run build
       - run: npm test
 
   lint-and-test-verification-api:

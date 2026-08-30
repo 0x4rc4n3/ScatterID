@@ -13,15 +13,14 @@ import { verifyRoute } from './routes/verify.js';
 import { revokeRoute } from './routes/revoke.js';
 import { getAllCredentials, getAuditLogs } from './db/models.js';
 import { reconcileLedger, getReconciliationState, startPeriodicReconciliation } from './reconcile.js';
-import { getConfig } from './config.js';
 
-const VERIFICATION_API_KEY = getConfig('security.crypto_service_api_key', process.env.VERIFICATION_API_KEY || '');
-const REVOKE_API_KEY = getConfig('security.revoke_api_key', process.env.REVOKE_API_KEY || process.env.VERIFICATION_API_KEY || '');
+const VERIFICATION_API_KEY = process.env.VERIFICATION_API_KEY || '';
+const REVOKE_API_KEY = process.env.REVOKE_API_KEY || process.env.VERIFICATION_API_KEY || '';
 
 // Fail fast at startup if no inbound API key is configured.
 if (!VERIFICATION_API_KEY) {
   console.error(
-    'FATAL: VERIFICATION_API_KEY (or config security.crypto_service_api_key) must be set. ' +
+    'FATAL: VERIFICATION_API_KEY must be set. ' +
     'The verification-api cannot start without an inbound authentication key.'
   );
   process.exit(1);

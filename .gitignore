@@ -68,3 +68,4 @@ config.json
 
 # Build outputs
 sdk/dist/
+components/blockchain/fabric-network/bin/

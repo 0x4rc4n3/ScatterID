@@ -9,9 +9,19 @@ cd "$DIR"
 echo "=== Starting Custom ScatterID Fabric Network ==="
 
 # Define paths
-FABRIC_BIN="./fabric-samples/bin"
-FABRIC_CFG_PATH="$DIR/fabric-samples/config/"
+FABRIC_BIN="$DIR/bin"
+FABRIC_CFG_PATH="$DIR/config/"
 export FABRIC_CFG_PATH
+
+# 0. Download Fabric binaries dynamically if not present (never committed to git)
+if [ ! -f "$FABRIC_BIN/cryptogen" ] || [ ! -f "$FABRIC_BIN/peer" ] || [ ! -f "$FABRIC_BIN/configtxgen" ]; then
+    echo "[+] Fabric binaries not found in $FABRIC_BIN. Fetching Hyperledger Fabric v2.5.9 binaries..."
+    mkdir -p "$FABRIC_BIN"
+    ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    curl -sSL "https://github.com/hyperledger/fabric/releases/download/v2.5.9/hyperledger-fabric-${OS}-${ARCH}-2.5.9.tar.gz" | tar xz -C "$DIR" bin/
+    echo "    Fabric binaries installed successfully to $FABRIC_BIN."
+fi
 
 # 1. Generate crypto material if organizations folder doesn't exist
 if [ ! -d "organizations/peerOrganizations" ]; then
