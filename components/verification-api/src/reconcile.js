@@ -1,4 +1,4 @@
-import { getAllCredentials, recordAuditLog } from './db/models.js';
+import { getAllCredentials, updateStatus, recordAuditLog } from './db/models.js';
 import { queryProof } from './chain/fabric.js';
 
 let reconciliationState = {
@@ -38,7 +38,6 @@ export async function reconcileLedger() {
     }
 
     let mismatch = false;
-    let expectedStatus = cred.status;
 
     if (cred.status === 'anchored') {
       if (ledgerStatus !== 'active' && ledgerStatus !== 'anchored') {
@@ -67,13 +66,30 @@ export async function reconcileLedger() {
         `\x1b[31m[CRITICAL RECONCILIATION DISCREPANCY]\x1b[0m Credential ${cred.id}: Local DB = "${cred.status}", Ledger = "${ledgerStatus}"`
       );
 
-      recordAuditLog({
-        credentialId: cred.id,
-        action: 'reconciliation_mismatch',
-        status: 'mismatch_flagged',
-        details: { localStatus: cred.status, ledgerStatus },
-        callerTier: 'reconciliation_daemon'
-      });
+      // Automated Self-Healing: If ledger is chain-authoritative revoked, heal local database state
+      if (ledgerStatus === 'revoked' && cred.status !== 'revoked') {
+        try {
+          await updateStatus(cred.id, 'revoked');
+          recordAuditLog({
+            credentialId: cred.id,
+            action: 'reconciliation_auto_healed',
+            status: 'healed_to_revoked',
+            details: { previousLocalStatus: cred.status, ledgerStatus: 'revoked' },
+            callerTier: 'reconciliation_daemon'
+          });
+          console.log(`\x1b[32m[RECONCILIATION AUTO-HEALED]\x1b[0m Credential ${cred.id} synced to status 'revoked'.`);
+        } catch (healErr) {
+          console.error(`[RECONCILIATION HEAL ERROR] Failed to auto-heal ${cred.id}:`, healErr.message);
+        }
+      } else {
+        recordAuditLog({
+          credentialId: cred.id,
+          action: 'reconciliation_mismatch',
+          status: 'mismatch_flagged',
+          details: { localStatus: cred.status, ledgerStatus },
+          callerTier: 'reconciliation_daemon'
+        });
+      }
     }
   }
 

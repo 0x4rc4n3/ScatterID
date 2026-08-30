@@ -15,7 +15,11 @@ import assert from 'node:assert/strict';
 
 // Set required environment variables before importing the real server module
 const TEST_KEY = 'test-auth-key-for-ci-only';
+const TEST_REVOKE_KEY = 'test-revoke-key-for-ci-only';
+const TEST_CRYPTO_KEY = 'test-crypto-key-for-ci-only';
 process.env.VERIFICATION_API_KEY = TEST_KEY;
+process.env.REVOKE_API_KEY = TEST_REVOKE_KEY;
+process.env.CRYPTO_SERVICE_API_KEY = TEST_CRYPTO_KEY;
 process.env.SQLITE_DB_PATH = ':memory:';
 process.env.NODE_ENV = 'test';
 
@@ -176,7 +180,7 @@ test('POST /revoke — auth passes with valid Bearer token and validates input',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${TEST_KEY}`
+      'Authorization': `Bearer ${TEST_REVOKE_KEY}`
     },
     body: JSON.stringify({ credentialId: 'invalid-uuid' })
   });

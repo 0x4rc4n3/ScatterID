@@ -158,7 +158,7 @@ class KMS:
                 )
                 data = res["data"]["data"]
                 public_key = bytes.fromhex(data["public_key"])
-                private_key = bytes.fromhex(data["private_key"])
+                private_key = bytearray.fromhex(data["private_key"])
                 
                 # Zeroize Vault response dictionary copies to prevent leakage
                 if "private_key" in data:

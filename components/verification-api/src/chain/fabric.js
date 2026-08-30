@@ -10,9 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configurations
-const channelName = 'scatterid-channel';
-const chaincodeName = 'scatterproof';
-const mspId = 'IssuerMSP';
+const channelName = process.env.FABRIC_CHANNEL_NAME || 'scatterid-channel';
+const chaincodeName = process.env.FABRIC_CHAINCODE_NAME || 'scatterproof';
+const mspId = process.env.FABRIC_MSP_ID || 'IssuerMSP';
 
 const peerEndpoint = process.env.FABRIC_PEER_ENDPOINT || (fsSync.existsSync('/app/blockchain') ? 'peer0.issuer.scatterid.com:7051' : 'localhost:7051');
 const peerHostAlias = process.env.FABRIC_PEER_HOST_ALIAS || 'peer0.issuer.scatterid.com';
@@ -30,10 +30,12 @@ const tlsCertPath = path.resolve(cryptoPath, 'peers/peer0.issuer.scatterid.com/t
 
 async function getFirstDirFileName(dirPath) {
   const files = await fs.readdir(dirPath);
-  // Filter out hidden/system files
-  const file = files.find(f => !f.startsWith('.'));
+  // Filter out hidden/system files and select matching cert/key files
+  const file = files.find(f => !f.startsWith('.') && (f.endsWith('.pem') || f.endsWith('.crt') || f.endsWith('_sk') || !f.includes('.')));
   if (!file) {
-    throw new Error(`No files in directory: ${dirPath}`);
+    const fallback = files.find(f => !f.startsWith('.'));
+    if (!fallback) throw new Error(`No files in directory: ${dirPath}`);
+    return path.join(dirPath, fallback);
   }
   return path.join(dirPath, file);
 }
@@ -55,69 +57,108 @@ let gatewayConnection = null;
 let clientConnection = null;
 let contractInstance = null;
 
+function resetConnection() {
+  if (gatewayConnection) {
+    try { gatewayConnection.close(); } catch (_) {}
+    gatewayConnection = null;
+  }
+  if (clientConnection) {
+    try { clientConnection.close(); } catch (_) {}
+    clientConnection = null;
+  }
+  contractInstance = null;
+}
+
 async function getContract() {
   if (contractInstance) {
     return contractInstance;
   }
 
-  const tlsRootCert = await fs.readFile(tlsCertPath);
-  const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
-  clientConnection = new grpc.Client(peerEndpoint, tlsCredentials, {
-    'grpc.ssl_target_name_override': peerHostAlias,
-  });
+  try {
+    const tlsRootCert = await fs.readFile(tlsCertPath);
+    const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
+    clientConnection = new grpc.Client(peerEndpoint, tlsCredentials, {
+      'grpc.ssl_target_name_override': peerHostAlias,
+      'grpc.keepalive_time_ms': 120000,
+      'grpc.http2.min_time_between_pings_ms': 60000,
+      'grpc.keepalive_timeout_ms': 20000,
+    });
 
-  gatewayConnection = connect({
-    client: clientConnection,
-    identity: await newIdentity(),
-    signer: await newSigner(),
-    hash: hash.sha256,
-  });
+    gatewayConnection = connect({
+      client: clientConnection,
+      identity: await newIdentity(),
+      signer: await newSigner(),
+      hash: hash.sha256,
+    });
 
-  const network = gatewayConnection.getNetwork(channelName);
-  contractInstance = network.getContract(chaincodeName);
-  return contractInstance;
+    const network = gatewayConnection.getNetwork(channelName);
+    contractInstance = network.getContract(chaincodeName);
+    return contractInstance;
+  } catch (err) {
+    resetConnection();
+    throw err;
+  }
 }
 
 export async function anchorProof(credentialId, dataHash, issuerId) {
-  const contract = await getContract();
-  const timestamp = new Date().toISOString();
-  const commit = await contract.submitAsync('AnchorProof', {
-    arguments: [credentialId, dataHash, issuerId, timestamp]
-  });
-  const txId = commit.getTransactionId();
-  const status = await commit.getStatus();
-  if (!status.successful) {
-    throw new Error(`Transaction ${txId} failed to commit with status ${status.code}`);
+  try {
+    const contract = await getContract();
+    const timestamp = new Date().toISOString();
+    const commit = await contract.submitAsync('AnchorProof', {
+      arguments: [credentialId, dataHash, issuerId || mspId, timestamp]
+    });
+    const txId = commit.getTransactionId();
+    const status = await commit.getStatus();
+    if (!status.successful) {
+      throw new Error(`Transaction ${txId} failed to commit with status ${status.code}`);
+    }
+    return txId;
+  } catch (err) {
+    resetConnection();
+    throw err;
   }
-  return txId;
 }
 
 export async function queryProof(credentialId) {
-  const contract = await getContract();
-  const resultBytes = await contract.evaluateTransaction('QueryProof', credentialId);
-  return JSON.parse(new TextDecoder().decode(resultBytes));
+  try {
+    const contract = await getContract();
+    const resultBytes = await contract.evaluateTransaction('QueryProof', credentialId);
+    return JSON.parse(new TextDecoder().decode(resultBytes));
+  } catch (err) {
+    resetConnection();
+    throw err;
+  }
 }
 
 export async function revokeProof(credentialId, issuerId) {
-  const contract = await getContract();
-  const resultBytes = await contract.submitTransaction('RevokeProof', credentialId, issuerId);
-  const resultStr = new TextDecoder().decode(resultBytes);
-  if (!resultStr || resultStr.trim() === '') return { success: true };
   try {
-    return JSON.parse(resultStr);
-  } catch {
-    return { success: true, raw: resultStr };
+    const contract = await getContract();
+    const resultBytes = await contract.submitTransaction('RevokeProof', credentialId, issuerId || mspId);
+    const resultStr = new TextDecoder().decode(resultBytes);
+    if (!resultStr || resultStr.trim() === '') return { success: true };
+    try {
+      return JSON.parse(resultStr);
+    } catch {
+      return { success: true, raw: resultStr };
+    }
+  } catch (err) {
+    resetConnection();
+    throw err;
   }
 }
 
 export async function proofExists(credentialId) {
-  const contract = await getContract();
-  const resultBytes = await contract.evaluateTransaction('ProofExists', credentialId);
-  return new TextDecoder().decode(resultBytes) === 'true';
+  try {
+    const contract = await getContract();
+    const resultBytes = await contract.evaluateTransaction('ProofExists', credentialId);
+    return new TextDecoder().decode(resultBytes) === 'true';
+  } catch (err) {
+    resetConnection();
+    throw err;
+  }
 }
 
 // Clean up connections on process exit
 process.on('exit', () => {
-  if (gatewayConnection) gatewayConnection.close();
-  if (clientConnection) clientConnection.close();
+  resetConnection();
 });

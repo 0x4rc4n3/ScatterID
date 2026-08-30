@@ -15,13 +15,30 @@ import { getAllCredentials, getAuditLogs } from './db/models.js';
 import { reconcileLedger, getReconciliationState, startPeriodicReconciliation } from './reconcile.js';
 
 const VERIFICATION_API_KEY = process.env.VERIFICATION_API_KEY || '';
-const REVOKE_API_KEY = process.env.REVOKE_API_KEY || process.env.VERIFICATION_API_KEY || '';
+const REVOKE_API_KEY = process.env.REVOKE_API_KEY || '';
+const CRYPTO_SERVICE_API_KEY = process.env.CRYPTO_SERVICE_API_KEY || '';
 
-// Fail fast at startup if no inbound API key is configured.
+// Fail fast at startup if required cryptographic access keys are unconfigured
 if (!VERIFICATION_API_KEY) {
   console.error(
     'FATAL: VERIFICATION_API_KEY must be set. ' +
     'The verification-api cannot start without an inbound authentication key.'
+  );
+  process.exit(1);
+}
+
+if (!REVOKE_API_KEY) {
+  console.error(
+    'FATAL: REVOKE_API_KEY must be set. ' +
+    'Irreversible on-chain revocation requires a dedicated administrative key.'
+  );
+  process.exit(1);
+}
+
+if (!CRYPTO_SERVICE_API_KEY) {
+  console.error(
+    'FATAL: CRYPTO_SERVICE_API_KEY must be set. ' +
+    'The verification gateway requires an outbound API key to connect to the PQC crypto-service.'
   );
   process.exit(1);
 }
@@ -94,14 +111,9 @@ export function requireRevokeAuth(req, res, next) {
 
 // Health check endpoint (unauthenticated)
 app.get('/healthz', (req, res) => {
-  const recon = getReconciliationState();
   res.json({
     status: 'ok',
-    service: 'verification-api',
-    reconciliation: {
-      lastReconciledAt: recon.lastReconciledAt,
-      mismatchCount: recon.mismatchCount
-    }
+    service: 'verification-api'
   });
 });
 

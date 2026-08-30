@@ -72,17 +72,17 @@ for i in {1..15}; do
 done
 
 # Enable approle auth
-docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=scatterid-vault-root-token vault.scatterid.com vault auth enable approle 2>/dev/null || true
+docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="$VAULT_TOKEN" vault.scatterid.com vault auth enable approle 2>/dev/null || true
 
 # Write custom security policy from file
-docker exec -i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=scatterid-vault-root-token vault.scatterid.com vault policy write issuer-policy - < components/crypto/crypto-service/vault/policies/issuer-policy.hcl >/dev/null
+docker exec -i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="$VAULT_TOKEN" vault.scatterid.com vault policy write issuer-policy - < components/crypto/crypto-service/vault/policies/issuer-policy.hcl >/dev/null
 
 # Create/configure role
-docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=scatterid-vault-root-token vault.scatterid.com vault write auth/approle/role/issuer-role token_policies="issuer-policy" token_ttl=1h token_max_ttl=4h >/dev/null
+docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="$VAULT_TOKEN" vault.scatterid.com vault write auth/approle/role/issuer-role token_policies="issuer-policy" token_ttl=1h token_max_ttl=4h >/dev/null
 
 # Retrieve AppRole Credentials dynamically
-export VAULT_ROLE_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=scatterid-vault-root-token vault.scatterid.com vault read -field=role_id auth/approle/role/issuer-role/role-id)
-export VAULT_SECRET_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=scatterid-vault-root-token vault.scatterid.com vault write -f -field=secret_id auth/approle/role/issuer-role/secret-id)
+export VAULT_ROLE_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="$VAULT_TOKEN" vault.scatterid.com vault read -field=role_id auth/approle/role/issuer-role/role-id)
+export VAULT_SECRET_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN="$VAULT_TOKEN" vault.scatterid.com vault write -f -field=secret_id auth/approle/role/issuer-role/secret-id)
 export VAULT_SECRET_PATH="scatterid/mldsa"
 
 # 4. Bring up Docker Compose Microservice Stack

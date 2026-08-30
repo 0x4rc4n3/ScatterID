@@ -7,7 +7,6 @@ import threading
 from flask import Flask, request, jsonify
 from kms import KMS, zeroize
 from interface import issue_credential, verify_credential
-from interface import issue_credential, verify_credential
 
 app = Flask(__name__)
 

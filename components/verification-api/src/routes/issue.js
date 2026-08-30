@@ -74,7 +74,7 @@ export async function issueRoute(req, res) {
       });
     }
 
-    await createCredential({
+    const insertResult = await createCredential({
       id: credentialId,
       dataHash: credential.dataHash,
       algorithm: credential.algorithm,
@@ -85,6 +85,23 @@ export async function issueRoute(req, res) {
       issuedAt: credential.issuedAt,
       idempotencyKey: idempotencyKey || null
     });
+
+    // Handle race condition: if concurrent request won the insert race, return the existing record
+    if (insertResult && insertResult.changes === 0 && idempotencyKey) {
+      const existing = await getCredentialByIdempotencyKey(idempotencyKey);
+      if (existing) {
+        return res.status(200).json({
+          status: existing.status,
+          credentialId: existing.id,
+          dataHash: existing.dataHash,
+          algorithm: existing.algorithm,
+          anchorTxId: existing.anchorTxId,
+          publicKeyId: existing.publicKeyId,
+          signature: existing.signature,
+          issuedAt: existing.issuedAt
+        });
+      }
+    }
 
     let anchorTxId = null;
     let anchorError = null;

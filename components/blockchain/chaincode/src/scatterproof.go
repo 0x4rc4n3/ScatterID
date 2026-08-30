@@ -74,6 +74,11 @@ func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface,
 		return err
 	}
 
+	// Emit chaincode event for asynchronous indexing and event-driven architectures
+	if err := ctx.GetStub().SetEvent("ProofAnchored", recordJSON); err != nil {
+		return fmt.Errorf("failed to emit ProofAnchored event: %v", err)
+	}
+
 	return ctx.GetStub().PutState(credentialID, recordJSON)
 }
 
@@ -125,8 +130,8 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("unauthorized: client MSP %s is not permitted to revoke proofs", clientMSPID)
 	}
 
-	// Ensure the caller is the original issuer
-	if record.IssuerID != requestingIssuerID {
+	// Ensure the caller matches the original issuer (or caller's authorized MSP)
+	if record.IssuerID != requestingIssuerID && record.IssuerID != clientMSPID {
 		return fmt.Errorf("unauthorized: requesting issuer %s does not match original issuer %s", requestingIssuerID, record.IssuerID)
 	}
 
@@ -135,6 +140,11 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 	recordJSON, err := json.Marshal(record)
 	if err != nil {
 		return err
+	}
+
+	// Emit chaincode event for instant downstream revocation propagation
+	if err := ctx.GetStub().SetEvent("ProofRevoked", recordJSON); err != nil {
+		return fmt.Errorf("failed to emit ProofRevoked event: %v", err)
 	}
 
 	return ctx.GetStub().PutState(credentialID, recordJSON)

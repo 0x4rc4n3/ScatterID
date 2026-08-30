@@ -32,16 +32,6 @@ export async function revokeRoute(req, res) {
     // Call Fabric chaincode smart contract: RevokeProof(credentialID, issuerID)
     try {
       await revokeProof(credentialId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
-      // Update local SQLite registry state ONLY AFTER ledger transaction succeeds
-      await updateStatus(credentialId, 'revoked');
-      
-      recordAuditLog({
-        credentialId,
-        action: 'revoke',
-        status: 'revoked',
-        details: { previousStatus: record.status },
-        callerTier: req.callerTier || 'revoke_api_key'
-      });
     } catch (fabricErr) {
       console.error(`[Fabric] RevokeProof failed for ${credentialId}:`, fabricErr.message);
       
@@ -56,6 +46,27 @@ export async function revokeRoute(req, res) {
       return res.status(502).json({
         error: `Ledger revocation failed: ${fabricErr.message}`,
         code: 'LEDGER_UNREACHABLE',
+      });
+    }
+
+    try {
+      // Update local SQLite registry state ONLY AFTER ledger transaction succeeds
+      await updateStatus(credentialId, 'revoked');
+      
+      recordAuditLog({
+        credentialId,
+        action: 'revoke',
+        status: 'revoked',
+        details: { previousStatus: record.status },
+        callerTier: req.callerTier || 'revoke_api_key'
+      });
+    } catch (dbErr) {
+      console.error(`[DB] Local updateStatus failed after ledger revocation for ${credentialId}:`, dbErr.message);
+      return res.status(500).json({
+        error: 'Ledger revocation succeeded, but local cache update failed. State will self-heal during periodic reconciliation.',
+        code: 'LOCAL_STATE_UPDATE_FAILED',
+        credentialId,
+        status: 'revoked_on_ledger'
       });
     }
 

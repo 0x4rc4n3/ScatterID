@@ -2,7 +2,7 @@
 FROM node:20-slim AS sdk-builder
 WORKDIR /sdk
 COPY sdk/package*.json ./
-RUN npm install
+RUN npm ci
 COPY sdk/ ./
 RUN npm run build
 
@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Copy dashboard package files and install dependencies
 COPY components/project-dashboard/package*.json ./
-RUN npm install
+RUN npm ci --omit=dev
 
 # Copy compiled SDK into /app/sdk
 COPY --from=sdk-builder /sdk /app/sdk

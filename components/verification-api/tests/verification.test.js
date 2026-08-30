@@ -1,3 +1,9 @@
+process.env.NODE_ENV = 'test';
+process.env.SQLITE_DB_PATH = ':memory:';
+process.env.VERIFICATION_API_KEY = 'test-key';
+process.env.REVOKE_API_KEY = 'test-revoke-key';
+process.env.CRYPTO_SERVICE_API_KEY = 'test-crypto-key';
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

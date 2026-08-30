@@ -91,7 +91,7 @@ const stmts = {
 };
 
 export async function createCredential(record) {
-  stmts.insertCred.run({
+  const result = stmts.insertCred.run({
     id: record.id,
     dataHash: record.dataHash,
     algorithm: record.algorithm,
@@ -102,7 +102,7 @@ export async function createCredential(record) {
     issuedAt: record.issuedAt,
     idempotencyKey: record.idempotencyKey || null
   });
-  return [];
+  return result;
 }
 
 export async function getCredentialById(id) {

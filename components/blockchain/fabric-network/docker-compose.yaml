@@ -129,7 +129,7 @@ services:
     container_name: vault.scatterid.com
     image: hashicorp/vault:1.15.2
     environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=scatterid-vault-root-token
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
       - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     ports:
       - 8200:8200
