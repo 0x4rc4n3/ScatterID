@@ -1,6 +1,7 @@
 # ScatterID — Post-Quantum Identity Verification Infrastructure
 
 [![Website](https://img.shields.io/badge/Website-scatterid.tech-blue.svg)](https://www.scatterid.tech/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0x4rc4n3-blue.svg?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/0x4rc4n3)
 [![CI](https://github.com/0x4rc4n3/ScatterID/actions/workflows/ci.yml/badge.svg)](https://github.com/0x4rc4n3/ScatterID/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/0x4rc4n3/ScatterID/actions/workflows/codeql.yml/badge.svg)](https://github.com/0x4rc4n3/ScatterID/actions/workflows/codeql.yml)
 [![Security: Gitleaks](https://img.shields.io/badge/Security-Gitleaks-blue.svg)](https://github.com/gitleaks/gitleaks)
@@ -134,12 +135,18 @@ ScatterID/
 
 ---
 
-## Contact & Security Disclosures
+## About the Creator
 
-* **Lead Researcher & Developer:** Mudassir Javed (`0x4rc4n3`)
+ScatterID is designed and built by **Mudassir Javed** (`0x4rc4n3`), a cybersecurity graduate focused on security architecture, applied cryptography, and turning standards-track research (like NIST's post-quantum signature schemes) into deployable systems. This project is the technical centerpiece of that focus — an end-to-end reference architecture rather than a single algorithm demo, covering key management, service topology, offline verification tooling, and operational documentation.
+
+* **LinkedIn:** [linkedin.com/in/0x4rc4n3](https://www.linkedin.com/in/0x4rc4n3)
 * **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
-* **Official Website:** [https://www.scatterid.tech/](https://www.scatterid.tech/)
-* **Security Policy:** See [SECURITY.md](SECURITY.md) for our responsible disclosure process and vulnerability response commitments.
+* **Website:** [scatterid.tech](https://www.scatterid.tech/)
+* **GitHub:** [github.com/0x4rc4n3](https://github.com/0x4rc4n3)
+
+## Security Disclosures
+
+See [SECURITY.md](SECURITY.md) for our responsible disclosure process and vulnerability response commitments.
 
 ---
 
