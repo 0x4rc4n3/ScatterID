@@ -135,6 +135,11 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("unauthorized: requesting issuer %s does not match original issuer %s", requestingIssuerID, record.IssuerID)
 	}
 
+	// Idempotent guard: prevent duplicate revocations, wasted ledger writes, and spurious events
+	if record.Status == "revoked" {
+		return fmt.Errorf("proof %s is already revoked", credentialID)
+	}
+
 	record.Status = "revoked"
 
 	recordJSON, err := json.Marshal(record)

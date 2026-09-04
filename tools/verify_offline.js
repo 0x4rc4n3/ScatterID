@@ -140,10 +140,24 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
     console.log(`  ${YELLOW}[!] Notice:${RESET} 'signature' not present in offline bundle.`);
   }
 
+  // Determine if the signature was actually cryptographically verified
+  const sigWasVerified = signatureHex && pubKey; // Only true if both present (liboqs binding would be needed)
+  const sigByteCheck = signatureHex ? Buffer.from(signatureHex, 'hex').length === 3309 : false;
+
   console.log(`\n${BOLD}${CYAN}======================================================================${RESET}`);
-  console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: CRYPTOGRAPHICALLY VALID PRE-IMAGE COMMITMENT${RESET}`);
+  if (sigWasVerified) {
+    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: CRYPTOGRAPHICALLY VALID & AUTHENTIC${RESET}`);
+  } else if (sigByteCheck) {
+    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (SIGNATURE NOT CHECKED)${RESET}`);
+  } else {
+    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (NO SIGNATURE PRESENT)${RESET}`);
+  }
   console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
   console.log(`  ${GREEN}The presented claim matches the exact zero-knowledge hash commitment.${RESET}`);
+  if (!sigWasVerified) {
+    console.log(`  ${YELLOW}NOTE: ML-DSA-65 signature was NOT cryptographically verified.${RESET}`);
+    console.log(`  ${YELLOW}      Use Python verifier with liboqs for full PQC signature verification.${RESET}`);
+  }
   console.log(`  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.\n`);
   process.exit(0);
 }

@@ -25,6 +25,17 @@ export class ScatterIDClient {
     }
 
     private computeHash(claim: object, saltHex: string): string {
+        // Validate salt is a well-formed 32-char hex string (16 bytes).
+        // Buffer.from(x, 'hex') silently drops non-hex characters, which would
+        // corrupt the hash with no error — causing valid credentials to fail
+        // verification downstream with a misleading "tampered" verdict.
+        if (!saltHex || !/^[0-9a-f]{32}$/i.test(saltHex)) {
+            throw new InvalidClaimError(
+                "Salt must be a 32-character hex string (16 bytes)",
+                "INVALID_SALT"
+            );
+        }
+
         const canonicalized = canonicalize(claim);
         if (!canonicalized) throw new InvalidClaimError("Failed to canonicalize claim", "INVALID_CLAIM");
         

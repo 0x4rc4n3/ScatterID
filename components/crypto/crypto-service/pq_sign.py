@@ -21,8 +21,15 @@ def sign_data(data: bytes, private_key, algorithm: str = "ML-DSA-65") -> bytes:
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
     # oqs.Signature accepts bytes; convert bytearray transparently.
+    # SECURITY: signer.free() calls OQS_SIG_free() which invokes
+    # OQS_MEM_secure_free() on the internal C-level secret key buffer.
+    # Without this, the bytes(private_key) copy persists in the C heap
+    # until process exit, recoverable from memory dumps / core dumps.
     signer = oqs.Signature(algorithm, secret_key=bytes(private_key))
-    return signer.sign(bytes(data))
+    try:
+        return signer.sign(bytes(data))
+    finally:
+        signer.free()
 
 
 def verify_signature(data: bytes, signature: bytes, public_key: bytes, algorithm: str = "ML-DSA-65") -> bool:

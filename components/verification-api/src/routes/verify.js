@@ -118,12 +118,14 @@ export async function verifyRoute(req, res) {
 
       const result = await response.json();
       
-      // Strict Fail-Closed Rule:
-      // Valid iff cryptographic signature is valid AND ledger anchor is active on-chain
+      // Strict Fail-Closed Rule (ZERO EXCEPTIONS):
+      // Valid iff cryptographic signature is valid AND ledger anchor is active on-chain.
+      // SECURITY: No environment-based bypass. If the ledger is unreachable,
+      // the credential MUST resolve to invalid. Test environments should mock
+      // the Fabric client via dependency injection, not short-circuit validation.
       const isSignatureValid = result && result.valid === true;
-      const isLedgerActive = isAnchoredOnChain
-        ? (anchorStatus === 'active' || anchorStatus === 'anchored')
-        : (process.env.NODE_ENV === 'test' && record.status === 'anchored');
+      const isLedgerActive = isAnchoredOnChain &&
+        (anchorStatus === 'active' || anchorStatus === 'anchored');
       const isValid = isSignatureValid && isLedgerActive;
 
       let reason;

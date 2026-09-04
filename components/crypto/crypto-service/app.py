@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 kms = KMS()
 PUBLIC_KEY, PRIVATE_KEY = kms.get_keys()
-PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
+PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:32]  # 128-bit collision resistance
 
 state_lock = threading.RLock()
 
@@ -88,7 +88,7 @@ def verify_hash_route():
     # Also check historical keys if necessary
     with kms.lock:
         for pk in getattr(kms, 'public_key_history', []):
-            if hashlib.sha256(pk).hexdigest()[:16] == public_key_id:
+            if hashlib.sha256(pk).hexdigest()[:32] == public_key_id:
                 keys_to_test.append(pk)
                 
     if not keys_to_test:
@@ -109,7 +109,7 @@ def rotate_route():
         with state_lock:
             old_priv = PRIVATE_KEY
             PUBLIC_KEY, PRIVATE_KEY = kms.rotate_keys()
-            PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:16]
+            PUBLIC_KEY_ID = hashlib.sha256(PUBLIC_KEY).hexdigest()[:32]  # 128-bit collision resistance
             if old_priv:
                 zeroize(old_priv)
         return jsonify({

@@ -24,6 +24,15 @@ import os
 import json
 import hashlib
 import hmac
+try:
+    import rfc8785
+    def canonicalize(obj):
+        """RFC 8785 deterministic JSON representation with IEEE 754 number serialization."""
+        return rfc8785.dumps(obj).decode('utf-8')
+except ImportError:
+    def canonicalize(obj):
+        """Zero-dependency fallback RFC 8785 representation for string/integer fields."""
+        return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 import argparse
 
 # ANSI terminal colors
@@ -42,9 +51,6 @@ def print_header():
     print("Standards: RFC 8785 JSON Canonicalization (JCS) | SHA3-256 | ML-DSA-65 (FIPS 204)")
     print(f"Mode:      {BOLD}100% OFFLINE (Zero Network Transit){RESET}\n")
 
-def canonicalize(obj):
-    """RFC 8785 deterministic JSON representation."""
-    return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 
 def verify_offline(raw_json, cli_public_key=None):
     try:
@@ -132,9 +138,10 @@ def verify_offline(raw_json, cli_public_key=None):
             else:
                 print(f"  {RED}✕ Level 2 Failed:{RESET} Signature is INVALID for the provided Public Key.")
         except ImportError:
-            print(f"  {YELLOW}[!] Notice:{RESET} `oqs` (liboqs-python) not installed locally. Signature structure validated ({len(signature_hex)//2} bytes).")
-            print(f"      To execute hardware PQC signature verification, install liboqs-python or verify via container.")
-            sig_verified = True  # Format validated
+            print(f"  {RED}[!] CRITICAL:{RESET} `oqs` (liboqs-python) is not installed. ML-DSA-65 signature CANNOT be verified.")
+            print(f"      Install liboqs-python or verify via the Docker container to perform full PQC signature verification.")
+            sig_checked = False  # Override: signature was never actually checked
+            sig_verified = False
         except Exception as e:
             print(f"  {RED}✕ Level 2 Error:{RESET} Failed to verify signature: {e}")
             sig_verified = False
