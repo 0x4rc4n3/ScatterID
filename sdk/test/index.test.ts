@@ -93,5 +93,99 @@ describe('ScatterIDClient', () => {
         expect(result.status).toEqual('revoked');
         expect(result.credentialId).toEqual(testCredId);
     });
+
+    it('should support dedicated revokeApiKey and custom revoke key overrides', async () => {
+        const client = new ScatterIDClient({
+            apiKey: 'general-api-key',
+            revokeApiKey: 'dedicated-revoke-key',
+            issuanceUrl: 'http://gateway:3000'
+        });
+        const testCredId = '77777777-8888-4999-aaaa-bbbbbbbbbbbb';
+
+        global.fetch = (jest.fn as any)().mockImplementation(async (url: any, options: any) => {
+            expect(url).toEqual('http://gateway:3000/revoke');
+            expect(options.method).toEqual('POST');
+            expect(options.headers['Authorization']).toEqual('Bearer dedicated-revoke-key');
+            expect(options.headers['X-Revoke-Key']).toEqual('dedicated-revoke-key');
+            expect(JSON.parse(options.body)).toEqual({ credentialId: testCredId });
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    success: true,
+                    credentialId: testCredId,
+                    status: 'revoked',
+                    message: 'Credential revoked'
+                })
+            };
+        });
+
+        const result = await client.revoke(testCredId);
+        expect(result.success).toBe(true);
+
+        // Test custom revoke key override passed per call
+        global.fetch = (jest.fn as any)().mockImplementation(async (url: any, options: any) => {
+            expect(options.headers['Authorization']).toEqual('Bearer one-off-key');
+            expect(options.headers['X-Revoke-Key']).toEqual('one-off-key');
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    success: true,
+                    credentialId: testCredId,
+                    status: 'revoked',
+                    message: 'Credential revoked'
+                })
+            };
+        });
+
+        const result2 = await client.revoke(testCredId, 'one-off-key');
+        expect(result2.success).toBe(true);
+    });
+
+    it('should query credential history via getHistory', async () => {
+        const client = new ScatterIDClient({
+            apiKey: 'history-key',
+            verificationUrl: 'http://gateway:3000'
+        });
+        const testCredId = '77777777-8888-4999-aaaa-bbbbbbbbbbbb';
+
+        global.fetch = (jest.fn as any)().mockImplementation(async (url: any, options: any) => {
+            expect(url).toEqual(`http://gateway:3000/credentials/${testCredId}/history`);
+            expect(options.headers['Authorization']).toEqual('Bearer history-key');
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    success: true,
+                    credentialId: testCredId,
+                    history: [
+                        {
+                            txId: 'tx-101',
+                            timestamp: '2026-09-05T00:00:00Z',
+                            isDelete: false,
+                            value: {
+                                credentialId: testCredId,
+                                dataHash: 'abcd',
+                                issuerId: 'IssuerMSP',
+                                status: 'ACTIVE',
+                                timestamp: 1788566400,
+                                anchorTxId: 'tx-101'
+                            }
+                        }
+                    ]
+                })
+            };
+        });
+
+        const historyRes = await client.getHistory(testCredId);
+        expect(historyRes.success).toBe(true);
+        expect(historyRes.credentialId).toEqual(testCredId);
+        expect(historyRes.history).toHaveLength(1);
+        expect(historyRes.history[0].txId).toEqual('tx-101');
+        expect(historyRes.history[0].value?.status).toEqual('ACTIVE');
+    });
 });
 

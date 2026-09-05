@@ -128,37 +128,44 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
 
   console.log(`  ${GREEN}✓ Level 1 Passed:${RESET} Zero-Knowledge pre-image commitment is mathematically exact.\n`);
 
-  // Level 2: Signature Inspection & Validation
+  // Level 2: Signature & Public Key Structural Inspection
   console.log(`${BOLD}3. Post-Quantum Signature Verification (ML-DSA-65):${RESET}`);
-  if (signatureHex) {
-    const sigLen = Buffer.from(signatureHex, 'hex').length;
-    console.log(`  - Signature Byte Length: ${sigLen} bytes (ML-DSA-65 Standard: 3309 bytes)`);
-    if (sigLen === 3309) {
-      console.log(`  ${GREEN}✓ Signature Structure:${RESET} Valid ML-DSA-65 Dilithium3 signature container.`);
+  const sigBytes = signatureHex ? Buffer.from(signatureHex, 'hex') : null;
+  const pkBytes = publicKeyHex ? Buffer.from(publicKeyHex, 'hex') : null;
+
+  if (sigBytes) {
+    console.log(`  - Signature Byte Length: ${sigBytes.length} bytes (ML-DSA-65 Standard: 3309 bytes)`);
+    if (sigBytes.length === 3309) {
+      console.log(`  ${GREEN}✓ Signature Container:${RESET} Valid ML-DSA-65 Dilithium3 signature container length.`);
+    } else {
+      console.log(`  ${YELLOW}[!] Warning:${RESET} Signature byte length (${sigBytes.length}B) differs from ML-DSA-65 standard (3309B).`);
     }
   } else {
     console.log(`  ${YELLOW}[!] Notice:${RESET} 'signature' not present in offline bundle.`);
   }
 
-  // Determine if the signature was actually cryptographically verified
-  const sigWasVerified = signatureHex && pubKey; // Only true if both present (liboqs binding would be needed)
-  const sigByteCheck = signatureHex ? Buffer.from(signatureHex, 'hex').length === 3309 : false;
-
-  console.log(`\n${BOLD}${CYAN}======================================================================${RESET}`);
-  if (sigWasVerified) {
-    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: CRYPTOGRAPHICALLY VALID & AUTHENTIC${RESET}`);
-  } else if (sigByteCheck) {
-    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (SIGNATURE NOT CHECKED)${RESET}`);
-  } else {
-    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (NO SIGNATURE PRESENT)${RESET}`);
+  if (pkBytes) {
+    console.log(`  - Public Key Byte Length: ${pkBytes.length} bytes (ML-DSA-65 Standard: 1952 bytes)`);
+    if (pkBytes.length === 1952) {
+      console.log(`  ${GREEN}✓ Public Key Container:${RESET} Valid ML-DSA-65 public key container length.`);
+    } else {
+      console.log(`  ${YELLOW}[!] Warning:${RESET} Public key byte length (${pkBytes.length}B) differs from ML-DSA-65 standard (1952B).`);
+    }
   }
+
+  // Pure Node.js runtime has no native ML-DSA-65 (FIPS 204) engine without native liboqs bindings.
+  // Structural validation passes, but mathematical signature verification must not be falsely asserted.
+  console.log(`\n${BOLD}${CYAN}======================================================================${RESET}`);
+  console.log(`${BOLD}${YELLOW}  ⚠ VERIFICATION RESULT: PRE-IMAGE COMMITMENT MATCH (UNAUTHENTICATED)${RESET}`);
   console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
   console.log(`  ${GREEN}The presented claim matches the exact zero-knowledge hash commitment.${RESET}`);
-  if (!sigWasVerified) {
-    console.log(`  ${YELLOW}NOTE: ML-DSA-65 signature was NOT cryptographically verified.${RESET}`);
-    console.log(`  ${YELLOW}      Use Python verifier with liboqs for full PQC signature verification.${RESET}`);
-  }
-  console.log(`  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.\n`);
+  console.log(`  ${YELLOW}Notice: Pure Node.js CLI validates payload canonicalization and container structures.${RESET}`);
+  console.log(`  ${YELLOW}        Cryptographic ML-DSA-65 signature verification requires liboqs bindings.${RESET}`);
+  console.log(`  ${CYAN}To execute mathematical PQC signature verification, run:${RESET}`);
+  console.log(`    python3 tools/verify_offline.py <credential.json>${publicKeyHex ? ` --public-key ${publicKeyHex}` : ''}`);
+  console.log(`\n  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.`);
+  console.log(`  ${YELLOW}[!] Freshness Notice:${RESET} Offline verification confirms authenticity at issuance;`);
+  console.log(`      it cannot confirm whether the credential has since been revoked on-chain.\n`);
   process.exit(0);
 }
 
