@@ -147,18 +147,22 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
   console.log(`\n${BOLD}${CYAN}======================================================================${RESET}`);
   if (sigWasVerified) {
     console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: CRYPTOGRAPHICALLY VALID & AUTHENTIC${RESET}`);
-  } else if (sigByteCheck) {
-    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (SIGNATURE NOT CHECKED)${RESET}`);
+    console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
+    console.log(`  ${GREEN}The presented claim matches the exact zero-knowledge hash commitment.${RESET}`);
+    console.log(`  ${GREEN}ML-DSA-65 digital signature confirmed authentic from authorized issuer.${RESET}`);
   } else {
-    console.log(`${BOLD}${GREEN}  ✓ VERIFICATION RESULT: HASH COMMITMENT VALID (NO SIGNATURE PRESENT)${RESET}`);
+    console.log(`${BOLD}${YELLOW}  ⚠ VERIFICATION RESULT: PRE-IMAGE COMMITMENT MATCH (UNAUTHENTICATED)${RESET}`);
+    console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
+    console.log(`  ${YELLOW}The presented claim matches the hash commitment, but NO digital signature was verified.${RESET}`);
+    console.log(`  ${YELLOW}Anyone can construct arbitrary claims matching a self-generated commitment without issuer authority.${RESET}`);
+    if (sigByteCheck) {
+      console.log(`  ${YELLOW}NOTE: Signature structure present (${Buffer.from(signatureHex, 'hex').length}B), but not cryptographically verified.${RESET}`);
+      console.log(`  ${YELLOW}      Use Python verifier with liboqs for full PQC signature verification.${RESET}`);
+    }
   }
-  console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
-  console.log(`  ${GREEN}The presented claim matches the exact zero-knowledge hash commitment.${RESET}`);
-  if (!sigWasVerified) {
-    console.log(`  ${YELLOW}NOTE: ML-DSA-65 signature was NOT cryptographically verified.${RESET}`);
-    console.log(`  ${YELLOW}      Use Python verifier with liboqs for full PQC signature verification.${RESET}`);
-  }
-  console.log(`  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.\n`);
+  console.log(`  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.`);
+  console.log(`  ${YELLOW}[!] Freshness Notice:${RESET} Offline verification confirms authenticity at issuance;`);
+  console.log(`      it cannot confirm whether the credential has since been revoked on-chain.\n`);
   process.exit(0);
 }
 

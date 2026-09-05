@@ -151,13 +151,19 @@ def verify_offline(raw_json, cli_public_key=None):
 
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
     if hash_matches and (not sig_checked or sig_verified):
-        status_label = "CRYPTOGRAPHICALLY VALID & AUTHENTIC" if (sig_checked and sig_verified) else "PRE-IMAGE COMMITMENT VALID (NO SIG CHECK)"
-        print(f"{BOLD}{GREEN}  ✓ VERIFICATION RESULT: {status_label}{RESET}")
-        print(f"{BOLD}{CYAN}======================================================================{RESET}")
-        print(f"  {GREEN}The presented claim matches the exact zero-knowledge hash commitment.{RESET}")
         if sig_checked and sig_verified:
+            print(f"{BOLD}{GREEN}  ✓ VERIFICATION RESULT: CRYPTOGRAPHICALLY VALID & AUTHENTIC{RESET}")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            print(f"  {GREEN}The presented claim matches the exact zero-knowledge hash commitment.{RESET}")
             print(f"  {GREEN}ML-DSA-65 digital signature confirmed authentic from authorized issuer.{RESET}")
-        print("  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.\n")
+        else:
+            print(f"{BOLD}{YELLOW}  ⚠ VERIFICATION RESULT: PRE-IMAGE COMMITMENT MATCH (UNAUTHENTICATED){RESET}")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            print(f"  {YELLOW}The presented claim matches the hash commitment, but NO digital signature was verified.{RESET}")
+            print(f"  {YELLOW}Anyone can construct arbitrary claims matching a self-generated commitment without issuer authority.{RESET}")
+        print("  Zero-Knowledge Property Confirmed: Verification completed offline with zero leakage.")
+        print(f"  {YELLOW}[!] Freshness Notice:{RESET} Offline verification confirms authenticity at issuance;")
+        print(f"      it cannot confirm whether the credential has since been revoked on-chain.\n")
         sys.exit(0)
     else:
         print(f"{BOLD}{RED}  ✕ VERIFICATION RESULT: SIGNATURE VERIFICATION FAILED{RESET}")
