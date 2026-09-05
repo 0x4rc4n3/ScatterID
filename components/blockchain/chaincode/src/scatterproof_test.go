@@ -296,6 +296,47 @@ func TestRevokeProof_MismatchedIssuer(t *testing.T) {
 	}
 }
 
+func TestRevokeProof_ExploitRegression_BypassWhenIssuerEqualsMSP(t *testing.T) {
+	// REGRESSION TEST for BUG-BLOCKCHAIN-1:
+	// In the flawed original logic:
+	//   if record.IssuerID != requestingIssuerID && record.IssuerID != clientMSPID
+	// when a credential had record.IssuerID == "IssuerMSP", the second clause evaluated to false.
+	// Because of the '&&', the entire check failed to trigger, allowing an attacker to supply
+	// any arbitrary requestingIssuerID (e.g. "UnauthorizedAttacker") and successfully revoke the credential.
+	contract := &SmartContract{}
+	ctx := newMockContext("IssuerMSP") // Valid MSP identity
+
+	testCredID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	ctx.startTx("tx-anchor-exploit")
+	err := contract.AnchorProof(ctx, testCredID, validHash, "IssuerMSP", "2026-09-05T12:00:00Z")
+	ctx.endTx("tx-anchor-exploit")
+	if err != nil {
+		t.Fatalf("AnchorProof failed: %v", err)
+	}
+
+	// Attacker attempts revocation with unauthorized requestingIssuerID
+	ctx.startTx("tx-revoke-exploit-attempt")
+	err = contract.RevokeProof(ctx, testCredID, "UnauthorizedAttacker")
+	ctx.endTx("tx-revoke-exploit-attempt")
+
+	if err == nil {
+		t.Fatal("CRITICAL: Exploit succeeded! UnauthorizedAttacker revoked credential because record.IssuerID == clientMSPID")
+	}
+	expectedMsg := "requesting issuer UnauthorizedAttacker does not match original issuer IssuerMSP"
+	if !strings.Contains(err.Error(), expectedMsg) {
+		t.Errorf("expected error containing '%s', got: %v", expectedMsg, err)
+	}
+
+	// Verify proof state remains active and was NOT altered
+	record, err := contract.QueryProof(ctx, testCredID)
+	if err != nil {
+		t.Fatalf("QueryProof failed: %v", err)
+	}
+	if record.Status != "active" {
+		t.Errorf("expected record status to remain 'active', got '%s'", record.Status)
+	}
+}
+
 func TestProofExists(t *testing.T) {
 	contract := &SmartContract{}
 	ctx := newMockContext("IssuerMSP")
