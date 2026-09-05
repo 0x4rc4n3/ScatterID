@@ -7,8 +7,7 @@
 # microservices, and runs readiness health probes.
 #
 # Usage:
-#   ./scripts/start.sh                   # Core backend only (Crypto + Gateway + Fabric + Vault)
-#   ./scripts/start.sh --with-dashboard  # Core backend + Web Operator Dashboard
+#   ./scripts/start.sh                   # Core backend (Crypto + Gateway + Fabric + Vault)
 #
 # If you are setting up ScatterID for the first time, run: ./scripts/quickstart.sh
 # ==============================================================================
@@ -17,16 +16,6 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
 cd "$DIR"
-
-WITH_DASHBOARD=false
-for arg in "$@"; do
-  case $arg in
-    --with-dashboard|--dashboard|-d)
-      WITH_DASHBOARD=true
-      shift
-      ;;
-  esac
-done
 
 if [ -f .env ]; then
   set -a
@@ -86,14 +75,8 @@ export VAULT_SECRET_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAUL
 export VAULT_SECRET_PATH="scatterid/mldsa"
 
 # 4. Bring up Docker Compose Microservice Stack
-if [ "$WITH_DASHBOARD" = true ]; then
-  echo "[+] Starting full stack (Backend + Operator Dashboard)..."
-  docker compose --profile dashboard up -d
-else
-  echo "[+] Starting core backend stack (Crypto Service + Verification Gateway + Vault)..."
-  echo "    (Tip: Run with --with-dashboard to also launch the Web Operator Console)"
-  docker compose up -d
-fi
+echo "[+] Starting core backend stack (Crypto Service + Verification Gateway + Vault)..."
+docker compose up -d
 
 # 5. Connect Fabric nodes to Compose network for gateway TCP visibility
 NET_NAME=$(docker network ls --format "{{.Name}}" | grep "scatterid_net" | head -n 1)
@@ -106,11 +89,7 @@ fi
 
 # 6. Synchronize container application layers
 echo "[+] Synchronizing container application layers..."
-if [ "$WITH_DASHBOARD" = true ]; then
-  docker compose --profile dashboard restart verification-api project-dashboard >/dev/null 2>&1 || true
-else
-  docker compose restart verification-api >/dev/null 2>&1 || true
-fi
+docker compose restart verification-api >/dev/null 2>&1 || true
 
 # 7. Perform live health probe
 echo "[+] Performing multi-point health check..."
@@ -126,15 +105,8 @@ echo "=========================================================="
 echo "  - Verification Gateway: http://localhost:3000"
 echo "  - Crypto Microservice:  https://localhost:5001"
 echo "  - HashiCorp Vault:      http://localhost:8200"
-if [ "$WITH_DASHBOARD" = true ]; then
-  DASHBOARD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/healthz || echo "000")
-  echo "  - Operator Dashboard:   http://localhost:4000"
-fi
 echo "=========================================================="
 echo "  Service Probe Results:"
 echo "    Crypto Service (HTTPS:5001):   HTTP $CRYPTO_STATUS (Auth Enforced)"
 echo "    Verification API (HTTP:3000):  HTTP $VERIFY_STATUS (Gateway Ready)"
-if [ "$WITH_DASHBOARD" = true ]; then
-  echo "    Dashboard Console (HTTP:4000): HTTP $DASHBOARD_STATUS (Active)"
-fi
 echo "=========================================================="

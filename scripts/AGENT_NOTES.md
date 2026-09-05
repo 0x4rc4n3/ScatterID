@@ -11,3 +11,9 @@
 - Fix: Expanded `.gitignore` with comprehensive rules for `.gemini/`, `.claude/`, `.antigravity/`, `.agent/`, `scratch/`, `notes.txt`, `*.tmp`, `*~`, `.*.swp`, and wildcard `.env.*` with `!.env.example`.
 - Files touched: `.gitignore`, `scripts/AGENT_NOTES.md`
 - Anything deferred / follow-up needed: none
+
+## [2026-09-05] — Remove decommissioned project-dashboard service and script flags
+- Problem: `project-dashboard` was decommissioned in #13/#14. Compose and orchestration scripts retained dashboard service configs and startup flags.
+- Fix: Removed `project-dashboard` service and volumes from `docker-compose.yml`. Removed `--with-dashboard` flags and health probes from `scripts/quickstart.sh`, `scripts/start.sh`, `scripts/test_all.sh`, and `scripts/check_deps.sh`.
+- Files touched: `docker-compose.yml`, `scripts/quickstart.sh`, `scripts/start.sh`, `scripts/test_all.sh`, `scripts/check_deps.sh`, `scripts/AGENT_NOTES.md`
+- Anything deferred / follow-up needed: none

@@ -20,15 +20,15 @@ if [ -z "$CRYPTO_SERVICE_API_KEY" ] || [ -z "$VERIFICATION_API_KEY" ] || [ -z "$
     exit 1
 fi
 
-echo "[1/4] Checking running stack..."
-docker compose --profile dashboard up -d
+echo "[1/3] Checking running stack..."
+docker compose up -d
 
 # Give containers a moment to settle
 sleep 2
 
 # 2. Test Crypto Service (Port 5001)
 echo ""
-echo "[2/4] Testing Crypto Microservice (Flask / HTTPS:5001)..."
+echo "[2/3] Testing Crypto Microservice (Flask / HTTPS:5001)..."
 
 DATA_HASH="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
@@ -50,7 +50,7 @@ fi
 
 # 3. Test Verification API (Port 3000) - Full Issuance & Verification
 echo ""
-echo "[3/4] Testing Verification API (Express / HTTP:3000)..."
+echo "[3/3] Testing Verification API (Express / HTTP:3000)..."
 
 ID_KEY="idemp-key-$(date -u +%s%N)"
 
@@ -84,21 +84,6 @@ if [ -n "$CRED_ID" ]; then
     fi
 else
     echo "  -> Credential Issuance: FAILED"
-    exit 1
-fi
-
-# 4. Test Project Control Dashboard (Port 4000)
-echo ""
-echo "[4/4] Testing Control Dashboard (Express / HTTP:4000)..."
-
-DASHBOARD_STATUS=$(curl -s -H "Authorization: Bearer $GATEWAY_API_KEY" http://localhost:4000/api/status)
-echo "  -> GET /api/status response:"
-echo "     $DASHBOARD_STATUS"
-
-if echo "$DASHBOARD_STATUS" | grep -q "services"; then
-    echo "  -> Control Dashboard /api/status: PASSED"
-else
-    echo "  -> Control Dashboard /api/status: FAILED"
     exit 1
 fi
 
