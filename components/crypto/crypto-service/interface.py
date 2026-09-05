@@ -30,8 +30,12 @@ def verify_credential(data_hash: str, signature_hex: str, public_key: bytes, alg
     try:
         hash_bytes = bytes.fromhex(data_hash)
         signature_bytes = bytes.fromhex(signature_hex)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
+
+    if algorithm == "ML-DSA-65":
+        if len(signature_bytes) != 3309 or len(public_key) != 1952:
+            return False
 
     try:
         return verify_signature(hash_bytes, signature_bytes, public_key, algorithm)

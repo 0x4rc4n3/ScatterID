@@ -58,6 +58,20 @@ func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("invalid timestamp: must be non-empty and under 64 characters")
 	}
 
+	parsedTime, err := time.Parse(time.RFC3339Nano, timestamp)
+	if err != nil {
+		parsedTime, err = time.Parse(time.RFC3339, timestamp)
+		if err != nil {
+			return fmt.Errorf("invalid timestamp format: must be valid RFC 3339 / ISO 8601 format: %v", err)
+		}
+	}
+	if parsedTime.Before(time.Unix(0, 0)) {
+		return fmt.Errorf("invalid timestamp: date precedes Unix epoch (1970-01-01)")
+	}
+	if parsedTime.Year() > 2100 {
+		return fmt.Errorf("invalid timestamp: date exceeds maximum supported year 2100")
+	}
+
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return fmt.Errorf("failed to get client MSP ID: %v", err)

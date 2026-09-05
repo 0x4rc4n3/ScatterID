@@ -140,6 +140,16 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
     process.exit(1);
   }
 
+  if (typeof saltHex !== 'string' || !/^[0-9a-fA-F]+$/.test(saltHex) || saltHex.length % 2 !== 0) {
+    console.error(`${RED}[ERROR] Invalid salt: must be an even-length hexadecimal string.${RESET}`);
+    process.exit(1);
+  }
+
+  if (typeof expectedHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(expectedHash)) {
+    console.error(`${RED}[ERROR] Invalid dataHash: must be a 64-character hexadecimal SHA3-256 string.${RESET}`);
+    process.exit(1);
+  }
+
   console.log(`${BOLD}1. Credential Subject & Attributes:${RESET}`);
   console.log(`  - Credential ID:    ${CYAN}${credentialId}${RESET}`);
   console.log(`  - Subject:          ${YELLOW}${rawClaim.subject || 'N/A'}${RESET}`);
@@ -188,6 +198,16 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
 
   // Level 2: Signature & Public Key Structural Inspection
   console.log(`${BOLD}3. Post-Quantum Signature Verification (ML-DSA-65):${RESET}`);
+
+  if (signatureHex && (typeof signatureHex !== 'string' || !/^[0-9a-fA-F]+$/.test(signatureHex) || signatureHex.length % 2 !== 0)) {
+    console.error(`  ${RED}✕ Level 2 Failed: Signature must be an even-length hexadecimal string.${RESET}`);
+    process.exit(1);
+  }
+  if (publicKeyHex && (typeof publicKeyHex !== 'string' || !/^[0-9a-fA-F]+$/.test(publicKeyHex) || publicKeyHex.length % 2 !== 0)) {
+    console.error(`  ${RED}✕ Level 2 Failed: Public key must be an even-length hexadecimal string.${RESET}`);
+    process.exit(1);
+  }
+
   const sigBytes = signatureHex ? Buffer.from(signatureHex, 'hex') : null;
   const pkBytes = publicKeyHex ? Buffer.from(publicKeyHex, 'hex') : null;
 

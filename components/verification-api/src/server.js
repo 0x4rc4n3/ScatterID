@@ -167,7 +167,8 @@ app.get('/credentials/:credentialId/history', requireBearerAuth, async (req, res
 });
 
 app.get('/audit', requireBearerAuth, (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  const rawLimit = parseInt(req.query.limit, 10);
+  const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
   const logs = getAuditLogs(limit);
   res.json({ success: true, count: logs.length, logs });
 });

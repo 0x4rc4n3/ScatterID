@@ -25,6 +25,7 @@ import json
 import hashlib
 import hmac
 import math
+import re
 
 def _format_float_ecma(f: float) -> str:
     if math.isnan(f) or math.isinf(f):
@@ -152,6 +153,14 @@ def verify_offline(raw_json, cli_public_key=None):
         print(f"{RED}[ERROR] Incomplete credential object. Required: 'rawClaim', 'salt', 'dataHash'{RESET}", file=sys.stderr)
         sys.exit(1)
 
+    if not isinstance(salt_hex, str) or not re.match(r'^[0-9a-fA-F]+$', salt_hex) or len(salt_hex) % 2 != 0:
+        print(f"{RED}[ERROR] Invalid salt: must be an even-length hexadecimal string{RESET}", file=sys.stderr)
+        sys.exit(1)
+
+    if not isinstance(expected_hash, str) or not re.match(r'^[0-9a-fA-F]{64}$', expected_hash):
+        print(f"{RED}[ERROR] Invalid dataHash: must be a 64-character hexadecimal SHA3-256 string{RESET}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"{BOLD}1. Credential Subject & Attributes:{RESET}")
     print(f"  - Credential ID:    {CYAN}{credential_id}{RESET}")
     print(f"  - Subject:          {YELLOW}{raw_claim.get('subject', 'N/A')}{RESET}")
@@ -180,21 +189,21 @@ def verify_offline(raw_json, cli_public_key=None):
     print("  [Step 4] Stored dataHash on Anchor Record:")
     print(f"           {BOLD}{expected_hash}{RESET}\n")
 
-    # Constant-time comparison for Level 1
+    # Step 4: Constant-time Hash Comparison (Level 1)
     hash_matches = hmac.compare_digest(computed_hash.lower(), expected_hash.lower())
 
     if not hash_matches:
         print(f"{BOLD}{RED}======================================================================{RESET}")
         print(f"{BOLD}{RED}  ✕ LEVEL 1 VERIFICATION FAILED: FORGERY OR TAMPERING DETECTED!{RESET}")
         print(f"{BOLD}{RED}======================================================================{RESET}")
-        print(f"  {RED}Hash mismatch! Claim attributes have been altered after issuance.{RESET}")
+        print(f"  {RED}Hash mismatch! The claim attributes or salt have been altered after issuance.{RESET}")
         print(f"  Expected Hash: {expected_hash}")
         print(f"  Computed Hash: {computed_hash}\n")
         sys.exit(1)
 
     print(f"  {GREEN}✓ Level 1 Passed:{RESET} Zero-Knowledge pre-image commitment is mathematically exact.\n")
 
-    # Level 2: ML-DSA-65 Signature Verification
+    # Level 2: Signature & Public Key Verification
     print(f"{BOLD}3. Post-Quantum Signature Verification (ML-DSA-65):{RESET}")
     sig_verified = False
     sig_checked = False
@@ -202,18 +211,32 @@ def verify_offline(raw_json, cli_public_key=None):
     if signature_hex and public_key_hex:
         sig_checked = True
         try:
-            import oqs
-            sig_bytes = bytes.fromhex(signature_hex)
-            pk_bytes = bytes.fromhex(public_key_hex)
-            msg_bytes = bytes.fromhex(expected_hash)
-
-            with oqs.Signature("ML-DSA-65") as verifier:
-                sig_verified = verifier.verify(msg_bytes, sig_bytes, pk_bytes)
-
-            if sig_verified:
-                print(f"  {GREEN}✓ Level 2 Passed:{RESET} ML-DSA-65 post-quantum signature is authentic against provided Public Key.")
+            if not isinstance(signature_hex, str) or not re.match(r'^[0-9a-fA-F]+$', signature_hex) or len(signature_hex) % 2 != 0:
+                print(f"  {RED}✕ Level 2 Failed:{RESET} Signature must be a valid even-length hex string.")
+                sig_verified = False
+            elif not isinstance(public_key_hex, str) or not re.match(r'^[0-9a-fA-F]+$', public_key_hex) or len(public_key_hex) % 2 != 0:
+                print(f"  {RED}✕ Level 2 Failed:{RESET} Public key must be a valid even-length hex string.")
+                sig_verified = False
             else:
-                print(f"  {RED}✕ Level 2 Failed:{RESET} Signature is INVALID for the provided Public Key.")
+                sig_bytes = bytes.fromhex(signature_hex)
+                pk_bytes = bytes.fromhex(public_key_hex)
+                msg_bytes = bytes.fromhex(expected_hash)
+
+                if len(sig_bytes) != 3309:
+                    print(f"  {RED}✕ Level 2 Failed:{RESET} Signature length mismatch: expected 3,309 bytes (ML-DSA-65), got {len(sig_bytes)} bytes.")
+                    sig_verified = False
+                elif len(pk_bytes) != 1952:
+                    print(f"  {RED}✕ Level 2 Failed:{RESET} Public key length mismatch: expected 1,952 bytes (ML-DSA-65), got {len(pk_bytes)} bytes.")
+                    sig_verified = False
+                else:
+                    import oqs
+                    with oqs.Signature("ML-DSA-65") as verifier:
+                        sig_verified = verifier.verify(msg_bytes, sig_bytes, pk_bytes)
+
+                    if sig_verified:
+                        print(f"  {GREEN}✓ Level 2 Passed:{RESET} ML-DSA-65 post-quantum signature is authentic against provided Public Key.")
+                    else:
+                        print(f"  {RED}✕ Level 2 Failed:{RESET} Signature is INVALID for the provided Public Key.")
         except ImportError:
             print(f"  {RED}[!] CRITICAL:{RESET} `oqs` (liboqs-python) is not installed. ML-DSA-65 signature CANNOT be verified.")
             print(f"      Install liboqs-python or verify via the Docker container to perform full PQC signature verification.")
