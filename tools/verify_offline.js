@@ -21,22 +21,80 @@
  */
 
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 /**
- * Pure RFC 8785 JSON Canonicalization Scheme (JCS) implementation.
- * Guarantees zero external dependencies for offline verification.
+ * Validates whether a string contains an unescaped lone surrogate code point.
  */
-function canonicalize(obj) {
-  if (obj === null || typeof obj !== 'object') {
-    return JSON.stringify(obj);
+function hasLoneSurrogate(value) {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      if (i === value.length - 1) return true;
+      const next = value.charCodeAt(i + 1);
+      if (!(next >= 0xDC00 && next <= 0xDFFF)) return true;
+      i++;
+    } else if (code >= 0xDC00 && code <= 0xDFFF) {
+      return true;
+    }
   }
-  if (Array.isArray(obj)) {
-    return '[' + obj.map(canonicalize).join(',') + ']';
-  }
-  const keys = Object.keys(obj).sort();
-  return '{' + keys.map(k => JSON.stringify(k) + ':' + canonicalize(obj[k])).join(',') + '}';
+  return false;
 }
+
+/**
+ * Pure RFC 8785 JSON Canonicalization Scheme (JCS) implementation.
+ * Guarantees zero external dependencies for offline verification:
+ *   - Omits undefined and symbol properties in objects
+ *   - Converts undefined and symbol values in arrays to null
+ *   - Prohibits NaN and Infinity per RFC 8785 §3.2.2.3
+ *   - Prohibits lone surrogates per RFC 8785 §3.2.2.2
+ *   - Sorts object keys by UTF-16 code unit order per RFC 8785 §3.2.3
+ *   - Normalizes negative zero (-0) to 0
+ */
+function canonicalize(object, seen = new Set()) {
+  if (typeof object === 'number') {
+    if (isNaN(object)) throw new Error('NaN is not allowed in RFC 8785 canonical JSON');
+    if (!isFinite(object)) throw new Error('Infinity is not allowed in RFC 8785 canonical JSON');
+    if (Object.is(object, -0)) return '0';
+    return JSON.stringify(object);
+  }
+  if (typeof object === 'string') {
+    if (hasLoneSurrogate(object)) throw new Error('Lone surrogate is not allowed in RFC 8785 canonical JSON');
+    return JSON.stringify(object);
+  }
+  if (object === null || typeof object !== 'object') {
+    return JSON.stringify(object);
+  }
+  if (typeof object.toJSON === 'function') {
+    if (seen.has(object)) throw new Error('Circular reference detected in claim object');
+    seen.add(object);
+    const serialized = canonicalize(object.toJSON(), seen);
+    seen.delete(object);
+    return serialized;
+  }
+  if (seen.has(object)) throw new Error('Circular reference detected in claim object');
+  seen.add(object);
+
+  let result;
+  if (Array.isArray(object)) {
+    const values = object.map(item => {
+      const val = (item === undefined || typeof item === 'symbol') ? null : item;
+      return canonicalize(val, seen);
+    });
+    result = '[' + values.join(',') + ']';
+  } else {
+    const parts = [];
+    for (const key of Object.keys(object).sort()) {
+      if (object[key] === undefined || typeof object[key] === 'symbol') continue;
+      parts.push(canonicalize(key) + ':' + canonicalize(object[key], seen));
+    }
+    result = '{' + parts.join(',') + '}';
+  }
+  seen.delete(object);
+  return result;
+}
+
 
 // Terminal colors
 const BOLD = '\x1b[1m';
@@ -169,34 +227,42 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
   process.exit(0);
 }
 
-// CLI Argument Handling
-printHeader();
+export { canonicalize, verifyOffline };
 
-const args = process.argv.slice(2);
-let filePath = null;
-let pubKey = null;
+const isDirectRun = process.argv[1] && (
+  fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1]) ||
+  process.argv[1].endsWith('verify_offline.js')
+);
 
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--public-key' && args[i + 1]) {
-    pubKey = args[i + 1];
-    i++;
-  } else if (!filePath) {
-    filePath = args[i];
+if (isDirectRun) {
+  printHeader();
+
+  const args = process.argv.slice(2);
+  let filePath = null;
+  let pubKey = null;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--public-key' && args[i + 1]) {
+      pubKey = args[i + 1];
+      i++;
+    } else if (!filePath) {
+      filePath = args[i];
+    }
   }
-}
 
-if (filePath && fs.existsSync(filePath)) {
-  const content = fs.readFileSync(filePath, 'utf8');
-  verifyOffline(content, pubKey);
-} else if (!process.stdin.isTTY) {
-  let content = '';
-  process.stdin.on('data', chunk => { content += chunk; });
-  process.stdin.on('end', () => verifyOffline(content, pubKey));
-} else {
-  console.log(`Usage:`);
-  console.log(`  node tools/verify_offline.js <path-to-credential.json> [--public-key <hex>]`);
-  console.log(`  cat credential.json | node tools/verify_offline.js\n`);
-  console.log(`Example:`);
-  console.log(`  node tools/verify_offline.js examples/credentials_input.json\n`);
-  process.exit(0);
+  if (filePath && fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    verifyOffline(content, pubKey);
+  } else if (!process.stdin.isTTY) {
+    let content = '';
+    process.stdin.on('data', chunk => { content += chunk; });
+    process.stdin.on('end', () => verifyOffline(content, pubKey));
+  } else {
+    console.log(`Usage:`);
+    console.log(`  node tools/verify_offline.js <path-to-credential.json> [--public-key <hex>]`);
+    console.log(`  cat credential.json | node tools/verify_offline.js\n`);
+    console.log(`Example:`);
+    console.log(`  node tools/verify_offline.js examples/credentials_input.json\n`);
+    process.exit(0);
+  }
 }

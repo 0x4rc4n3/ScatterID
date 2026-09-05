@@ -84,7 +84,25 @@ if [ -d "sdk/test" ] && command -v npm >/dev/null 2>&1; then
     "(cd sdk && npm test)"
 fi
 
-# 5. Offline Verifier Cross-Language Parity Tests
+# 5. Canonicalization Parity Generative Fuzzer
+if [ -f "tests/fuzz_canonicalize_parity.py" ] && command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  run_suite "RFC 8785 Canonicalization Parity Fuzzer (5,000 Iterations)" \
+    "$PY_BIN tests/fuzz_canonicalize_parity.py"
+fi
+
+# 6. Cryptographic Tamper Sensitivity & Invariant Suite
+if [ -f "tests/test_tamper_sensitivity.py" ] && command -v python3 >/dev/null 2>&1; then
+  run_suite "Cryptographic Tamper Sensitivity (26,472 Bit Flips)" \
+    "$PY_BIN tests/test_tamper_sensitivity.py"
+fi
+
+# 7. Cross-Implementation Differential Verifier Suite
+if [ -f "tests/differential_offline_verifier.test.sh" ]; then
+  run_suite "Differential Offline Verifiers (Python vs Node.js)" \
+    "bash tests/differential_offline_verifier.test.sh"
+fi
+
+# 8. Offline Verifier Cross-Language Parity Tests
 if [ -f "tests/offline_verify_parity.test.sh" ]; then
   run_suite "Offline Verifiers Cross-Language Parity (Node.js & Python)" \
     "bash tests/offline_verify_parity.test.sh"
