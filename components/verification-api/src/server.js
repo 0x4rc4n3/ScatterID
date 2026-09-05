@@ -35,6 +35,14 @@ if (!REVOKE_API_KEY) {
   process.exit(1);
 }
 
+if (REVOKE_API_KEY === VERIFICATION_API_KEY) {
+  console.error(
+    'FATAL: REVOKE_API_KEY must not match VERIFICATION_API_KEY. ' +
+    'Irreversible on-chain revocation requires an independent administrative key to maintain privilege separation.'
+  );
+  process.exit(1);
+}
+
 if (!CRYPTO_SERVICE_API_KEY) {
   console.error(
     'FATAL: CRYPTO_SERVICE_API_KEY must be set. ' +

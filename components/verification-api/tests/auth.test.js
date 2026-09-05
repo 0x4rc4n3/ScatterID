@@ -222,6 +222,22 @@ test('GET /reconciliation — 401 without auth, 200 with auth', async () => {
   assert.equal(typeof body.mismatchCount, 'number');
 });
 
+test('startup fails if REVOKE_API_KEY equals VERIFICATION_API_KEY', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync('node', ['src/server.js'], {
+    cwd: new URL('..', import.meta.url).pathname,
+    env: {
+      ...process.env,
+      VERIFICATION_API_KEY: 'shared-identical-key',
+      REVOKE_API_KEY: 'shared-identical-key',
+      CRYPTO_SERVICE_API_KEY: 'crypto-key'
+    },
+    encoding: 'utf8'
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /REVOKE_API_KEY must not match VERIFICATION_API_KEY/);
+});
+
 // Shut down the real test server after all tests
 after(async () => {
   await stopServer();
