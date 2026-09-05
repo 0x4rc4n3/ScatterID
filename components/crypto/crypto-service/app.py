@@ -139,6 +139,11 @@ def ensure_certificates(cert_path, key_path, base_dir):
             print(f"WARNING: Certificate generation script failed: {err}", flush=True)
 
     try:
+        # Note on Transport Security vs. Credential Layer PQC:
+        # Internal microservice mTLS uses classical RSA-2048 certificates for channel encryption.
+        # While the issued credentials themselves are permanently quantum-resistant via ML-DSA-65,
+        # transport-layer traffic is subject to harvest-now-decrypt-later (HNDL) risks until
+        # post-quantum TLS (e.g. Kyber/ML-KEM hybrids) is configured across microservice proxies.
         subprocess.run([
             'openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
             '-out', cert_path, '-keyout', key_path, '-days', '365',
