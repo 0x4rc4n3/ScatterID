@@ -8,7 +8,7 @@
 
 ## [2026-09-05] — Fix local crypto path resolution, normalize hex/UUID inputs, and add history endpoint
 - Problem:
-  1. `defaultCryptoPath` in `src/chain/fabric.js` used an incorrect relative path traversal (`../../blockchain` instead of `../../../blockchain`), causing non-containerized local execution and tests to fail finding peer crypto materials.
+  1. `defaultCryptoPath` in `src/chain/fabric.js` had a hardcoded relative path miscount (`../../blockchain` instead of `../../../blockchain`), causing non-containerized local execution and tests to fail finding peer crypto materials (functional directory navigation defect, not an attacker-controlled path traversal / CWE-22).
   2. Input routes did not normalize UUIDs and hex hashes to lowercase, risking inconsistent SQLite queries or split keys.
   3. Lacks an endpoint to query on-chain history/audit trail from the new `GetProofHistory` chaincode method.
   4. AI boilerplate comments were present in route handlers.
