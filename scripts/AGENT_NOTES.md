@@ -17,3 +17,9 @@
 - Fix: Removed `project-dashboard` service and volumes from `docker-compose.yml`. Removed `--with-dashboard` flags and health probes from `scripts/quickstart.sh`, `scripts/start.sh`, `scripts/test_all.sh`, and `scripts/check_deps.sh`.
 - Files touched: `docker-compose.yml`, `scripts/quickstart.sh`, `scripts/start.sh`, `scripts/test_all.sh`, `scripts/check_deps.sh`, `scripts/AGENT_NOTES.md`
 - Anything deferred / follow-up needed: none
+
+## [2026-09-05] — Align root README.md with decommissioned UI and offline verifiers
+- Problem: Root `README.md` retained references to `--with-dashboard`, operator dashboard port 4000, and omitted capabilities and limitations of offline verifiers.
+- Fix: Removed dashboard and playground references from `README.md`, updated repository directory tree, and added clear breakdown of Node.js vs. Python offline verifier capabilities and offline revocation freshness limitations.
+- Files touched: `README.md`, `scripts/AGENT_NOTES.md`
+- Anything deferred / follow-up needed: none

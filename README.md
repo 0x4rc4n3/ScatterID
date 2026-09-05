@@ -34,16 +34,11 @@ cd ScatterID
 
 # 2. Launch the turnkey stack (provisions keys, mTLS certificates, ledger, and services)
 ./scripts/quickstart.sh
-
-# Option: Launch with the Operator Diagnostics Console enabled:
-./scripts/quickstart.sh --with-dashboard
 ```
 
 ### Operational Profiles
-* **Headless Backend (`./scripts/start.sh` or `docker compose up -d`):**  
-  Launches core microservices (PQC Crypto Engine, Verification Gateway API, Hyperledger Fabric ledger, HashiCorp Vault). Suitable for headless deployments and API integrations.
-* **Full Stack with Dashboard (`./scripts/start.sh --with-dashboard` or `docker compose --profile dashboard up -d`):**  
-  Starts core backend services alongside the web-based Operator Diagnostics Console on port `4000`.
+* **Core Microservices (`./scripts/start.sh` or `docker compose up -d`):**  
+  Launches core microservices (PQC Crypto Engine, Verification Gateway API, Hyperledger Fabric ledger, HashiCorp Vault). Note: Web dashboards and client portals have been decommissioned for a clean ground-up redesign.
 
 ---
 
@@ -53,8 +48,6 @@ cd ScatterID
 | **Verification Gateway API** | `http://localhost:3000` | REST API for credential issuance, verification, and revocation |
 | **PQC Crypto Service** | `https://localhost:5001` | High-security ML-DSA-65 signing engine (internal mTLS) |
 | **HashiCorp Vault KMS** | `http://localhost:8200` | Key management service holding post-quantum keypairs |
-| **Operator Dashboard** | `http://localhost:4000` | Observability, ledger explorer, and key rotation UI (`--with-dashboard`) |
-| **Visual SDK Playground** | `http://localhost:5050` | Interactive browser sandbox (`cd examples/web-app && npm start`) |
 
 ---
 
@@ -65,35 +58,30 @@ cd ScatterID
 
 ---
 
-## Interactive Visual Playground
-
-ScatterID includes an interactive browser sandbox to test credential issuance and verification in real time:
-
-```bash
-cd examples/web-app
-npm install
-npm start
-# Open http://localhost:5050 in your browser
-```
-
-* **10 Industry Presets:** Sample claims across Healthcare, Aviation, Cyber Defense, FinTech, and KYC.
-* **Cryptographic Telemetry:** Real-time inspection of RFC 8785 canonicalization, salting, SHA3-256 commitments, and ML-DSA-65 signatures.
-* **Tamper Simulation:** Modify claim values to observe instant cryptographic rejection.
-* **Lifecycle Tracking:** Demonstrates credential revocation and status tracking on the ledger.
-
----
-
 ## Standalone Offline Verification
 
 Auditors and relying parties can mathematically validate any issued credential **100% offline** without network access or blockchain dependencies:
 
 ```bash
 # Node.js Verifier (zero external dependencies)
-node tools/verify_offline.js <path-to-credential.json>
+# Validates RFC 8785 canonicalization, salting, SHA3-256 pre-image commitment (Level 1),
+# and inspects ML-DSA-65 container structural dimensions (3309B signature / 1952B public key).
+node tools/verify_offline.js <path-to-credential.json> [--public-key <hex>]
 
-# Python Verifier (standard library only, zero external dependencies)
-python3 tools/verify_offline.py <path-to-credential.json>
+# Python Verifier (requires liboqs-python)
+# Executes complete cryptographic Level 2 ML-DSA-65 post-quantum signature verification
+# against the issuer's public key.
+python3 tools/verify_offline.py <path-to-credential.json> [--public-key <hex>]
 ```
+
+### Verifier Capabilities & Cryptographic Boundaries
+| Runtime | Pre-Image Commitment (Level 1) | Container Structural Check | Mathematical ML-DSA-65 (Level 2) |
+| :--- | :--- | :--- | :--- |
+| **Node.js (`verify_offline.js`)** | Verified (RFC 8785 + SHA3-256) | Verified (3309B Sig / 1952B PK) | Requires liboqs (delegates to Python CLI) |
+| **Python (`verify_offline.py`)** | Verified (RFC 8785 + SHA3-256) | Verified (Binary parsing) | Verified (NIST FIPS 204 via liboqs) |
+
+> [!NOTE]
+> **Offline Freshness Limitation**: Offline verification mathematically proves authenticity and integrity at the time of issuance; it cannot confirm whether the credential has since been revoked on the blockchain ledger without querying the network.
 
 Cross-language parity is asserted across both verifiers via `./tests/offline_verify_parity.test.sh`.
 
@@ -116,15 +104,13 @@ ScatterID/
 ├── components/
 │   ├── crypto/                 # PQC Engine & ML-DSA-65 Signer (Python / liboqs / mTLS)
 │   ├── verification-api/       # Verification Gateway API, SQLite Models & Reconciliation
-│   ├── project-dashboard/      # Web Operator Diagnostics Console & Audit Viewer
 │   └── blockchain/             # Hyperledger Fabric Network, Raft Consensus & Go Chaincode
 ├── sdk/                        # Client SDK (@scatterid/sdk for TypeScript / JavaScript)
-├── examples/                   # Visual Web Playground & Integration Demos
 ├── docs/                       # Master Architecture, Cryptography & Compliance Specifications
 ├── scripts/                    # Turnkey Provisioning, Startup, & E2E Test Automation
 ├── tools/                      # Standalone Cross-Language Offline Verifiers (JS & Python)
 ├── tests/                      # Integration & Cross-Language Parity Test Suites
-├── docker-compose.yml          # Container Topology Orchestration (with profile support)
+├── docker-compose.yml          # Container Topology Orchestration
 ├── .env.example                # Authoritative Configuration Template
 ├── CHANGELOG.md                # Milestone & Release History
 ├── SECURITY.md                 # Security Policy & Vulnerability Reporting
