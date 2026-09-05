@@ -75,6 +75,15 @@ def verify_hash_route():
     signature = data["signature"]
     public_key_id = data["publicKeyId"]
 
+    if not isinstance(data_hash, str) or not re.match(r'^[0-9a-fA-F]{64}$', data_hash):
+        return jsonify({"error": "Invalid parameter: dataHash must be a 64-character hex string", "code": "INVALID_PARAMETER"}), 400
+
+    if not isinstance(signature, str) or not re.match(r'^[0-9a-fA-F]+$', signature) or len(signature) % 2 != 0:
+        return jsonify({"error": "Invalid parameter: signature must be a valid hex string", "code": "INVALID_PARAMETER"}), 400
+
+    if not isinstance(public_key_id, str) or not re.match(r'^[0-9a-fA-F]{32}$', public_key_id):
+        return jsonify({"error": "Invalid parameter: publicKeyId must be a 32-character hex string", "code": "INVALID_PARAMETER"}), 400
+
     with state_lock:
         local_pub_key = PUBLIC_KEY
         local_pub_key_id = PUBLIC_KEY_ID
@@ -139,6 +148,11 @@ def ensure_certificates(cert_path, key_path, base_dir):
             print(f"WARNING: Certificate generation script failed: {err}", flush=True)
 
     try:
+        # Note on Transport Security vs. Credential Layer PQC:
+        # Internal microservice mTLS uses classical RSA-2048 certificates for channel encryption.
+        # While the issued credentials themselves are permanently quantum-resistant via ML-DSA-65,
+        # transport-layer traffic is subject to harvest-now-decrypt-later (HNDL) risks until
+        # post-quantum TLS (e.g. Kyber/ML-KEM hybrids) is configured across microservice proxies.
         subprocess.run([
             'openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
             '-out', cert_path, '-keyout', key_path, '-days', '365',
