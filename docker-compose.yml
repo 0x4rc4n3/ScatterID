@@ -13,8 +13,8 @@ services:
       VAULT_SECRET_ID: "${VAULT_SECRET_ID:-}"
       VAULT_SECRET_PATH: "${VAULT_SECRET_PATH:-scatterid/mldsa}"
       CRYPTO_SERVICE_API_KEY: "${CRYPTO_SERVICE_API_KEY}"
-      # Local dev only — allows HTTP connection to Vault. Remove for production.
-      VAULT_DEV_MODE: "${VAULT_DEV_MODE:-true}"
+      # Local dev only — allows HTTP connection to Vault. Must be explicitly set to true.
+      VAULT_DEV_MODE: "${VAULT_DEV_MODE:-false}"
     volumes:
       - ./components/crypto/certs:/app/certs
       - ./components/crypto/crypto-service:/app
@@ -33,7 +33,8 @@ services:
       CRYPTO_SERVICE_URL: "${CRYPTO_SERVICE_URL:-https://crypto-service:5001}"
       # Inbound auth key for the verification-api itself (required — service refuses to start without it).
       VERIFICATION_API_KEY: "${VERIFICATION_API_KEY}"
-      REVOKE_API_KEY: "${REVOKE_API_KEY:-${VERIFICATION_API_KEY}}"
+      # Dedicated administrative revocation key (required — service refuses to start without it or if equal to VERIFICATION_API_KEY).
+      REVOKE_API_KEY: "${REVOKE_API_KEY}"
       SQLITE_DB_PATH: "${SQLITE_DB_PATH:-/app/data/credentials.db}"
       # Trust the crypto-service's CA certificate for TLS validation.
       NODE_EXTRA_CA_CERTS: "${NODE_EXTRA_CA_CERTS:-/app/certs/ca.crt}"
@@ -44,37 +45,6 @@ services:
       - ./components/blockchain:/app/blockchain
       - ./components/verification-api/src:/app/src
       - verification_data:/app/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - scatterid_net
-
-  project-dashboard:
-    profiles: ["dashboard"]
-    build:
-      context: .
-      dockerfile: ./components/project-dashboard/Dockerfile
-    container_name: scatterid-dashboard
-    ports:
-      - "${PORT_DASHBOARD:-4000}:4000"
-    environment:
-      VERIFICATION_API_URL: "${VERIFICATION_API_URL:-http://verification-api:3000}"
-      CRYPTO_SERVICE_URL: "${CRYPTO_SERVICE_URL:-https://crypto-service:5001}"
-      CRYPTO_SERVICE_API_KEY: "${CRYPTO_SERVICE_API_KEY}"
-      CRYPTO_SERVICE_HOST: "${CRYPTO_SERVICE_HOST:-crypto-service}"
-      VERIFICATION_API_HOST: "${VERIFICATION_API_HOST:-verification-api}"
-      GATEWAY_API_KEY: "${GATEWAY_API_KEY}"
-      # Auth key the dashboard uses when proxying requests to verification-api.
-      VERIFICATION_API_KEY: "${VERIFICATION_API_KEY}"
-      # Trust the crypto-service's CA certificate for TLS validation.
-      NODE_EXTRA_CA_CERTS: "${NODE_EXTRA_CA_CERTS:-/app/certs/ca.crt}"
-    volumes:
-      - ./components/crypto/certs:/app/certs
-      - ./components/project-dashboard/public:/app/public
-      - ./components/project-dashboard/server.js:/app/server.js
-      - ./sdk:/app/sdk
-      - ./components/verification-api:/app/verification-api
-      - verification_data:/app/data:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

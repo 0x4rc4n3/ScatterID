@@ -7,8 +7,7 @@
 # TypeScript SDK, generates internal mTLS certs, and bootstraps the Fabric blockchain.
 #
 # Usage:
-#   ./scripts/quickstart.sh                   # Core backend only (Crypto + Gateway + Fabric + Vault)
-#   ./scripts/quickstart.sh --with-dashboard  # Core backend + Operator Dashboard
+#   ./scripts/quickstart.sh                   # Core backend (Crypto + Gateway + Fabric + Vault)
 #   ./scripts/quickstart.sh --build           # Force rebuild of container images
 #
 # For routine day-to-day startup, use: ./scripts/start.sh
@@ -19,13 +18,9 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
-WITH_DASHBOARD=false
 BUILD_FLAG=""
 for arg in "$@"; do
   case $arg in
-    --with-dashboard|--dashboard|-d)
-      WITH_DASHBOARD=true
-      ;;
     --build)
       BUILD_FLAG="--build"
       ;;
@@ -126,7 +121,6 @@ NODE_EXTRA_CA_CERTS=/app/certs/ca.crt
 # Host Exposed Ports
 PORT_VERIFICATION_API=3000
 PORT_CRYPTO_SERVICE=5001
-PORT_DASHBOARD=4000
 PORT_VAULT=8200
 
 # Hyperledger Fabric Network Details
@@ -205,15 +199,7 @@ export VAULT_SECRET_ID=$(docker exec -e VAULT_ADDR=http://127.0.0.1:8200 -e VAUL
 # ------------------------------------------------------------------------------
 echo -e "${BOLD}[5/6] Starting ScatterID microservices...${RESET}"
 
-PROFILE_ARG=""
-if [ "$WITH_DASHBOARD" = true ]; then
-  PROFILE_ARG="--profile dashboard"
-  echo -e "  [+] Profile: Full Stack (Backend + Web Operator Console)"
-else
-  echo -e "  [+] Profile: Core Backend Only (Crypto + Gateway + Vault)"
-fi
-
-$COMPOSE_CMD $PROFILE_ARG up -d $BUILD_FLAG
+$COMPOSE_CMD up -d $BUILD_FLAG
 
 # Bridge network connectivity between Fabric and compose stack
 NET_NAME=$(docker network ls --format "{{.Name}}" | grep "scatterid_net" | head -n 1)
@@ -257,10 +243,6 @@ wait_for_health() {
 
 wait_for_health "Crypto Service"  "https://localhost:5001/healthz" "true"
 wait_for_health "Verification API" "http://localhost:3000/healthz"  "false"
-if [ "$WITH_DASHBOARD" = true ]; then
-  wait_for_health "Dashboard UI"    "http://localhost:4000/healthz"  "false"
-fi
-
 echo ""
 echo -e "${BOLD}${GREEN}======================================================================${RESET}"
 echo -e "${BOLD}${GREEN}   ScatterID Post-Quantum Stack is Ready & Operational!               ${RESET}"
@@ -270,10 +252,6 @@ echo -e "  ${BOLD}Active Endpoints:${RESET}"
 echo -e "    - Verification Gateway:   ${CYAN}http://localhost:3000${RESET}"
 echo -e "    - Crypto Microservice:    ${CYAN}https://localhost:5001${RESET} (ML-DSA-65 / Vault)"
 echo -e "    - HashiCorp Vault:        ${CYAN}http://localhost:8200${RESET}"
-if [ "$WITH_DASHBOARD" = true ]; then
-  echo -e "    - Operator Dashboard:     ${CYAN}http://localhost:4000${RESET}"
-fi
-echo -e "    - Visual SDK Playground:  ${CYAN}http://localhost:5050${RESET} (Start with: cd examples/web-app && npm start)"
 echo ""
 echo -e "  ${BOLD}Try Issuing a Post-Quantum Credential Right Now:${RESET}"
 echo -e "  ${YELLOW}curl -s -X POST http://localhost:3000/issue \\"
