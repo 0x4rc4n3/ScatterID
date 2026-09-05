@@ -1,5 +1,6 @@
 export interface ScatterIDClientOptions {
   apiKey: string;
+  revokeApiKey?: string;
   issuanceUrl?: string;
   verificationUrl?: string;
 }
@@ -123,4 +124,24 @@ export interface RevokeResponse {
   credentialId: string;
   status: 'revoked';
   message: string;
+}
+
+export interface ProofRecordHistoryItem {
+  txId: string;
+  timestamp: string;
+  isDelete: boolean;
+  value: {
+    credentialId: string;
+    dataHash: string;
+    issuerId: string;
+    status: 'ACTIVE' | 'REVOKED' | string;
+    timestamp: number;
+    anchorTxId: string;
+  } | null;
+}
+
+export interface HistoryResponse {
+  success: boolean;
+  credentialId: string;
+  history: ProofRecordHistoryItem[];
 }
