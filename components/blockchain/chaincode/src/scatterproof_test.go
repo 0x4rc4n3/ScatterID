@@ -2,7 +2,10 @@ package main
 
 import (
 	"crypto/x509"
+	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
@@ -639,5 +642,101 @@ func TestAnchorProof_AuthorizationTruthTable(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestChaincode_ConcurrentExecution_RaceDetection(t *testing.T) {
+	contract := &SmartContract{}
+	ctx := newMockContext("IssuerMSP")
+
+	// Pre-anchor a shared credential for concurrent access tests
+	sharedID := "66666666-6666-4666-8666-666666666666"
+	ctx.startTx("tx-setup")
+	if err := contract.AnchorProof(ctx, sharedID, validHash, "IssuerMSP", "2026-09-05T12:00:00Z"); err != nil {
+		t.Fatalf("failed setup anchor: %v", err)
+	}
+	ctx.endTx("tx-setup")
+
+	var wg sync.WaitGroup
+	var stubLock sync.Mutex
+
+	// 1. Concurrent queries on the shared credential
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(iter int) {
+			defer wg.Done()
+			readCtx := newMockContext("IssuerMSP")
+			readCtx.stub = ctx.stub
+
+			stubLock.Lock()
+			readCtx.startTx(fmt.Sprintf("tx-read-%d", iter))
+			record, err := contract.QueryProof(readCtx, sharedID)
+			readCtx.endTx(fmt.Sprintf("tx-read-%d", iter))
+			stubLock.Unlock()
+
+			if err != nil {
+				t.Errorf("concurrent query failed: %v", err)
+			}
+			if record == nil || record.CredentialID != sharedID {
+				t.Errorf("unexpected record returned: %v", record)
+			}
+		}(i)
+	}
+
+	// 2. Concurrent double-revocation race on the shared credential
+	var revokeSuccessCount int64
+	var revokeAlreadyCount int64
+
+	for i := 0; i < 15; i++ {
+		wg.Add(1)
+		go func(iter int) {
+			defer wg.Done()
+			revCtx := newMockContext("IssuerMSP")
+			revCtx.stub = ctx.stub
+
+			stubLock.Lock()
+			revCtx.startTx(fmt.Sprintf("tx-rev-%d", iter))
+			err := contract.RevokeProof(revCtx, sharedID, "IssuerMSP")
+			revCtx.endTx(fmt.Sprintf("tx-rev-%d", iter))
+			stubLock.Unlock()
+
+			if err == nil {
+				atomic.AddInt64(&revokeSuccessCount, 1)
+			} else if strings.Contains(err.Error(), "already revoked") {
+				atomic.AddInt64(&revokeAlreadyCount, 1)
+			} else {
+				t.Errorf("unexpected error in concurrent revoke: %v", err)
+			}
+		}(i)
+	}
+
+	// 3. Concurrent anchoring of distinct credentials
+	for i := 0; i < 15; i++ {
+		wg.Add(1)
+		go func(iter int) {
+			defer wg.Done()
+			ancCtx := newMockContext("IssuerMSP")
+			ancCtx.stub = ctx.stub
+			cid := fmt.Sprintf("77777777-7777-4777-8777-%012d", iter)
+
+			stubLock.Lock()
+			ancCtx.startTx(fmt.Sprintf("tx-anc-%d", iter))
+			err := contract.AnchorProof(ancCtx, cid, validHash, "IssuerMSP", "2026-09-05T12:00:00Z")
+			ancCtx.endTx(fmt.Sprintf("tx-anc-%d", iter))
+			stubLock.Unlock()
+
+			if err != nil {
+				t.Errorf("concurrent anchor failed for %s: %v", cid, err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	if revokeSuccessCount != 1 {
+		t.Fatalf("expected exactly 1 revoke to succeed in race, got %d", revokeSuccessCount)
+	}
+	if revokeAlreadyCount != 14 {
+		t.Fatalf("expected 14 revokes to encounter 'already revoked', got %d", revokeAlreadyCount)
 	}
 }

@@ -154,3 +154,7 @@ export function getAuditLogs(limit = 50) {
     return [];
   }
 }
+
+export function clearDatabase() {
+  db.exec('DELETE FROM credentials; DELETE FROM audit_log;');
+}

@@ -56,8 +56,14 @@ async function newSigner() {
 let gatewayConnection = null;
 let clientConnection = null;
 let contractInstance = null;
+let injectedContract = null;
 
-function resetConnection() {
+export function setContractInstance(instance) {
+  injectedContract = instance;
+  contractInstance = instance;
+}
+
+export function resetConnection() {
   if (gatewayConnection) {
     try { gatewayConnection.close(); } catch (_) {}
     gatewayConnection = null;
@@ -66,7 +72,7 @@ function resetConnection() {
     try { clientConnection.close(); } catch (_) {}
     clientConnection = null;
   }
-  contractInstance = null;
+  contractInstance = injectedContract || null;
 }
 
 async function getContract() {

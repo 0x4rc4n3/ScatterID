@@ -81,6 +81,20 @@ export async function reconcileLedger() {
         } catch (healErr) {
           console.error(`[RECONCILIATION HEAL ERROR] Failed to auto-heal ${cred.id}:`, healErr.message);
         }
+      } else if ((ledgerStatus === 'active' || ledgerStatus === 'anchored') && cred.status === 'anchor_failed') {
+        try {
+          await updateStatus(cred.id, 'anchored');
+          recordAuditLog({
+            credentialId: cred.id,
+            action: 'reconciliation_auto_healed',
+            status: 'healed_to_anchored',
+            details: { previousLocalStatus: cred.status, ledgerStatus },
+            callerTier: 'reconciliation_daemon'
+          });
+          console.log(`\x1b[32m[RECONCILIATION AUTO-HEALED]\x1b[0m Credential ${cred.id} healed from anchor_failed to anchored.`);
+        } catch (healErr) {
+          console.error(`[RECONCILIATION HEAL ERROR] Failed to auto-heal ${cred.id}:`, healErr.message);
+        }
       } else {
         recordAuditLog({
           credentialId: cred.id,

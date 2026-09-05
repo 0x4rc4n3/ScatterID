@@ -103,12 +103,22 @@ bash tests/mutation_auth.test.sh
 
 ---
 
-### 7. Unified Local Test Runner (`run_all_unit_tests.sh`)
+### 7. Concurrency, Race Conditions & In-Flight Key Rotation (§4)
+Validates thread-safety, race prevention, and atomic state transitions under concurrent load:
+- **Idempotency Race (`idempotency_race.test.js`)**: Fires 50 simultaneous `/issue` requests with identical `idempotencyKey` concurrently via `Promise.all`. Verifies exactly 1 request wins the DB insertion race while the remaining 49 receive the matching credential record (200 OK) with identical IDs, hashes, and signatures without SQLite constraint crashes or duplicate rows.
+- **Double-Revoke Race (`double_revoke_race.test.js`)**: Fires concurrent `/revoke` calls against identical credentials. Verifies that the ledger and local SQLite registry converge to a single authoritative `revoked` state with consistent 200 OK responses, zero double-spend corruption, and zero 502/500 errors.
+- **Crypto Key Rotation Mid-Flight (`test_rotation_race.py`)**: Spawns concurrent signer and verifier worker threads issuing continuous `/sign_hash` and `/verify_hash` requests while a background worker triggers live `/rotate` operations. Validates that `state_lock` prevents torn reads between `PUBLIC_KEY_ID` and `PRIVATE_KEY`, mutable bytearrays are copied prior to zeroization of the old key, and historical signatures remain verifiable against `kms.public_key_history`.
+- **Reconciliation vs. Live Writes (`reconcile_race.test.js`)**: Concurrently executes `reconcileLedger` during batch `/issue` and `/revoke` operations. Verifies that in-flight `pending` issuances are skipped, zero double-anchoring occurs, and distributed timeout failures (ledger is `active` while API recorded `anchor_failed`) are automatically self-healed to `anchored`.
+- **Chaincode Data Race Detection**: Runs `go test -race -v ./...` with Go's runtime race detector across all smart contract functions and concurrent goroutine harnesses (`TestChaincode_ConcurrentExecution_RaceDetection`).
+
+---
+
+### 8. Unified Local Test Runner (`run_all_unit_tests.sh`)
 Orchestrates discovery and execution of all decoupled component test suites across the repository in a single command:
 
-1. **Crypto Microservice**: Python interface, KMS zeroization, ML-DSA-65 signatures, and auth truth tables (19 tests).
-2. **Blockchain Chaincode**: Fabric mock contract unit and truth-table test suites (16 tests).
-3. **Verification Gateway API**: Node.js native test runner (`node --test` across 39 unit tests).
+1. **Crypto Microservice**: Python interface, KMS zeroization, ML-DSA-65 signatures, auth truth tables, and in-flight key rotation races (21 tests).
+2. **Blockchain Chaincode**: Fabric mock contract unit, truth-table, and concurrent execution suites running under Go `-race` detector (17 tests).
+3. **Verification Gateway API**: Node.js native test runner (`node --test` across 47 unit and concurrency race tests).
 4. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
 5. **RFC 8785 Canonicalization Fuzzer**: 5,000-iteration cross-engine generative fuzz suite.
 6. **Post-Quantum Tamper Sensitivity**: 26,472-bit exhaustive signature and commitment mutation suite.
@@ -127,9 +137,9 @@ bash tests/run_all_unit_tests.sh
 
 | Component / Track | Test Suite | Framework / Tooling | Scope / Test Count |
 | :--- | :--- | :--- | :--- |
-| **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 19 passed |
-| **Blockchain Chaincode** | `components/blockchain/chaincode/src/*_test.go` | Go `testing` / `shimtest` | 16 passed |
-| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 39 passed |
+| **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 21 passed (includes in-flight rotation race) |
+| **Blockchain Chaincode** | `components/blockchain/chaincode/src/*_test.go` | Go `testing` (`-race`) / `shimtest` | 17 passed (zero data races detected) |
+| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 47 passed (includes idempotency, double-revoke & reconcile races) |
 | **TypeScript SDK** | `sdk/test/index.test.ts` | Jest | 6 passed |
 | **Canonicalization Fuzzer** | `tests/fuzz_canonicalize_parity.py` | Python + Node.js Bridge | 5,000 fuzz runs (7 test methods) passed |
 | **Tamper Sensitivity** | `tests/test_tamper_sensitivity.py` | Python `unittest` / `liboqs` | 26,472 signature bit flips passed |

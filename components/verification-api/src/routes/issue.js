@@ -25,6 +25,7 @@ export async function issueRoute(req, res) {
           algorithm: existing.algorithm,
           anchorTxId: existing.anchorTxId,
           publicKeyId: existing.publicKeyId,
+          signature: existing.signature,
           issuedAt: existing.issuedAt
         });
       }
