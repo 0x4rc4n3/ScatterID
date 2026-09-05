@@ -17,7 +17,7 @@ const mspId = process.env.FABRIC_MSP_ID || 'IssuerMSP';
 const peerEndpoint = process.env.FABRIC_PEER_ENDPOINT || (fsSync.existsSync('/app/blockchain') ? 'peer0.issuer.scatterid.com:7051' : 'localhost:7051');
 const peerHostAlias = process.env.FABRIC_PEER_HOST_ALIAS || 'peer0.issuer.scatterid.com';
 
-const defaultCryptoPath = path.resolve(__dirname, '../../blockchain/fabric-network/organizations/peerOrganizations/issuer.scatterid.com');
+const defaultCryptoPath = path.resolve(__dirname, '../../../blockchain/fabric-network/organizations/peerOrganizations/issuer.scatterid.com');
 const containerCryptoPath = '/app/blockchain/fabric-network/organizations/peerOrganizations/issuer.scatterid.com';
 
 const cryptoPath = process.env.FABRIC_CRYPTO_PATH || (
@@ -152,6 +152,17 @@ export async function proofExists(credentialId) {
     const contract = await getContract();
     const resultBytes = await contract.evaluateTransaction('ProofExists', credentialId);
     return new TextDecoder().decode(resultBytes) === 'true';
+  } catch (err) {
+    resetConnection();
+    throw err;
+  }
+}
+
+export async function getProofHistory(credentialId) {
+  try {
+    const contract = await getContract();
+    const resultBytes = await contract.evaluateTransaction('GetProofHistory', credentialId);
+    return JSON.parse(new TextDecoder().decode(resultBytes));
   } catch (err) {
     resetConnection();
     throw err;

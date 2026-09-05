@@ -12,7 +12,8 @@ export async function revokeRoute(req, res) {
       });
     }
 
-    const record = await getCredentialById(credentialId);
+    const normalizedId = credentialId.trim().toLowerCase();
+    const record = await getCredentialById(normalizedId);
     if (!record) {
       return res.status(404).json({
         error: 'Credential not found',
@@ -23,7 +24,7 @@ export async function revokeRoute(req, res) {
     if (record.status === 'revoked') {
       return res.status(200).json({
         success: true,
-        credentialId,
+        credentialId: normalizedId,
         status: 'revoked',
         message: 'Credential is already revoked',
       });
@@ -31,12 +32,12 @@ export async function revokeRoute(req, res) {
 
     // Call Fabric chaincode smart contract: RevokeProof(credentialID, issuerID)
     try {
-      await revokeProof(credentialId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
+      await revokeProof(normalizedId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
     } catch (fabricErr) {
-      console.error(`[Fabric] RevokeProof failed for ${credentialId}:`, fabricErr.message);
+      console.error(`[Fabric] RevokeProof failed for ${normalizedId}:`, fabricErr.message);
       
       recordAuditLog({
-        credentialId,
+        credentialId: normalizedId,
         action: 'revoke',
         status: 'failed',
         details: { error: fabricErr.message, previousStatus: record.status },
@@ -51,28 +52,28 @@ export async function revokeRoute(req, res) {
 
     try {
       // Update local SQLite registry state ONLY AFTER ledger transaction succeeds
-      await updateStatus(credentialId, 'revoked');
+      await updateStatus(normalizedId, 'revoked');
       
       recordAuditLog({
-        credentialId,
+        credentialId: normalizedId,
         action: 'revoke',
         status: 'revoked',
         details: { previousStatus: record.status },
         callerTier: req.callerTier || 'revoke_api_key'
       });
     } catch (dbErr) {
-      console.error(`[DB] Local updateStatus failed after ledger revocation for ${credentialId}:`, dbErr.message);
+      console.error(`[DB] Local updateStatus failed after ledger revocation for ${normalizedId}:`, dbErr.message);
       return res.status(500).json({
         error: 'Ledger revocation succeeded, but local cache update failed. State will self-heal during periodic reconciliation.',
         code: 'LOCAL_STATE_UPDATE_FAILED',
-        credentialId,
+        credentialId: normalizedId,
         status: 'revoked_on_ledger'
       });
     }
 
     return res.status(200).json({
       success: true,
-      credentialId,
+      credentialId: normalizedId,
       status: 'revoked',
       message: 'Credential revoked successfully on ledger',
     });

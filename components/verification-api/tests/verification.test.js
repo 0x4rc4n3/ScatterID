@@ -401,3 +401,47 @@ test('audit log records events and provides query interface', async () => {
   assert.equal(found.status, 'success');
 });
 
+test('statusRoute and verifyRoute correctly normalize uppercase UUID and dataHash', async () => {
+  const { createCredential } = await import('../src/db/models.js');
+  const testId = randomUUID().toLowerCase();
+  const testHash = 'a1b2c3d4'.repeat(8).toLowerCase();
+
+  await createCredential({
+    id: testId,
+    dataHash: testHash,
+    algorithm: 'ML-DSA-65',
+    signature: 'abcd',
+    publicKeyId: 'scatterid-pq-v1-dev',
+    anchorTxId: 'tx-123',
+    status: 'anchored',
+    issuedAt: new Date().toISOString()
+  });
+
+  // Query status with UPPERCASE UUID
+  const statusReq = { params: { id: testId.toUpperCase() } };
+  let statusResult = null;
+  const statusRes = {
+    status: (code) => {
+      assert.equal(code, 200);
+      return { json: (data) => { statusResult = data; } };
+    }
+  };
+  await statusRoute(statusReq, statusRes);
+  assert.ok(statusResult);
+  assert.equal(statusResult.id, testId);
+
+  // Query verify with UPPERCASE dataHash
+  const verifyReq = { body: { dataHash: testHash.toUpperCase() } };
+  let verifyCode = 200;
+  let verifyResult = null;
+  const verifyRes = {
+    status: (code) => {
+      verifyCode = code;
+      return { json: (data) => { verifyResult = data; } };
+    }
+  };
+  await verifyRoute(verifyReq, verifyRes);
+  // Reaches crypto check (unreachable in unit test -> 502) proving hash lookup succeeded
+  assert.equal(verifyCode, 502);
+});
+
