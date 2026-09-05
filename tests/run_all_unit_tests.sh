@@ -62,10 +62,10 @@ if [ -d "components/crypto/crypto-service" ]; then
     "$PY_BIN -m unittest discover components/crypto/crypto-service"
 fi
 
-# 2. Blockchain Smart Contract Chaincode Tests
+# 2. Blockchain Smart Contract Chaincode Tests (with Go Race Detector)
 if [ -f "components/blockchain/chaincode/src/scatterproof_test.go" ] && command -v go >/dev/null 2>&1; then
-  run_suite "Blockchain Chaincode (Go / MockStub)" \
-    "(cd components/blockchain/chaincode/src && go test -v ./...)"
+  run_suite "Blockchain Chaincode (Go -race / MockStub)" \
+    "(cd components/blockchain/chaincode/src && go test -race -v ./...)"
 else
   echo -e "\n${YELLOW}[!] Skipping Blockchain Chaincode tests (scatterproof_test.go not on current branch or Go unavailable)${RESET}"
 fi

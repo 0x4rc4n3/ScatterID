@@ -54,8 +54,11 @@ def sign_hash_route():
         credential_id = str(uuid.uuid4())
 
     with state_lock:
-        local_priv = PRIVATE_KEY
+        local_priv = bytearray(PRIVATE_KEY) if PRIVATE_KEY else None
         local_pub_id = PUBLIC_KEY_ID
+
+    if not local_priv:
+        return jsonify({"error": "Signing key not available", "code": "SIGNING_FAILED"}), 500
 
     try:
         result = issue_credential(data_hash, local_priv, local_pub_id)
@@ -64,6 +67,8 @@ def sign_hash_route():
     except Exception as e:
         app.logger.error("Signing failed", exc_info=True)
         return jsonify({"error": "Signing failed due to internal error", "code": "SIGNING_FAILED"}), 500
+    finally:
+        zeroize(local_priv)
 
 @app.route("/verify_hash", methods=["POST"])
 def verify_hash_route():
@@ -85,19 +90,19 @@ def verify_hash_route():
         return jsonify({"error": "Invalid parameter: publicKeyId must be a 32-character hex string", "code": "INVALID_PARAMETER"}), 400
 
     with state_lock:
-        local_pub_key = PUBLIC_KEY
+        local_pub_key = bytes(PUBLIC_KEY) if PUBLIC_KEY else None
         local_pub_key_id = PUBLIC_KEY_ID
 
     keys_to_test = []
     
     # Check if the requested key matches the current one
-    if public_key_id == local_pub_key_id:
+    if local_pub_key and public_key_id == local_pub_key_id:
         keys_to_test.append(local_pub_key)
         
     # Also check historical keys if necessary
     with kms.lock:
         for pk in getattr(kms, 'public_key_history', []):
-            if hashlib.sha256(pk).hexdigest()[:32] == public_key_id:
+            if hashlib.sha256(pk).hexdigest()[:32] == public_key_id and pk not in keys_to_test:
                 keys_to_test.append(pk)
                 
     if not keys_to_test:

@@ -34,6 +34,23 @@ export async function revokeRoute(req, res) {
     try {
       await revokeProof(normalizedId, process.env.FABRIC_MSP_ID || 'IssuerMSP');
     } catch (fabricErr) {
+      if (fabricErr.message && fabricErr.message.toLowerCase().includes('already revoked')) {
+        await updateStatus(normalizedId, 'revoked');
+        recordAuditLog({
+          credentialId: normalizedId,
+          action: 'revoke',
+          status: 'revoked',
+          details: { previousStatus: record.status, resolution: 'concurrent_revocation_handled' },
+          callerTier: req.callerTier || 'revoke_api_key'
+        });
+        return res.status(200).json({
+          success: true,
+          credentialId: normalizedId,
+          status: 'revoked',
+          message: 'Credential is already revoked',
+        });
+      }
+
       console.error(`[Fabric] RevokeProof failed for ${normalizedId}:`, fabricErr.message);
       
       recordAuditLog({
