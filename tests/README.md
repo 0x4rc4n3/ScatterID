@@ -35,17 +35,62 @@ bash tests/offline_verify_parity.test.sh
 
 ---
 
-### 2. Unified Local Test Runner (`run_all_unit_tests.sh`)
-Orchestrates discovery and execution of all decoupled component test suites across the repository in a single command:
-
-1. **Verification Gateway API**: Node.js native test runner (`node --test` across 30 unit tests).
-2. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
-3. **Hyperledger Fabric Chaincode**: Go unit tests using Fabric `shimtest` (14 tests).
-4. **Crypto Microservice**: Python interface and memory cleanup suite (`test_interface.py` when liboqs is present).
-5. **Offline Verifiers**: Parity test stages covering Node.js and Python verifiers.
+### 2. RFC 8785 Canonicalization Parity Fuzzer (`fuzz_canonicalize_parity.py`)
+Executes generative adversarial fuzzing across Python (`rfc8785` + zero-dependency fallback) and Node.js (official `canonicalize` npm package + `tools/verify_offline.js`):
+- **5,000-Iteration Generative Combinatorial Parity Fuzz**: Synthesizes pseudo-random JSON objects with arbitrary nesting depths (1–8 levels), mixed types, and adversarial payloads.
+- **Unicode Stress Vectors**: Evaluates right-to-left override markers (`\u202E`, `\u202D`), zero-width joiners (`\u200D`), emoji with skin-tone composites (`👨‍👩‍👧‍👦`, `👍🏽`), surrogate pairs, and multi-lingual character sets (Arabic, Hebrew, Cyrillic, Greek, Devanagari, CJK).
+- **RFC 8785 §3.2.3 UTF-16 Key Sorting**: Verifies that astral plane keys (`U+10000` -> `\uD800\uDC00`) sort before high-BMP keys (`U+E000`), inverting standard Unicode codepoint order.
+- **Numeric Boundary Testing**: Asserts IEEE 754 precision compliance at `Number.MAX_SAFE_INTEGER` (`9007199254740991`), `Number.MIN_SAFE_INTEGER`, negative zero (`-0.0` normalized to `0`), arbitrary decimal precision, and fixed-to-exponential thresholding (`1e-6` to `1e20`).
+- **Fail-Fast Error Handling**: Asserts strict cross-language rejection of `NaN`, `Infinity`, and integers exceeding `2^53 - 1`.
 
 ```bash
-# Execute all decoupled unit tests across the entire repository
+# Run the 5,000-iteration canonicalization fuzzer
+python3 tests/fuzz_canonicalize_parity.py
+```
+
+---
+
+### 3. Cryptographic Tamper Sensitivity Suite (`test_tamper_sensitivity.py`)
+Validates foundational mathematical invariants of NIST FIPS 204 (ML-DSA-65) and FIPS 202 (SHA3-256):
+- **Pure Function Verification**: Asserts that `verify(hash, sig, pk)` is purely functional with zero internal state drift or memory leakage over repetitive iterations.
+- **Exhaustive SHA3-256 Bit Flips**: Flips each of the 256 bits in the pre-image commitment hash individually, proving 100% rejection across all 256 single-bit mutations.
+- **Exhaustive ML-DSA-65 Signature Bit Flips**: Flips each of the 26,472 bits in the 3,309-byte post-quantum signature, proving 100% rejection across all 26,472 single-bit mutations.
+- **Public Key Bit Flips**: Systematically mutates bit positions across the 1,952-byte public key, confirming immediate cryptographic failure.
+- **Off-by-One Container Boundaries**: Tests 3308B/3310B signatures and 1951B/1953B public keys, proving structural length validation fails cleanly before signature parsing.
+
+```bash
+# Run the cryptographic tamper-sensitivity suite
+python3 tests/test_tamper_sensitivity.py
+```
+
+---
+
+### 4. Differential Offline Verifier Suite (`differential_offline_verifier.test.sh`)
+Differential test harness evaluating behavioral congruence and architectural segregation between `tools/verify_offline.js` and `tools/verify_offline.py`:
+- **Authentic Credentials**: Both engines pass Level 1 pre-image commitments; Python executes Level 2 signature verification (`CRYPTOGRAPHICALLY VALID & AUTHENTIC`).
+- **Tampered Claims & Salts**: Both engines reject altered attributes or corrupted salts with exit code 1 and identical diagnostics (`LEVEL 1 VERIFICATION FAILED`).
+- **Container-Valid Forgeries**: Verifies structurally valid (3309B signature, 1952B public key) but cryptographically invalid payloads. Confirms Node.js explicitly warns `⚠ PRE-IMAGE COMMITMENT MATCH (UNAUTHENTICATED)` while Python detects the forgery and exits with code 1 (`SIGNATURE VERIFICATION FAILED`).
+
+```bash
+# Run the differential offline verifier suite
+bash tests/differential_offline_verifier.test.sh
+```
+
+---
+
+### 5. Unified Local Test Runner (`run_all_unit_tests.sh`)
+Orchestrates discovery and execution of all decoupled component test suites across the repository in a single command:
+
+1. **Crypto Microservice**: Python interface, KMS zeroization, and ML-DSA-65 signature test suite (15 tests).
+2. **Verification Gateway API**: Node.js native test runner (`node --test` across 30 unit tests).
+3. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
+4. **RFC 8785 Canonicalization Fuzzer**: 5,000-iteration cross-engine generative fuzz suite.
+5. **Post-Quantum Tamper Sensitivity**: 26,472-bit exhaustive signature and commitment mutation suite.
+6. **Differential Verifiers**: Automated cross-language differential testing suite (6 vectors).
+7. **Offline Verifiers**: Parity test stages covering Node.js and Python offline tools.
+
+```bash
+# Execute all decoupled unit and hardening suites across the repository
 bash tests/run_all_unit_tests.sh
 ```
 
@@ -53,9 +98,12 @@ bash tests/run_all_unit_tests.sh
 
 ## 3. Coverage Summary
 
-| Component | Test File | Framework | Tests |
+| Component / Track | Test Suite | Framework / Tooling | Scope / Test Count |
 | :--- | :--- | :--- | :--- |
-| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner | 30 passed |
+| **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 15 passed |
+| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 30 passed |
 | **TypeScript SDK** | `sdk/test/index.test.ts` | Jest | 6 passed |
-| **Fabric Chaincode** | `components/blockchain/chaincode/src/scatterproof_test.go` | Go `testing` / `shimtest` | 14 passed |
-| **Offline Parity** | `tests/offline_verify_parity.test.sh` | Bash / Node / Python | 6 stages passed |
+| **Canonicalization Fuzzer** | `tests/fuzz_canonicalize_parity.py` | Python + Node.js Bridge | 5,000 fuzz runs (7 test methods) passed |
+| **Tamper Sensitivity** | `tests/test_tamper_sensitivity.py` | Python `unittest` / `liboqs` | 26,472 signature bit flips passed |
+| **Differential Verifiers** | `tests/differential_offline_verifier.test.sh` | Bash / Python / Node | 6 differential vectors passed |
+| **Offline Parity** | `tests/offline_verify_parity.test.sh` | Bash / Python / Node | 6 stages passed |

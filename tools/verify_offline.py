@@ -24,6 +24,82 @@ import os
 import json
 import hashlib
 import hmac
+import math
+
+def _format_float_ecma(f: float) -> str:
+    if math.isnan(f) or math.isinf(f):
+        raise ValueError("NaN and Infinity are not allowed in RFC 8785 JSON")
+    if f == 0:
+        return '0'
+    if f < 0:
+        return '-' + _format_float_ecma(-f)
+
+    stringified = str(f)
+    exponent_str = ''
+    exponent_value = 0
+    q = stringified.find('e')
+    if q > 0:
+        exponent_str = stringified[q:]
+        if exponent_str[2:3] == '0':
+            exponent_str = exponent_str[:2] + exponent_str[3:]
+        stringified = stringified[0:q]
+        exponent_value = int(exponent_str[1:])
+
+    first = stringified
+    dot = ''
+    last = ''
+    q = stringified.find('.')
+    if q > 0:
+        dot = '.'
+        first = stringified[:q]
+        last = stringified[q + 1:]
+
+    if last == '0':
+        dot = ''
+        last = ''
+
+    if 0 < exponent_value < 21:
+        first += last
+        last = ''
+        dot = ''
+        exponent_str = ''
+        q = exponent_value - len(first)
+        while q >= 0:
+            q -= 1
+            first += '0'
+    elif -7 < exponent_value < 0:
+        last = first + last
+        first = '0'
+        dot = '.'
+        exponent_str = ''
+        q = exponent_value
+        while q < -1:
+            q += 1
+            last = '0' + last
+
+    return f'{first}{dot}{last}{exponent_str}'
+
+
+def _fallback_jcs(obj):
+    """Zero-dependency RFC 8785 JSON Canonicalization Scheme (JCS) serializer."""
+    if obj is None:
+        return 'null'
+    if isinstance(obj, bool):
+        return 'true' if obj else 'false'
+    if isinstance(obj, int):
+        return str(obj)
+    if isinstance(obj, float):
+        return _format_float_ecma(obj)
+    if isinstance(obj, str):
+        return json.dumps(obj, ensure_ascii=False)
+    if isinstance(obj, (list, tuple)):
+        return '[' + ','.join(_fallback_jcs(x) for x in obj) + ']'
+    if isinstance(obj, dict):
+        # RFC 8785 §3.2.3: object keys sorted by UTF-16 code unit representation
+        sorted_keys = sorted(obj.keys(), key=lambda k: k.encode('utf-16be'))
+        return '{' + ','.join(json.dumps(k, ensure_ascii=False) + ':' + _fallback_jcs(obj[k]) for k in sorted_keys) + '}'
+    raise TypeError(f"Type {type(obj)} is not serializable under RFC 8785")
+
 try:
     import rfc8785
     def canonicalize(obj):
@@ -31,8 +107,9 @@ try:
         return rfc8785.dumps(obj).decode('utf-8')
 except ImportError:
     def canonicalize(obj):
-        """Zero-dependency fallback RFC 8785 representation for string/integer fields."""
-        return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+        """Zero-dependency RFC 8785 fallback with UTF-16 code unit key sorting."""
+        return _fallback_jcs(obj)
+
 import argparse
 
 # ANSI terminal colors
