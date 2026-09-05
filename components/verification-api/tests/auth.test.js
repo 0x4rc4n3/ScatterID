@@ -256,6 +256,128 @@ test('startup fails if REVOKE_API_KEY equals VERIFICATION_API_KEY', async () => 
   assert.match(result.stderr, /REVOKE_API_KEY must not match VERIFICATION_API_KEY/);
 });
 
+// ── Adversarial Truth-Table & Privilege Separation Permutations ───────────────
+
+test('POST /revoke — 403 when called with VERIFICATION_API_KEY instead of REVOKE_API_KEY', async () => {
+  // A bearer token holding standard verification privileges must NEVER be permitted to revoke credentials
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${TEST_KEY}`
+    },
+    body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
+  });
+  assert.equal(res.status, 403);
+  const body = await res.json();
+  assert.equal(body.code, 'REVOCATION_UNAUTHORIZED');
+});
+
+test('POST /issue — 401 when called with ONLY X-Revoke-Key (no Authorization header)', async () => {
+  // Revocation keys must not be confused with or accepted by standard bearer endpoints
+  const res = await fetch(`${baseUrl}/issue`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Revoke-Key': TEST_REVOKE_KEY
+    },
+    body: JSON.stringify({ dataHash: 'a'.repeat(64) })
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('GET /status/:id — 401 when called with ONLY X-Revoke-Key', async () => {
+  const res = await fetch(`${baseUrl}/status/00000000-0000-4000-8000-000000000000`, {
+    headers: { 'X-Revoke-Key': TEST_REVOKE_KEY }
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('GET /credentials — 401 when called with ONLY X-Revoke-Key', async () => {
+  const res = await fetch(`${baseUrl}/credentials`, {
+    headers: { 'X-Revoke-Key': TEST_REVOKE_KEY }
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('GET /audit — 401 when called with ONLY X-Revoke-Key', async () => {
+  const res = await fetch(`${baseUrl}/audit`, {
+    headers: { 'X-Revoke-Key': TEST_REVOKE_KEY }
+  });
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.code, 'MISSING_AUTH');
+});
+
+test('POST /revoke — passes auth when valid X-Revoke-Key is sent alongside valid Bearer verification key', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Revoke-Key': TEST_REVOKE_KEY,
+      'Authorization': `Bearer ${TEST_KEY}`
+    },
+    body: JSON.stringify({ credentialId: 'invalid-param-uuid' })
+  });
+  // 400 proves authentication passed through requireRevokeAuth and reached revokeRoute
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_PARAMETER');
+});
+
+test('POST /revoke — 403 when INVALID X-Revoke-Key is sent alongside valid Bearer verification key (no OR bypass)', async () => {
+  // If an explicit X-Revoke-Key is specified, an invalid revoke key must NOT fall back to Bearer auth
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Revoke-Key': 'malicious-invalid-revoke-key',
+      'Authorization': `Bearer ${TEST_KEY}`
+    },
+    body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
+  });
+  assert.equal(res.status, 403);
+  const body = await res.json();
+  assert.equal(body.code, 'REVOCATION_UNAUTHORIZED');
+});
+
+test('POST /revoke — passes auth when valid X-Revoke-Key is sent alongside INVALID Bearer token', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Revoke-Key': TEST_REVOKE_KEY,
+      'Authorization': 'Bearer wrong-unrelated-token'
+    },
+    body: JSON.stringify({ credentialId: 'invalid-param-uuid' })
+  });
+  // 400 proves explicit valid X-Revoke-Key successfully authenticated
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.code, 'INVALID_PARAMETER');
+});
+
+test('POST /revoke — 403 when BOTH X-Revoke-Key and Bearer tokens are invalid', async () => {
+  const res = await fetch(`${baseUrl}/revoke`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Revoke-Key': 'bad-revoke-key',
+      'Authorization': 'Bearer bad-bearer-token'
+    },
+    body: JSON.stringify({ credentialId: '00000000-0000-4000-8000-000000000000' })
+  });
+  assert.equal(res.status, 403);
+  const body = await res.json();
+  assert.equal(body.code, 'REVOCATION_UNAUTHORIZED');
+});
+
 // Shut down the real test server after all tests
 after(async () => {
   await stopServer();

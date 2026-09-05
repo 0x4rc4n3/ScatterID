@@ -63,9 +63,9 @@ if [ -d "components/crypto/crypto-service" ]; then
 fi
 
 # 2. Blockchain Smart Contract Chaincode Tests
-if [ -f "components/blockchain/chaincode/scatterproof_test.go" ] && command -v go >/dev/null 2>&1; then
+if [ -f "components/blockchain/chaincode/src/scatterproof_test.go" ] && command -v go >/dev/null 2>&1; then
   run_suite "Blockchain Chaincode (Go / MockStub)" \
-    "go test -v ./components/blockchain/chaincode"
+    "(cd components/blockchain/chaincode/src && go test -v ./...)"
 else
   echo -e "\n${YELLOW}[!] Skipping Blockchain Chaincode tests (scatterproof_test.go not on current branch or Go unavailable)${RESET}"
 fi
@@ -106,6 +106,12 @@ fi
 if [ -f "tests/offline_verify_parity.test.sh" ]; then
   run_suite "Offline Verifiers Cross-Language Parity (Node.js & Python)" \
     "bash tests/offline_verify_parity.test.sh"
+fi
+
+# 9. Authorization Mutation Testing Framework (§9)
+if [ -f "tests/mutation_auth.test.sh" ]; then
+  run_suite "Authorization Mutation Testing (14 Mutants / Chaincode, Gateway & Crypto)" \
+    "bash tests/mutation_auth.test.sh"
 fi
 
 # Summary

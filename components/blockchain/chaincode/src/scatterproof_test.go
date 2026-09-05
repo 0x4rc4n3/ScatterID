@@ -391,3 +391,253 @@ func TestGetProofHistory_InvalidUUID(t *testing.T) {
 		t.Errorf("expected 'invalid credentialID' error, got: %v", err)
 	}
 }
+
+// TestRevokeProof_AuthorizationTruthTable exhaustively checks all 2^3 = 8 combinations of:
+//   1. Caller MSP == "IssuerMSP" (authorized) vs "MaliciousMSP" (unauthorized)
+//   2. Caller requestingIssuerID == original issuer ("Issuer-Alpha") vs mismatched ("Impostor-Beta")
+//   3. Ledger record Status == "active" vs "revoked"
+func TestRevokeProof_AuthorizationTruthTable(t *testing.T) {
+	contract := &SmartContract{}
+	originalIssuer := "Issuer-Alpha"
+	impostorIssuer := "Impostor-Beta"
+
+	type truthCase struct {
+		name           string
+		callerMSP      string
+		requestIssuer  string
+		initialStatus  string
+		expectSuccess  bool
+		expectedErrSub string
+	}
+
+	cases := []truthCase{
+		// 1. (True, True, True) -> ALLOW
+		{
+			name:          "Case 1: [Auth MSP, Match Issuer, Active] -> ALLOW",
+			callerMSP:     "IssuerMSP",
+			requestIssuer: originalIssuer,
+			initialStatus: "active",
+			expectSuccess: true,
+		},
+		// 2. (True, True, False) -> DENY (already revoked)
+		{
+			name:           "Case 2: [Auth MSP, Match Issuer, Revoked] -> DENY (already revoked)",
+			callerMSP:      "IssuerMSP",
+			requestIssuer:  originalIssuer,
+			initialStatus:  "revoked",
+			expectSuccess:  false,
+			expectedErrSub: "already revoked",
+		},
+		// 3. (True, False, True) -> DENY (mismatched issuer)
+		{
+			name:           "Case 3: [Auth MSP, Mismatched Issuer, Active] -> DENY (issuer mismatch)",
+			callerMSP:      "IssuerMSP",
+			requestIssuer:  impostorIssuer,
+			initialStatus:  "active",
+			expectSuccess:  false,
+			expectedErrSub: "does not match original issuer",
+		},
+		// 4. (True, False, False) -> DENY (mismatched issuer takes precedence or rejects)
+		{
+			name:           "Case 4: [Auth MSP, Mismatched Issuer, Revoked] -> DENY (issuer mismatch)",
+			callerMSP:      "IssuerMSP",
+			requestIssuer:  impostorIssuer,
+			initialStatus:  "revoked",
+			expectSuccess:  false,
+			expectedErrSub: "does not match original issuer",
+		},
+		// 5. (False, True, True) -> DENY (unauthorized MSP)
+		{
+			name:           "Case 5: [Unauth MSP, Match Issuer, Active] -> DENY (MSP unauthorized)",
+			callerMSP:      "MaliciousMSP",
+			requestIssuer:  originalIssuer,
+			initialStatus:  "active",
+			expectSuccess:  false,
+			expectedErrSub: "is not permitted to revoke proofs",
+		},
+		// 6. (False, True, False) -> DENY (unauthorized MSP)
+		{
+			name:           "Case 6: [Unauth MSP, Match Issuer, Revoked] -> DENY (MSP unauthorized)",
+			callerMSP:      "MaliciousMSP",
+			requestIssuer:  originalIssuer,
+			initialStatus:  "revoked",
+			expectSuccess:  false,
+			expectedErrSub: "is not permitted to revoke proofs",
+		},
+		// 7. (False, False, True) -> DENY (unauthorized MSP)
+		{
+			name:           "Case 7: [Unauth MSP, Mismatched Issuer, Active] -> DENY (MSP unauthorized)",
+			callerMSP:      "MaliciousMSP",
+			requestIssuer:  impostorIssuer,
+			initialStatus:  "active",
+			expectSuccess:  false,
+			expectedErrSub: "is not permitted to revoke proofs",
+		},
+		// 8. (False, False, False) -> DENY (unauthorized MSP)
+		{
+			name:           "Case 8: [Unauth MSP, Mismatched Issuer, Revoked] -> DENY (MSP unauthorized)",
+			callerMSP:      "MaliciousMSP",
+			requestIssuer:  impostorIssuer,
+			initialStatus:  "revoked",
+			expectSuccess:  false,
+			expectedErrSub: "is not permitted to revoke proofs",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Fresh test context
+			testUUID := "00000000-0000-4000-8000-000000000001"
+			ctx := newMockContext("IssuerMSP")
+
+			// Anchor baseline credential
+			ctx.startTx("tx-setup")
+			err := contract.AnchorProof(ctx, testUUID, validHash, originalIssuer, "2026-09-05T12:00:00Z")
+			ctx.endTx("tx-setup")
+			if err != nil {
+				t.Fatalf("setup anchor failed: %v", err)
+			}
+
+			// If test case requires initial state to be 'revoked', revoke it first with authorized credentials
+			if tc.initialStatus == "revoked" {
+				ctx.startTx("tx-prerevoke")
+				err := contract.RevokeProof(ctx, testUUID, originalIssuer)
+				ctx.endTx("tx-prerevoke")
+				if err != nil {
+					t.Fatalf("setup pre-revocation failed: %v", err)
+				}
+			}
+
+			// Switch context to target test caller MSP
+			testCtx := newMockContext(tc.callerMSP)
+			testCtx.stub = ctx.stub // Share the world state
+
+			testCtx.startTx("tx-test-revoke")
+			err = contract.RevokeProof(testCtx, testUUID, tc.requestIssuer)
+			testCtx.endTx("tx-test-revoke")
+
+			if tc.expectSuccess {
+				if err != nil {
+					t.Fatalf("expected revocation to SUCCEED, but got error: %v", err)
+				}
+				record, qErr := contract.QueryProof(testCtx, testUUID)
+				if qErr != nil || record.Status != "revoked" {
+					t.Errorf("expected status 'revoked', got record: %+v, err: %v", record, qErr)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("SECURITY VIOLATION: expected revocation to FAIL, but it SUCCEEDED!")
+				}
+				if !strings.Contains(err.Error(), tc.expectedErrSub) {
+					t.Errorf("expected error containing %q, got: %q", tc.expectedErrSub, err.Error())
+				}
+			}
+		})
+	}
+}
+
+// TestAnchorProof_AuthorizationTruthTable exhaustively validates boolean guards on AnchorProof.
+func TestAnchorProof_AuthorizationTruthTable(t *testing.T) {
+	contract := &SmartContract{}
+
+	type anchorCase struct {
+		name          string
+		callerMSP     string
+		credID        string
+		hash          string
+		issuer        string
+		timestamp     string
+		preAnchor     bool
+		expectSuccess bool
+		errSub        string
+	}
+
+	cases := []anchorCase{
+		{
+			name:          "Valid fresh anchor by IssuerMSP -> ALLOW",
+			callerMSP:     "IssuerMSP",
+			credID:        "11111111-1111-4111-8111-111111111111",
+			hash:          validHash,
+			issuer:        "IssuerMSP",
+			timestamp:     "2026-09-05T12:00:00Z",
+			preAnchor:     false,
+			expectSuccess: true,
+		},
+		{
+			name:          "Unauthorized caller MSP -> DENY",
+			callerMSP:     "UnauthorizedOrgMSP",
+			credID:        "22222222-2222-4222-8222-222222222222",
+			hash:          validHash,
+			issuer:        "IssuerMSP",
+			timestamp:     "2026-09-05T12:00:00Z",
+			preAnchor:     false,
+			expectSuccess: false,
+			errSub:        "is not permitted to anchor proofs",
+		},
+		{
+			name:          "Replay attack on existing credential -> DENY",
+			callerMSP:     "IssuerMSP",
+			credID:        "33333333-3333-4333-8333-333333333333",
+			hash:          validHash,
+			issuer:        "IssuerMSP",
+			timestamp:     "2026-09-05T12:00:00Z",
+			preAnchor:     true,
+			expectSuccess: false,
+			errSub:        "already exists",
+		},
+		{
+			name:          "Empty issuer -> DENY",
+			callerMSP:     "IssuerMSP",
+			credID:        "44444444-4444-4444-8444-444444444444",
+			hash:          validHash,
+			issuer:        "   ",
+			timestamp:     "2026-09-05T12:00:00Z",
+			preAnchor:     false,
+			expectSuccess: false,
+			errSub:        "invalid issuerID",
+		},
+		{
+			name:          "Empty timestamp -> DENY",
+			callerMSP:     "IssuerMSP",
+			credID:        "55555555-5555-4555-8555-555555555555",
+			hash:          validHash,
+			issuer:        "IssuerMSP",
+			timestamp:     "",
+			preAnchor:     false,
+			expectSuccess: false,
+			errSub:        "invalid timestamp",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := newMockContext("IssuerMSP")
+
+			if tc.preAnchor {
+				ctx.startTx("tx-pre")
+				_ = contract.AnchorProof(ctx, tc.credID, tc.hash, tc.issuer, tc.timestamp)
+				ctx.endTx("tx-pre")
+			}
+
+			testCtx := newMockContext(tc.callerMSP)
+			testCtx.stub = ctx.stub
+
+			testCtx.startTx("tx-anchor-test")
+			err := contract.AnchorProof(testCtx, tc.credID, tc.hash, tc.issuer, tc.timestamp)
+			testCtx.endTx("tx-anchor-test")
+
+			if tc.expectSuccess {
+				if err != nil {
+					t.Fatalf("expected success, got error: %v", err)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tc.errSub)
+				}
+				if !strings.Contains(err.Error(), tc.errSub) {
+					t.Errorf("expected error %q, got: %q", tc.errSub, err.Error())
+				}
+			}
+		})
+	}
+}
