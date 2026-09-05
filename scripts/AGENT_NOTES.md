@@ -5,3 +5,9 @@
 - Fix: Removed fallback in `docker-compose.yml` for `REVOKE_API_KEY` to require explicit distinct key, set `VAULT_DEV_MODE` default to `false`, and updated `.env.example`.
 - Files touched: `docker-compose.yml`, `.env.example`, `scripts/AGENT_NOTES.md`
 - Anything deferred / follow-up needed: none
+
+## [2026-09-05] — Harden .gitignore against agent scratch, reference, and temporary files
+- Problem: Risk of committing agent scratch directories, reference notes, swap files, and untracked environment secrets.
+- Fix: Expanded `.gitignore` with comprehensive rules for `.gemini/`, `.claude/`, `.antigravity/`, `.agent/`, `scratch/`, `notes.txt`, `*.tmp`, `*~`, `.*.swp`, and wildcard `.env.*` with `!.env.example`.
+- Files touched: `.gitignore`, `scripts/AGENT_NOTES.md`
+- Anything deferred / follow-up needed: none
