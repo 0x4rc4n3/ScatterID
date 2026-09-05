@@ -27,12 +27,14 @@ export async function verifyRoute(req, res) {
       });
     }
 
+    const normalizedHash = dataHash ? dataHash.trim().toLowerCase() : null;
+    const normalizedId = credentialId ? credentialId.trim().toLowerCase() : null;
+
     let record = null;
-    if (credentialId) {
-      record = await getCredentialById(credentialId);
+    if (normalizedId) {
+      record = await getCredentialById(normalizedId);
     } else {
-      // Lookup by data_hash using the UNIQUE INDEX — O(log n)
-      record = await getCredentialByDataHash(dataHash);
+      record = await getCredentialByDataHash(normalizedHash);
     }
 
     if (!record) {
@@ -42,11 +44,10 @@ export async function verifyRoute(req, res) {
       });
     }
 
-    // All fields are camelCase via toApiShape() in models.js
     const recDataHash = record.dataHash;
     const recIssuedAt = record.issuedAt;
 
-    if (dataHash && recDataHash.toLowerCase() !== dataHash.toLowerCase()) {
+    if (normalizedHash && recDataHash.toLowerCase() !== normalizedHash) {
       return res.status(200).json({
         valid: false,
         anchorStatus: 'tampered_hash',

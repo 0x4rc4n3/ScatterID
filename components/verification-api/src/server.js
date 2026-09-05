@@ -13,6 +13,7 @@ import { verifyRoute } from './routes/verify.js';
 import { revokeRoute } from './routes/revoke.js';
 import { getAllCredentials, getAuditLogs } from './db/models.js';
 import { reconcileLedger, getReconciliationState, startPeriodicReconciliation } from './reconcile.js';
+import { getProofHistory } from './chain/fabric.js';
 
 const VERIFICATION_API_KEY = process.env.VERIFICATION_API_KEY || '';
 const REVOKE_API_KEY = process.env.REVOKE_API_KEY || '';
@@ -141,6 +142,27 @@ app.get('/credentials', requireBearerAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to get credentials:', err.stack || err.message);
     res.status(500).json({ success: false, error: 'Internal Server Error', credentials: [] });
+  }
+});
+
+app.get('/credentials/:credentialId/history', requireBearerAuth, async (req, res) => {
+  try {
+    const { credentialId } = req.params;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!credentialId || !uuidRegex.test(credentialId)) {
+      return res.status(400).json({
+        error: 'Invalid parameter: credentialId must be a valid UUID v4',
+        code: 'INVALID_PARAMETER',
+      });
+    }
+    const history = await getProofHistory(credentialId.trim().toLowerCase());
+    res.json({ success: true, credentialId: credentialId.trim().toLowerCase(), history });
+  } catch (err) {
+    res.status(502).json({
+      success: false,
+      error: `Failed to retrieve ledger history: ${err.message}`,
+      code: 'LEDGER_QUERY_FAILED'
+    });
   }
 });
 

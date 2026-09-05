@@ -222,6 +222,24 @@ test('GET /reconciliation — 401 without auth, 200 with auth', async () => {
   assert.equal(typeof body.mismatchCount, 'number');
 });
 
+test('GET /credentials/:id/history — 401 without auth, 400 with bad UUID, 502 when Fabric offline', async () => {
+  const dummyUuid = 'c9a646d3-9c61-4cc9-bc3d-5573752e25df';
+  const unauthRes = await fetch(`${baseUrl}/credentials/${dummyUuid}/history`);
+  assert.equal(unauthRes.status, 401);
+
+  const badUuidRes = await fetch(`${baseUrl}/credentials/not-a-uuid/history`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(badUuidRes.status, 400);
+
+  const authRes = await fetch(`${baseUrl}/credentials/${dummyUuid}/history`, {
+    headers: { 'Authorization': `Bearer ${TEST_KEY}` }
+  });
+  assert.equal(authRes.status, 502);
+  const body = await authRes.json();
+  assert.equal(body.code, 'LEDGER_QUERY_FAILED');
+});
+
 test('startup fails if REVOKE_API_KEY equals VERIFICATION_API_KEY', async () => {
   const { spawnSync } = await import('node:child_process');
   const result = spawnSync('node', ['src/server.js'], {

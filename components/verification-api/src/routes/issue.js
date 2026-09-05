@@ -12,6 +12,8 @@ export async function issueRoute(req, res) {
         code: 'INVALID_PARAMETER',
       });
     }
+
+    const normalizedHash = dataHash.trim().toLowerCase();
     
     if (idempotencyKey) {
       const existing = await getCredentialByIdempotencyKey(idempotencyKey);
@@ -40,7 +42,7 @@ export async function issueRoute(req, res) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${cryptoApiKey}`,
         },
-        body: JSON.stringify({ dataHash, credentialId }),
+        body: JSON.stringify({ dataHash: normalizedHash, credentialId }),
       });
 
       if (!response.ok) {
@@ -172,7 +174,8 @@ export async function retryAnchorRoute(req, res) {
       });
     }
 
-    const record = await getCredentialById(credentialId);
+    const normalizedId = credentialId.trim().toLowerCase();
+    const record = await getCredentialById(normalizedId);
     if (!record) {
       return res.status(404).json({
         error: 'Credential not found',

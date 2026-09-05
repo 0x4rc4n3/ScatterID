@@ -3,8 +3,6 @@ import { getCredentialById } from '../db/models.js';
 export async function statusRoute(req, res) {
   try {
     const { id } = req.params;
-
-    // Strict zero-trust input validation: enforce UUID v4 format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!id || !uuidRegex.test(id)) {
       return res.status(400).json({
@@ -13,7 +11,8 @@ export async function statusRoute(req, res) {
       });
     }
 
-    const record = await getCredentialById(id);
+    const normalizedId = id.trim().toLowerCase();
+    const record = await getCredentialById(normalizedId);
 
     if (!record) {
       return res.status(404).json({
