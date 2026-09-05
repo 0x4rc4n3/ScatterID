@@ -78,16 +78,43 @@ bash tests/differential_offline_verifier.test.sh
 
 ---
 
-### 5. Unified Local Test Runner (`run_all_unit_tests.sh`)
+### 5. Authorization Truth Tables & Adversarial Permutations (§8)
+Exhaustively enumerates all truth-table permutations across security boundaries:
+- **Smart Contract (`scatterproof.go`)**: Exhaustively tests all 8 combinations of `(callerMSP == IssuerMSP, callerIssuer == originalIssuer, status == active)` for `RevokeProof`, and boolean clauses for `AnchorProof`.
+- **Verification API Gateway (`server.js`)**: Tests all permutations of `requireBearerAuth` and `requireRevokeAuth`:
+  - Enforces privilege separation: standard `VERIFICATION_API_KEY` cannot execute on-chain revocations (403 `REVOCATION_UNAUTHORIZED`).
+  - Scoped header isolation: `X-Revoke-Key` alone is rejected by all bearer operator endpoints (401 `MISSING_AUTH`).
+  - No OR-bypass: Sending invalid `X-Revoke-Key` alongside valid verification bearer token fails closed with 403 `REVOCATION_UNAUTHORIZED`.
+- **Crypto Microservice (`app.py`)**: Tests HTTP bearer token parsing, whitespace handling, and timing-safe constant-time `hmac.compare_digest` validation.
+
+---
+
+### 6. Authorization Mutation Testing Framework (`mutation_auth.test.sh`) (§9)
+Automated mutation testing harness that deliberately injects 14 architectural mutants into production authorization logic:
+- **Chaincode Mutants (7)**: Inverts/bypasses MSP checks, issuer equality checks, status checks, and replay guards in `scatterproof.go`.
+- **Gateway API Mutants (4)**: Inverts/bypasses timing-safe hash comparisons and revocation authorization guards in `server.js`.
+- **Crypto Service Mutants (3)**: Inverts/bypasses HMAC API key comparison and route bypass conditions in `app.py`.
+- **Validation**: Asserts a **100% mutant kill rate** (14/14 killed by test suites). Any mutant survival halts execution.
+
+```bash
+# Run the authorization mutation testing suite
+bash tests/mutation_auth.test.sh
+```
+
+---
+
+### 7. Unified Local Test Runner (`run_all_unit_tests.sh`)
 Orchestrates discovery and execution of all decoupled component test suites across the repository in a single command:
 
-1. **Crypto Microservice**: Python interface, KMS zeroization, and ML-DSA-65 signature test suite (15 tests).
-2. **Verification Gateway API**: Node.js native test runner (`node --test` across 30 unit tests).
-3. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
-4. **RFC 8785 Canonicalization Fuzzer**: 5,000-iteration cross-engine generative fuzz suite.
-5. **Post-Quantum Tamper Sensitivity**: 26,472-bit exhaustive signature and commitment mutation suite.
-6. **Differential Verifiers**: Automated cross-language differential testing suite (6 vectors).
-7. **Offline Verifiers**: Parity test stages covering Node.js and Python offline tools.
+1. **Crypto Microservice**: Python interface, KMS zeroization, ML-DSA-65 signatures, and auth truth tables (19 tests).
+2. **Blockchain Chaincode**: Fabric mock contract unit and truth-table test suites (16 tests).
+3. **Verification Gateway API**: Node.js native test runner (`node --test` across 39 unit tests).
+4. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
+5. **RFC 8785 Canonicalization Fuzzer**: 5,000-iteration cross-engine generative fuzz suite.
+6. **Post-Quantum Tamper Sensitivity**: 26,472-bit exhaustive signature and commitment mutation suite.
+7. **Differential Verifiers**: Automated cross-language differential testing suite (6 vectors).
+8. **Offline Verifiers**: Parity test stages covering Node.js and Python offline tools.
+9. **Authorization Mutation Testing**: 14-mutant multi-layer fault injection suite.
 
 ```bash
 # Execute all decoupled unit and hardening suites across the repository
@@ -100,10 +127,12 @@ bash tests/run_all_unit_tests.sh
 
 | Component / Track | Test Suite | Framework / Tooling | Scope / Test Count |
 | :--- | :--- | :--- | :--- |
-| **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 15 passed |
-| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 30 passed |
+| **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 19 passed |
+| **Blockchain Chaincode** | `components/blockchain/chaincode/src/*_test.go` | Go `testing` / `shimtest` | 16 passed |
+| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 39 passed |
 | **TypeScript SDK** | `sdk/test/index.test.ts` | Jest | 6 passed |
 | **Canonicalization Fuzzer** | `tests/fuzz_canonicalize_parity.py` | Python + Node.js Bridge | 5,000 fuzz runs (7 test methods) passed |
 | **Tamper Sensitivity** | `tests/test_tamper_sensitivity.py` | Python `unittest` / `liboqs` | 26,472 signature bit flips passed |
 | **Differential Verifiers** | `tests/differential_offline_verifier.test.sh` | Bash / Python / Node | 6 differential vectors passed |
 | **Offline Parity** | `tests/offline_verify_parity.test.sh` | Bash / Python / Node | 6 stages passed |
+| **Mutation Testing** | `tests/mutation_auth.test.sh` | Bash / Go / Node / Python | 14/14 mutants killed (100% kill rate) |
