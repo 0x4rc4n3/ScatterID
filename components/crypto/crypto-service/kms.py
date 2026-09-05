@@ -94,14 +94,16 @@ class KMS:
                 print(f"KMS Warning: Error reading key history file: {e}")
 
     def _save_disk_history(self):
-        """Persist public key history to disk securely."""
+        """Persist public key history to disk atomically."""
         try:
             hex_keys = [k.hex() for k in self.public_key_history]
+            tmp_file = f"{HISTORY_FILE}.tmp"
             flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
             mode = 0o600  # Owner read-write only
-            fd = os.open(HISTORY_FILE, flags, mode)
+            fd = os.open(tmp_file, flags, mode)
             with os.fdopen(fd, 'w') as f:
                 json.dump(hex_keys, f)
+            os.replace(tmp_file, HISTORY_FILE)
         except Exception as e:
             print(f"KMS Warning: Error saving key history file: {e}")
 

@@ -53,5 +53,9 @@ def verify_signature(data: bytes, signature: bytes, public_key: bytes, algorithm
     if algorithm not in ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]:
         raise ValueError("Unsupported or insecure PQC signature algorithm requested")
 
+    # Must explicitly free the C allocation (OQS_SIG)
     verifier = oqs.Signature(algorithm)
-    return verifier.verify(bytes(data), bytes(signature), bytes(public_key))
+    try:
+        return verifier.verify(bytes(data), bytes(signature), bytes(public_key))
+    finally:
+        verifier.free()

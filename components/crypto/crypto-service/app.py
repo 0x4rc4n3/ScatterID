@@ -75,6 +75,15 @@ def verify_hash_route():
     signature = data["signature"]
     public_key_id = data["publicKeyId"]
 
+    if not isinstance(data_hash, str) or not re.match(r'^[0-9a-fA-F]{64}$', data_hash):
+        return jsonify({"error": "Invalid parameter: dataHash must be a 64-character hex string", "code": "INVALID_PARAMETER"}), 400
+
+    if not isinstance(signature, str) or not re.match(r'^[0-9a-fA-F]+$', signature) or len(signature) % 2 != 0:
+        return jsonify({"error": "Invalid parameter: signature must be a valid hex string", "code": "INVALID_PARAMETER"}), 400
+
+    if not isinstance(public_key_id, str) or not re.match(r'^[0-9a-fA-F]{32}$', public_key_id):
+        return jsonify({"error": "Invalid parameter: publicKeyId must be a 32-character hex string", "code": "INVALID_PARAMETER"}), 400
+
     with state_lock:
         local_pub_key = PUBLIC_KEY
         local_pub_key_id = PUBLIC_KEY_ID
