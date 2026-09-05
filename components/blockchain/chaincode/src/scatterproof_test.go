@@ -162,6 +162,11 @@ func TestAnchorProof_InputValidation(t *testing.T) {
 		{"non-hex hash", validUUID, strings.Repeat("z", 64), "IssuerMSP", "2026-09-05T12:00:00Z", "invalid dataHash"},
 		{"empty issuer", validUUID, validHash, "", "2026-09-05T12:00:00Z", "invalid issuerID"},
 		{"empty timestamp", validUUID, validHash, "IssuerMSP", "", "invalid timestamp"},
+		{"malformed iso8601 timestamp", validUUID, validHash, "IssuerMSP", "not-a-timestamp", "invalid timestamp format"},
+		{"timezone-less timestamp", validUUID, validHash, "IssuerMSP", "2026-09-05 12:00:00", "invalid timestamp format"},
+		{"invalid calendar date", validUUID, validHash, "IssuerMSP", "2026-02-30T12:00:00Z", "invalid timestamp format"},
+		{"pre-epoch timestamp", validUUID, validHash, "IssuerMSP", "1969-12-31T23:59:59Z", "precedes Unix epoch"},
+		{"far-future timestamp", validUUID, validHash, "IssuerMSP", "2150-01-01T00:00:00Z", "exceeds maximum supported year"},
 	}
 
 	for _, tt := range tests {

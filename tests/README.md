@@ -113,18 +113,34 @@ Validates thread-safety, race prevention, and atomic state transitions under con
 
 ---
 
-### 8. Unified Local Test Runner (`run_all_unit_tests.sh`)
+### 8. Boundary & Edge-Case Mathematical Verification (`test_boundary_math.py`, `boundary_math.test.js`) (§3)
+Evaluates cryptographic, structural, and numeric boundaries against international standards and adversarial inputs:
+- **NIST CAVP SHA3-256 Official Test Vectors**: Validates claim and salt hashing against official NIST Cryptographic Algorithm Validation Program test vectors (0-bit empty string, 8-bit, 24-bit `"abc"`, 448-bit multi-block, and 1,000,000-repetition 1MB message). Guarantees exact FIPS 202 domain-padding compliance (`0x06`) across Python `hashlib` and Node.js `crypto`.
+- **ML-DSA-65 Off-by-One Container Boundary Enforcement**: Validates strict rejection of truncated or overflowing containers before C library invocation: signatures strictly 3,309 bytes (rejects 3,308B and 3,310B), public keys strictly 1,952 bytes (rejects 1,951B and 1,953B).
+- **Salt Boundary & Anomaly Hardening**: Evaluates extreme salt lengths from 1 byte to 1 megabyte (1,048,576 bytes). Enforces strict even-length hexadecimal validation across Python and JavaScript offline verifiers, preventing Node.js `Buffer.from(..., 'hex')` odd-length truncation vulnerabilities.
+- **Gateway Integer & Limit Clamping**: Asserts robust sanitization of query limits on `/audit` (`limit=-999999999`, `-1`, `0`, `NaN`, `Infinity`, `1e400`, `999999`, SQL injection strings). Clamps all inputs to `[1, 200]` (default 50), preventing SQLite negative-limit pagination bypasses.
+- **Smart Contract RFC 3339 Timestamp Boundaries**: Enforces strict `time.RFC3339Nano` parsing in `AnchorProof`, rejecting malformed ISO 8601 strings, missing timezones, impossible calendar dates (e.g. Feb 30), and dates outside the valid era [1970, 2100].
+
+```bash
+# Run the boundary math suite
+python3 tests/test_boundary_math.py
+```
+
+---
+
+### 9. Unified Local Test Runner (`run_all_unit_tests.sh`)
 Orchestrates discovery and execution of all decoupled component test suites across the repository in a single command:
 
 1. **Crypto Microservice**: Python interface, KMS zeroization, ML-DSA-65 signatures, auth truth tables, and in-flight key rotation races (21 tests).
 2. **Blockchain Chaincode**: Fabric mock contract unit, truth-table, and concurrent execution suites running under Go `-race` detector (17 tests).
-3. **Verification Gateway API**: Node.js native test runner (`node --test` across 47 unit and concurrency race tests).
+3. **Verification Gateway API**: Node.js native test runner (`node --test` across 50 unit, boundary, and concurrency race tests).
 4. **TypeScript SDK**: Jest test suite (6 tests covering client, revocation keys, and history queries).
 5. **RFC 8785 Canonicalization Fuzzer**: 5,000-iteration cross-engine generative fuzz suite.
 6. **Post-Quantum Tamper Sensitivity**: 26,472-bit exhaustive signature and commitment mutation suite.
 7. **Differential Verifiers**: Automated cross-language differential testing suite (6 vectors).
 8. **Offline Verifiers**: Parity test stages covering Node.js and Python offline tools.
 9. **Authorization Mutation Testing**: 14-mutant multi-layer fault injection suite.
+10. **Boundary & Edge-Case Mathematical Verification**: NIST CAVP vectors, container off-by-ones, and salt edge cases (15 tests).
 
 ```bash
 # Execute all decoupled unit and hardening suites across the repository
@@ -139,10 +155,11 @@ bash tests/run_all_unit_tests.sh
 | :--- | :--- | :--- | :--- |
 | **Crypto Microservice** | `components/crypto/crypto-service/test_*` | Python `unittest` / `liboqs` | 21 passed (includes in-flight rotation race) |
 | **Blockchain Chaincode** | `components/blockchain/chaincode/src/*_test.go` | Go `testing` (`-race`) / `shimtest` | 17 passed (zero data races detected) |
-| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 47 passed (includes idempotency, double-revoke & reconcile races) |
+| **Verification Gateway** | `components/verification-api/tests/*` | Node.js Test Runner (`node --test`) | 50 passed (includes boundary math, idempotency & race suites) |
 | **TypeScript SDK** | `sdk/test/index.test.ts` | Jest | 6 passed |
 | **Canonicalization Fuzzer** | `tests/fuzz_canonicalize_parity.py` | Python + Node.js Bridge | 5,000 fuzz runs (7 test methods) passed |
 | **Tamper Sensitivity** | `tests/test_tamper_sensitivity.py` | Python `unittest` / `liboqs` | 26,472 signature bit flips passed |
 | **Differential Verifiers** | `tests/differential_offline_verifier.test.sh` | Bash / Python / Node | 6 differential vectors passed |
 | **Offline Parity** | `tests/offline_verify_parity.test.sh` | Bash / Python / Node | 6 stages passed |
 | **Mutation Testing** | `tests/mutation_auth.test.sh` | Bash / Go / Node / Python | 14/14 mutants killed (100% kill rate) |
+| **Boundary Math Verification** | `tests/test_boundary_math.py` | Python `unittest` / Node.js Bridge | 15 passed (NIST CAVP SHA3-256, ML-DSA container off-by-one, 1MB salts) |

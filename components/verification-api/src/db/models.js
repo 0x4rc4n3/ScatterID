@@ -148,7 +148,8 @@ export function recordAuditLog({ credentialId, action, status, details, callerTi
 
 export function getAuditLogs(limit = 50) {
   try {
-    return stmts.getRecentAudit.all(limit).map(toAuditShape);
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 200) : 50;
+    return stmts.getRecentAudit.all(safeLimit).map(toAuditShape);
   } catch (err) {
     console.error('Failed to get audit logs:', err.message);
     return [];

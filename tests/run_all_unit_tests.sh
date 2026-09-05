@@ -114,6 +114,12 @@ if [ -f "tests/mutation_auth.test.sh" ]; then
     "bash tests/mutation_auth.test.sh"
 fi
 
+# 10. Boundary & Edge-Case Mathematical Verification (§3)
+if [ -f "tests/test_boundary_math.py" ] && command -v python3 >/dev/null 2>&1; then
+  run_suite "Boundary & Edge-Case Mathematical Verification (NIST CAVP, Off-by-One, Salt Boundaries)" \
+    "$PY_BIN tests/test_boundary_math.py"
+fi
+
 # Summary
 echo -e "\n${BOLD}${CYAN}======================================================================${RESET}"
 echo -e "${BOLD}Summary: ${PASSED_SUITES}/${TOTAL_SUITES} test suites passed.${RESET}"
