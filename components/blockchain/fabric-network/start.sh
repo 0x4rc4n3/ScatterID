@@ -88,9 +88,18 @@ export CORE_PEER_ADDRESS=localhost:8051
 $FABRIC_BIN/peer channel join -b channel-artifacts/scatterid-channel.block
 set -e
 
-# 6. Package chaincode
+# 6. Package chaincode (re-package if missing or if chaincode source is newer)
+REBUILD_CC=false
 if [ ! -f "scatterproof.tar.gz" ]; then
+    REBUILD_CC=true
+elif [ -n "$(find "$DIR/../chaincode/src" -type f -name '*.go' -newer scatterproof.tar.gz 2>/dev/null)" ]; then
+    echo "[+] Chaincode source updated. Re-packaging scatterproof.tar.gz..."
+    REBUILD_CC=true
+fi
+
+if [ "$REBUILD_CC" = true ]; then
     echo "Packaging chaincode..."
+    rm -f scatterproof.tar.gz
     $FABRIC_BIN/peer lifecycle chaincode package scatterproof.tar.gz --path "$DIR/../chaincode/src" --lang golang --label scatterproof_1.0
 fi
 

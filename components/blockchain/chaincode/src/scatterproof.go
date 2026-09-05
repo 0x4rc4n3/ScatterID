@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 var (
-	uuidRegexp   = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	uuidRegexp   = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	sha256Regexp = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
-// SmartContract provides functions for managing proof records
+// SmartContract manages cryptographic proof records on the ledger.
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// ProofRecord defines the structure of a proof record on the ledger
+// ProofRecord represents a credential commitment anchored on the ledger.
 type ProofRecord struct {
 	CredentialID string `json:"credentialId"`
 	DataHash     string `json:"dataHash"`
@@ -28,9 +30,21 @@ type ProofRecord struct {
 	Status       string `json:"status"` // "active" | "revoked"
 }
 
-// AnchorProof records a new proof hash on the ledger
+// HistoryRecord captures a point-in-time modification to a ProofRecord on the ledger.
+type HistoryRecord struct {
+	TxId      string       `json:"txId"`
+	Timestamp time.Time    `json:"timestamp"`
+	IsDelete  bool         `json:"isDelete"`
+	Record    *ProofRecord `json:"record,omitempty"`
+}
+
+// AnchorProof writes a new credential commitment to the ledger.
 func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface, credentialID string, dataHash string, issuerID string, timestamp string) error {
-	// Strict Zero Trust Input Validation
+	credentialID = strings.ToLower(strings.TrimSpace(credentialID))
+	dataHash = strings.ToLower(strings.TrimSpace(dataHash))
+	issuerID = strings.TrimSpace(issuerID)
+	timestamp = strings.TrimSpace(timestamp)
+
 	if !uuidRegexp.MatchString(credentialID) {
 		return fmt.Errorf("invalid credentialID format: must be a valid UUID v4")
 	}
@@ -44,7 +58,6 @@ func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("invalid timestamp: must be non-empty and under 64 characters")
 	}
 
-	// Access control: Ensure the caller has a valid client identity MSP and is authorized (IssuerMSP only)
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return fmt.Errorf("failed to get client MSP ID: %v", err)
@@ -71,10 +84,9 @@ func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface,
 
 	recordJSON, err := json.Marshal(record)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal proof record: %v", err)
 	}
 
-	// Emit chaincode event for asynchronous indexing and event-driven architectures
 	if err := ctx.GetStub().SetEvent("ProofAnchored", recordJSON); err != nil {
 		return fmt.Errorf("failed to emit ProofAnchored event: %v", err)
 	}
@@ -82,9 +94,10 @@ func (s *SmartContract) AnchorProof(ctx contractapi.TransactionContextInterface,
 	return ctx.GetStub().PutState(credentialID, recordJSON)
 }
 
-// QueryProof returns the ProofRecord stored in the ledger with given credentialID
+// QueryProof reads and deserializes the ProofRecord for the given credentialID.
 func (s *SmartContract) QueryProof(ctx contractapi.TransactionContextInterface, credentialID string) (*ProofRecord, error) {
-	// Strict Zero Trust Input Validation
+	credentialID = strings.ToLower(strings.TrimSpace(credentialID))
+
 	if !uuidRegexp.MatchString(credentialID) {
 		return nil, fmt.Errorf("invalid credentialID format: must be a valid UUID v4")
 	}
@@ -98,17 +111,18 @@ func (s *SmartContract) QueryProof(ctx contractapi.TransactionContextInterface, 
 	}
 
 	var record ProofRecord
-	err = json.Unmarshal(recordJSON, &record)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(recordJSON, &record); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal proof record: %v", err)
 	}
 
 	return &record, nil
 }
 
-// RevokeProof sets the status of a proof record to "revoked"
+// RevokeProof marks an active proof record as "revoked".
 func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface, credentialID string, requestingIssuerID string) error {
-	// Strict Zero Trust Input Validation
+	credentialID = strings.ToLower(strings.TrimSpace(credentialID))
+	requestingIssuerID = strings.TrimSpace(requestingIssuerID)
+
 	if !uuidRegexp.MatchString(credentialID) {
 		return fmt.Errorf("invalid credentialID format: must be a valid UUID v4")
 	}
@@ -121,7 +135,7 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 		return err
 	}
 
-	// Access control: only the original issuer org (IssuerMSP) can revoke.
+	// Only members of the designated issuing MSP are authorized to revoke
 	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
 	if err != nil {
 		return fmt.Errorf("failed to get client MSP ID: %v", err)
@@ -130,12 +144,11 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("unauthorized: client MSP %s is not permitted to revoke proofs", clientMSPID)
 	}
 
-	// Ensure the caller matches the original issuer (or caller's authorized MSP)
-	if record.IssuerID != requestingIssuerID && record.IssuerID != clientMSPID {
+	// Ensure caller-specified issuer identity matches the anchored issuer
+	if record.IssuerID != requestingIssuerID {
 		return fmt.Errorf("unauthorized: requesting issuer %s does not match original issuer %s", requestingIssuerID, record.IssuerID)
 	}
 
-	// Idempotent guard: prevent duplicate revocations, wasted ledger writes, and spurious events
 	if record.Status == "revoked" {
 		return fmt.Errorf("proof %s is already revoked", credentialID)
 	}
@@ -144,10 +157,9 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 
 	recordJSON, err := json.Marshal(record)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal proof record: %v", err)
 	}
 
-	// Emit chaincode event for instant downstream revocation propagation
 	if err := ctx.GetStub().SetEvent("ProofRevoked", recordJSON); err != nil {
 		return fmt.Errorf("failed to emit ProofRevoked event: %v", err)
 	}
@@ -155,9 +167,10 @@ func (s *SmartContract) RevokeProof(ctx contractapi.TransactionContextInterface,
 	return ctx.GetStub().PutState(credentialID, recordJSON)
 }
 
-// ProofExists returns true when proof record with given credentialID exists in world state
+// ProofExists checks if a proof record exists in the world state.
 func (s *SmartContract) ProofExists(ctx contractapi.TransactionContextInterface, credentialID string) (bool, error) {
-	// Strict Zero Trust Input Validation
+	credentialID = strings.ToLower(strings.TrimSpace(credentialID))
+
 	if !uuidRegexp.MatchString(credentialID) {
 		return false, fmt.Errorf("invalid credentialID format: must be a valid UUID v4")
 	}
@@ -168,6 +181,51 @@ func (s *SmartContract) ProofExists(ctx contractapi.TransactionContextInterface,
 	}
 
 	return recordJSON != nil, nil
+}
+
+// GetProofHistory returns the full transaction lifecycle history for a credentialID.
+func (s *SmartContract) GetProofHistory(ctx contractapi.TransactionContextInterface, credentialID string) ([]HistoryRecord, error) {
+	credentialID = strings.ToLower(strings.TrimSpace(credentialID))
+
+	if !uuidRegexp.MatchString(credentialID) {
+		return nil, fmt.Errorf("invalid credentialID format: must be a valid UUID v4")
+	}
+
+	iterator, err := ctx.GetStub().GetHistoryForKey(credentialID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history for key %s: %v", credentialID, err)
+	}
+	defer iterator.Close()
+
+	var history []HistoryRecord
+	for iterator.HasNext() {
+		modification, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("error reading history iterator: %v", err)
+		}
+
+		var proof *ProofRecord
+		if len(modification.Value) > 0 {
+			var p ProofRecord
+			if err := json.Unmarshal(modification.Value, &p); err == nil {
+				proof = &p
+			}
+		}
+
+		var ts time.Time
+		if modification.Timestamp != nil {
+			ts = modification.Timestamp.AsTime()
+		}
+
+		history = append(history, HistoryRecord{
+			TxId:      modification.TxId,
+			Timestamp: ts,
+			IsDelete:  modification.IsDelete,
+			Record:    proof,
+		})
+	}
+
+	return history, nil
 }
 
 func main() {
