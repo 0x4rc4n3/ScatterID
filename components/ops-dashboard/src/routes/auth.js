@@ -17,8 +17,9 @@ import {
 } from '../auth/recoveryCodes.js';
 import { signToken } from '../auth/tokens.js';
 import { authenticate, requireRole, getClientIp } from '../auth/middleware.js';
+import { defaultRateLimiter } from '../auth/rateLimiter.js';
 
-export function createAuthRouter({ db, repos }) {
+export function createAuthRouter({ db, repos, rateLimiter = defaultRateLimiter }) {
   const router = express.Router();
 
   /**
@@ -30,6 +31,30 @@ export function createAuthRouter({ db, repos }) {
       const { username, password, totp_code, recovery_code } = req.body || {};
       const clientIp = getClientIp(req);
 
+      // Defend against IP-level distributed stuffing or grinding
+      const ipCheck = rateLimiter.isIpRateLimited(clientIp);
+      if (ipCheck.limited) {
+        res.set('Retry-After', String(ipCheck.retryAfterSec));
+        return res.status(429).json({
+          error: 'TOO_MANY_REQUESTS',
+          message: 'Too many failed login requests from this IP address. Please try again later.',
+          retryAfter: ipCheck.retryAfterSec
+        });
+      }
+
+      // Defend against account-level brute-force attacks
+      if (username) {
+        const accountCheck = rateLimiter.isAccountLocked(username);
+        if (accountCheck.locked) {
+          res.set('Retry-After', String(accountCheck.retryAfterSec));
+          return res.status(423).json({
+            error: 'ACCOUNT_LOCKED',
+            message: `Account '${username}' is temporarily locked due to excessive failed login attempts. Please try again in ${accountCheck.retryAfterSec} seconds.`,
+            retryAfter: accountCheck.retryAfterSec
+          });
+        }
+      }
+
       if (!username || !password) {
         return res.status(400).json({
           error: 'MISSING_CREDENTIALS',
@@ -39,6 +64,16 @@ export function createAuthRouter({ db, repos }) {
 
       const user = repos.users.findByUsername(username);
       if (!user) {
+        const failResult = rateLimiter.recordFailedAttempt(username, clientIp);
+        if (failResult.accountLocked) {
+          repos.auditLog.record({
+            action: 'USER_ACCOUNT_LOCKED',
+            status: 'ALERT',
+            username,
+            client_ip: clientIp,
+            details: { reason: 'Exceeded maximum failed login attempts', attempts: failResult.attempts, retryAfterSec: failResult.retryAfterSec }
+          });
+        }
         repos.auditLog.record({
           action: 'USER_LOGIN_FAILED',
           status: 'DENIED',
@@ -46,6 +81,14 @@ export function createAuthRouter({ db, repos }) {
           client_ip: clientIp,
           details: { reason: 'User not found' }
         });
+        if (failResult.accountLocked) {
+          res.set('Retry-After', String(failResult.retryAfterSec));
+          return res.status(423).json({
+            error: 'ACCOUNT_LOCKED',
+            message: `Account '${username}' is temporarily locked due to excessive failed login attempts. Please try again in ${failResult.retryAfterSec} seconds.`,
+            retryAfter: failResult.retryAfterSec
+          });
+        }
         return res.status(401).json({
           error: 'INVALID_CREDENTIALS',
           message: 'Invalid username or password'
@@ -55,6 +98,18 @@ export function createAuthRouter({ db, repos }) {
       // Step 1: Verify Password with Argon2id
       const passwordValid = await verifyPassword(user.password_hash, password);
       if (!passwordValid) {
+        const failResult = rateLimiter.recordFailedAttempt(user.username, clientIp);
+        if (failResult.accountLocked) {
+          repos.auditLog.record({
+            action: 'USER_ACCOUNT_LOCKED',
+            status: 'ALERT',
+            actor_id: user.id,
+            username: user.username,
+            role: user.role,
+            client_ip: clientIp,
+            details: { reason: 'Exceeded maximum failed login attempts (password mismatch)', attempts: failResult.attempts, retryAfterSec: failResult.retryAfterSec }
+          });
+        }
         repos.auditLog.record({
           action: 'USER_LOGIN_FAILED',
           status: 'DENIED',
@@ -64,6 +119,14 @@ export function createAuthRouter({ db, repos }) {
           client_ip: clientIp,
           details: { reason: 'Password mismatch' }
         });
+        if (failResult.accountLocked) {
+          res.set('Retry-After', String(failResult.retryAfterSec));
+          return res.status(423).json({
+            error: 'ACCOUNT_LOCKED',
+            message: `Account '${user.username}' is temporarily locked due to excessive failed login attempts. Please try again in ${failResult.retryAfterSec} seconds.`,
+            retryAfter: failResult.retryAfterSec
+          });
+        }
         return res.status(401).json({
           error: 'INVALID_CREDENTIALS',
           message: 'Invalid username or password'
@@ -149,6 +212,18 @@ export function createAuthRouter({ db, repos }) {
         }
 
         if (!mfaVerified) {
+          const failResult = rateLimiter.recordFailedAttempt(user.username, clientIp);
+          if (failResult.accountLocked) {
+            repos.auditLog.record({
+              action: 'USER_ACCOUNT_LOCKED',
+              status: 'ALERT',
+              actor_id: user.id,
+              username: user.username,
+              role: user.role,
+              client_ip: clientIp,
+              details: { reason: 'Exceeded maximum failed login attempts (MFA validation failed)', attempts: failResult.attempts, retryAfterSec: failResult.retryAfterSec }
+            });
+          }
           repos.auditLog.record({
             action: 'MFA_VALIDATION_FAILED',
             status: 'DENIED',
@@ -158,6 +233,14 @@ export function createAuthRouter({ db, repos }) {
             client_ip: clientIp,
             details: { reason: 'Invalid TOTP or recovery code' }
           });
+          if (failResult.accountLocked) {
+            res.set('Retry-After', String(failResult.retryAfterSec));
+            return res.status(423).json({
+              error: 'ACCOUNT_LOCKED',
+              message: `Account '${user.username}' is temporarily locked due to excessive failed login attempts. Please try again in ${failResult.retryAfterSec} seconds.`,
+              retryAfter: failResult.retryAfterSec
+            });
+          }
           return res.status(401).json({
             error: 'INVALID_MFA_TOKEN',
             message: 'Invalid TOTP code or recovery code'
@@ -166,6 +249,7 @@ export function createAuthRouter({ db, repos }) {
       }
 
       // Step 3: Issue Session Token
+      rateLimiter.recordSuccess(user.username, clientIp);
       const token = signToken({
         userId: user.id,
         username: user.username,
@@ -599,6 +683,31 @@ export function createAuthRouter({ db, repos }) {
     } catch (err) {
       return res.status(500).json({ error: 'SETUP_FAILED', message: err.message });
     }
+  });
+
+  /**
+   * POST /api/auth/unlock
+   * Allows privileged users (root, mod) to unlock a locked account.
+   */
+  router.post('/unlock', authenticate, requireRole(['root', 'mod']), (req, res) => {
+    const { target_username } = req.body || {};
+    if (!target_username) {
+      return res.status(400).json({ error: 'MISSING_USERNAME', message: 'Target username is required' });
+    }
+    const unlocked = rateLimiter.unlockAccount(target_username);
+    repos.auditLog.record({
+      action: 'USER_ACCOUNT_UNLOCKED',
+      status: 'SUCCESS',
+      actor_id: req.user.userId,
+      username: req.user.username,
+      role: req.user.role,
+      details: { target_username, was_locked: unlocked }
+    });
+    return res.status(200).json({
+      success: true,
+      message: `Account '${target_username}' unlocked successfully`,
+      wasLocked: unlocked
+    });
   });
 
   /**
