@@ -9,13 +9,13 @@
 You are building the **ScatterID v2.1 Operations, Access & Disaster Recovery Infrastructure**.
 
 - **Core Repository (Source of Truth):** `/home/kali/scatterid-ecosystem/ScatterID`
-- **Specification Directory:** `/home/kali/scatterid-ecosystem/new/`
-- **Satellite Client Portal Repo (Deferred for now):** `/home/kali/scatterid-ecosystem/ScatterID-app`
+- **Specification Directory:** `/home/kali/scatterid-ecosystem/ScatterID/docs/ops-and-portal/`
+- **Satellite Client Portal Repo:** `/home/kali/scatterid-ecosystem/ScatterID-app`
 - **Core Technology Stack:** Node.js (v18+), SQLite (WAL mode for atomic, zero-concurrency-conflict state), Hyperledger Fabric (Ledger / Chaincode), NIST FIPS 204 ML-DSA-87 (Post-Quantum Signatures via liboqs/Dilithium), WireGuard / iptables (Network isolation), Argon2id (Password hashing), Speakeasy / OTPAuth (TOTP RFC 6238).
 
 ### 1.1 Non-Negotiable Architectural Invariants
 1. **Single Source of Truth (`ScatterID`):** All database schemas, authentication middleware, request moderation queues, auto-execution logic, dual-key rotation, and break-glass recovery utilities live in the `ScatterID` core repository.
-2. **Zero Complex UI Frameworks During Build:** Do **NOT** install or configure Appsmith or Flowbite. Focus 100% on the backend APIs, business logic, cryptographic signing, and ledger dispatchers. Test all features using automated integration tests, `curl`, and **bare-bones raw HTML test harnesses** (`test_harness.html`).
+2. **Modular Architecture & Testing:** Endpoints and services tested using automated integration tests, `curl`, and dedicated test suites.
 3. **Scenario B: Tiered Risk Routing:**
    - **Hard-Channel Issuance** (physical document inspected in-person + Mod explicit approve) $\rightarrow$ **AUTO-EXECUTES on Hyperledger Fabric immediately**.
    - **Soft-Channel Issuance** (digital scan/PDF upload) $\rightarrow$ Mod review $\rightarrow$ **Strictly routes to Root's queue for final approval & execution**.
@@ -25,9 +25,9 @@ You are building the **ScatterID v2.1 Operations, Access & Disaster Recovery Inf
 4. **Mandatory Cryptographic Audit Attribution:**
    - Every transaction permanently stamps: `staff_user_id`, `username`, `station_id`, `client_ip`, `submission_channel` (`hard` / `soft`), and `timestamp`.
 5. **Network Micro-Segmentation (3 Zones):**
-   - **Zone 1: Counter VPN (`10.20.0.0/24`)**: Help Desk clerks connect over VPN. They can access **only** the Client Portal (`:3000`).
+   - **Zone 1: Counter VPN (`10.20.0.0/24`)**: Help Desk clerks connect over VPN. They can access **only** the Client Portal (`:3000` / `:5000`).
    - **Zone 2: Management Subnet (`10.10.0.0/24`)**: Ops Dashboard operators (Mod and Root) on port `:8080`.
-   - **Zone 3: Core Dataplane (`127.0.0.1` / Docker bridge)**: Gateway (`:5000`), Fabric Peer (`:7051`), Orderer (`:7050`), PQC vault, SQLite DB.
+   - **Zone 3: Core Dataplane (`127.0.0.1` / Docker bridge)**: Gateway (`:3000`), Fabric Peer (`:7051`), Orderer (`:7050`), PQC vault, SQLite DB.
    - **Firewall Rule:** Counter VPN clients are **strictly blocked / dropped** by `iptables` from accessing the Ops Dashboard (`:8080`) or backend ports.
 6. **MFA, Passwords & Phone Migration:**
    - Mandatory TOTP (RFC 6238) for Mod and Root.
@@ -43,7 +43,7 @@ You are building the **ScatterID v2.1 Operations, Access & Disaster Recovery Inf
 
 ## 2. Specification Index & Companion Documents
 
-All files are located in `/home/kali/scatterid-ecosystem/new/`:
+All files are located in `ScatterID/docs/ops-and-portal/`:
 - `01-internal-dashboard-requirements-and-access.md`: Functional requirements, permission matrix, Mod/Root separation.
 - `02-internal-dashboard-ui-ux-design.md`: Dashboard screen flows, Appsmith layouts, action modals.
 - `03-client-portal-requirements-and-access.md`: Help Desk requirements, VPN network context, audit attribution.

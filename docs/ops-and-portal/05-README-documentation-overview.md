@@ -10,16 +10,16 @@ The specification is organized into modular, purpose-built documents:
 
 | File | Category | Focus / Scope |
 |---|---|---|
-| [`start.md`](file:///home/kali/scatterid-ecosystem/new/start.md) | **Execution** | **Master Execution Blueprint & Auto-Start Guide for new chat (`do @new/start`)** |
-| [`01-internal-dashboard-requirements-and-access.md`](file:///home/kali/scatterid-ecosystem/new/01-internal-dashboard-requirements-and-access.md) | Ops Dashboard | Requirements, Mod/Root separation, Scenario B Tiered Risk, MFA, dual-key rotation |
-| [`02-internal-dashboard-ui-ux-design.md`](file:///home/kali/scatterid-ecosystem/new/02-internal-dashboard-ui-ux-design.md) | Ops Dashboard | Appsmith layout, auto-execution cues, MFA setup, backup & restore UI |
-| [`03-client-portal-requirements-and-access.md`](file:///home/kali/scatterid-ecosystem/new/03-client-portal-requirements-and-access.md) | Client Portal | Help Desk operational requirements, Counter VPN access, clerk audit attribution |
-| [`04-client-portal-ui-ux-design.md`](file:///home/kali/scatterid-ecosystem/new/04-client-portal-ui-ux-design.md) | Client Portal | Flowbite UI layout, physical inspection checklist, direct verification console |
-| [`05-README-documentation-overview.md`](file:///home/kali/scatterid-ecosystem/new/05-README-documentation-overview.md) | Overview | Master system overview, routing flow, and role matrix |
-| [`06-disaster-recovery-and-key-lifecycle.md`](file:///home/kali/scatterid-ecosystem/new/06-disaster-recovery-and-key-lifecycle.md) | Security & Ops | MFA device migration, recovery codes, break-glass CLI, dual-key rotation, PQC backups |
-| [`07-network-topology-and-segmentation.md`](file:///home/kali/scatterid-ecosystem/new/07-network-topology-and-segmentation.md) | Infrastructure | 3-zone network topology, iptables firewall micro-segmentation, WireGuard VPN configuration |
-| [`08-engineering-methodology-and-verification-architecture.md`](file:///home/kali/scatterid-ecosystem/new/08-engineering-methodology-and-verification-architecture.md) | Engineering & Dev | Atomic sub-component breakdown, defensive worst-case coding, zero-UI raw testing, offline/online verification architecture |
-| [`verification-channel-and-escalation-addendum.md`](file:///home/kali/scatterid-ecosystem/new/verification-channel-and-escalation-addendum.md) | Core Domain | Baseline Hard vs. Soft channel definitions and evidentiary standards |
+| [`start.md`](start.md) | **Execution** | **Master Execution Blueprint & Auto-Start Guide** |
+| [`01-internal-dashboard-requirements-and-access.md`](01-internal-dashboard-requirements-and-access.md) | Ops Dashboard | Requirements, Mod/Root separation, Scenario B Tiered Risk, MFA, dual-key rotation |
+| [`02-internal-dashboard-ui-ux-design.md`](02-internal-dashboard-ui-ux-design.md) | Ops Dashboard | Layout design, auto-execution cues, MFA setup, backup & restore UI |
+| [`03-client-portal-requirements-and-access.md`](03-client-portal-requirements-and-access.md) | Client Portal | Help Desk operational requirements, Counter VPN access, clerk audit attribution |
+| [`04-client-portal-ui-ux-design.md`](04-client-portal-ui-ux-design.md) | Client Portal | Flowbite UI layout, physical inspection checklist, direct verification console |
+| [`05-README-documentation-overview.md`](05-README-documentation-overview.md) | Overview | Master system overview, routing flow, and role matrix |
+| [`06-disaster-recovery-and-key-lifecycle.md`](06-disaster-recovery-and-key-lifecycle.md) | Security & Ops | MFA device migration, recovery codes, break-glass CLI, dual-key rotation, PQC backups |
+| [`07-network-topology-and-segmentation.md`](07-network-topology-and-segmentation.md) | Infrastructure | 3-zone network topology, iptables firewall micro-segmentation, WireGuard VPN configuration |
+| [`08-engineering-methodology-and-verification-architecture.md`](08-engineering-methodology-and-verification-architecture.md) | Engineering & Dev | Atomic sub-component breakdown, defensive worst-case coding, zero-UI raw testing, offline/online verification architecture |
+| [`verification-channel-and-escalation-addendum.md`](verification-channel-and-escalation-addendum.md) | Core Domain | Baseline Hard vs. Soft channel definitions and evidentiary standards |
 
 ---
 

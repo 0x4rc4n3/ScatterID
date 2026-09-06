@@ -76,9 +76,26 @@ Legal compliance, development guidelines, and customer onboarding:
 
 ---
 
+### 6. 🏛️ Operations Console, Client Portal & Governance Policy Suite
+Detailed operational runbooks, portal specifications, agile policy governance, and disaster recovery:
+* **[Engineering Issue Board & Verification Matrix](PROJECT_BOARD.md)** — Issue tracking (`ISSUE-101` to `ISSUE-104`), Kanban status, and 107-test automated verification suite.
+* **[Ops & Access Documentation Suite Overview](ops-and-portal/05-README-documentation-overview.md)** — Master overview of ops console, client portal, and multi-tier routing architecture.
+* **[01. Internal Dashboard Requirements & Access](ops-and-portal/01-internal-dashboard-requirements-and-access.md)** — Operations Console requirements, RBAC hierarchy (Clerk $\subset$ Mod $\subset$ Root), and audit logging.
+* **[02. Internal Dashboard UI/UX Design](ops-and-portal/02-internal-dashboard-ui-ux-design.md)** — Executive command console layout, pending queues, key lifecycle gauges, and policy configuration.
+* **[03. Client Portal Requirements & Access](ops-and-portal/03-client-portal-requirements-and-access.md)** — Counter clerk help desk requirements, station attribution, and 4-point physical checklist rules.
+* **[04. Client Portal UI/UX Design](ops-and-portal/04-client-portal-ui-ux-design.md)** — Client portal layout, drag-and-drop digital scan SHA-256 calculator, verification desk, and tracking stepper.
+* **[06. Disaster Recovery & Key Lifecycle](ops-and-portal/06-disaster-recovery-and-key-lifecycle.md)** — Advance PQC key pre-distribution, emergency cutover, dual-key grace periods, encrypted `.enc` backups, and break-glass CLI.
+* **[07. Network Topology & Micro-Segmentation](ops-and-portal/07-network-topology-and-segmentation.md)** — 3-zone network segmentation, WireGuard mesh, and iptables firewall isolation rules.
+* **[08. Engineering Methodology & Verification Architecture](ops-and-portal/08-engineering-methodology-and-verification-architecture.md)** — Two-level verification (RFC 8785 + ML-DSA-87), defensive coding invariants, and atomic testing.
+* **[Verification Channel & Escalation Addendum](ops-and-portal/verification-channel-and-escalation-addendum.md)** — Normative Hard vs. Soft evidentiary standards and fraud escalation rules.
+
+---
+
 ## 🔗 Quick Reference Links
 * **Repository Root:** [README.md](../README.md)
+* **Project Board:** [docs/PROJECT_BOARD.md](PROJECT_BOARD.md)
 * **SDK Documentation:** [sdk/README.md](../sdk/package.json)
 * **Visual SDK Playground:** [examples/web-app](../examples/web-app)
 * **Project Changelog:** [CHANGELOG.md](../CHANGELOG.md)
 * **License (PolyForm Noncommercial 1.0.0):** [LICENSE](../LICENSE)
+
