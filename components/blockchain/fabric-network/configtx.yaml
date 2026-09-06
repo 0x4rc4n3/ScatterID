@@ -16,6 +16,8 @@ Organizations:
         Rule: "OR('OrdererMSP.admin')"
     OrdererEndpoints:
       - orderer.scatterid.com:7050
+      - orderer2.scatterid.com:7050
+      - orderer3.scatterid.com:7050
 
   - &IssuerOrg
     Name: IssuerMSP
@@ -37,6 +39,8 @@ Organizations:
     AnchorPeers:
       - Host: peer0.issuer.scatterid.com
         Port: 7051
+      - Host: peer1.issuer.scatterid.com
+        Port: 7056
 
   - &VerifierOrg
     Name: VerifierMSP
@@ -58,6 +62,8 @@ Organizations:
     AnchorPeers:
       - Host: peer0.verifier.scatterid.com
         Port: 8051
+      - Host: peer1.verifier.scatterid.com
+        Port: 8056
 
 Capabilities:
   Channel: &ChannelCapabilities
@@ -91,6 +97,8 @@ Application: &ApplicationDefaults
 Orderer: &OrdererDefaults
   Addresses:
     - orderer.scatterid.com:7050
+    - orderer2.scatterid.com:7050
+    - orderer3.scatterid.com:7050
   BatchTimeout: 2s
   BatchSize:
     MaxMessageCount: 10
@@ -137,6 +145,14 @@ Profiles:
             Port: 7050
             ClientTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer.scatterid.com/tls/server.crt
             ServerTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer.scatterid.com/tls/server.crt
+          - Host: orderer2.scatterid.com
+            Port: 7050
+            ClientTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer2.scatterid.com/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer2.scatterid.com/tls/server.crt
+          - Host: orderer3.scatterid.com
+            Port: 7050
+            ClientTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer3.scatterid.com/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/scatterid.com/orderers/orderer3.scatterid.com/tls/server.crt
       Organizations:
         - *OrdererOrg
       Capabilities: *OrdererCapabilities

@@ -126,6 +126,12 @@ if [ -f "components/blockchain/chaincode/src/scatterproof_fuzz_test.go" ] && com
     "(cd components/blockchain/chaincode/src && go test -fuzz=FuzzAnchorProof -fuzztime=2s && go test -fuzz=FuzzRevokeProof -fuzztime=2s)"
 fi
 
+# 12. Fabric Network Redundancy & Encrypted Ledger Snapshot Suite (§2 Finding 6)
+if [ -f "tests/test_fabric_redundancy.test.sh" ]; then
+  run_suite "Fabric Ledger Redundancy & Encrypted Snapshot Integrity" \
+    "bash tests/test_fabric_redundancy.test.sh"
+fi
+
 # Summary
 echo -e "\n${BOLD}${CYAN}======================================================================${RESET}"
 echo -e "${BOLD}Summary: ${PASSED_SUITES}/${TOTAL_SUITES} test suites passed.${RESET}"
