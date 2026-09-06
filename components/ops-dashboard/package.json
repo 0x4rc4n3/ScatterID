@@ -1,0 +1,22 @@
+{
+  "name": "scatterid-ops-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ScatterID Operations, Access Control & Moderation Queue Service",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "migrate": "node db/migrations/runner.js up",
+    "migrate:rollback": "node db/migrations/runner.js down",
+    "migrate:status": "node db/migrations/runner.js status"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.19.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
