@@ -7,6 +7,7 @@ import { getDb } from '../db/index.js';
 import { createRepositories } from '../db/models/index.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createRequestsRouter } from './routes/requests.js';
+import { createKeysRouter } from './routes/keys.js';
 
 export function createApp({ db: customDb = null, repos: customRepos = null } = {}) {
   const app = express();
@@ -31,6 +32,7 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
   // Mount Routers
   app.use('/api/auth', createAuthRouter({ db, repos }));
   app.use('/api/requests', createRequestsRouter({ db, repos }));
+  app.use('/api/keys', createKeysRouter({ db, repos }));
 
   // Global 404 handler
   app.use((req, res) => {
