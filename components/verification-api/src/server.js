@@ -54,7 +54,41 @@ if (!CRYPTO_SERVICE_API_KEY) {
 }
 
 /**
+ * Key age audit helper to enforce key rotation lifecycle SLA.
+ */
+export function checkKeyAge(nowMs = Date.now()) {
+  const timestampStr = process.env.KEY_ROTATION_TIMESTAMP;
+  const maxAgeDays = parseInt(process.env.KEY_MAX_AGE_DAYS || '90', 10);
+  if (!timestampStr) {
+    return { status: 'untracked', warning: 'KEY_ROTATION_TIMESTAMP unset', rotationDue: false, expired: false };
+  }
+  const rotationDate = new Date(timestampStr);
+  if (isNaN(rotationDate.getTime())) {
+    return { status: 'invalid', warning: 'Invalid KEY_ROTATION_TIMESTAMP', rotationDue: false, expired: false };
+  }
+  const ageMs = nowMs - rotationDate.getTime();
+  const ageDays = Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)));
+  const expired = ageDays > maxAgeDays;
+  const rotationDue = ageDays >= 30; // 30-day recommended rotation window
+  return {
+    status: expired ? 'expired' : (rotationDue ? 'rotation_due' : 'valid'),
+    ageDays,
+    maxAgeDays,
+    rotationDue,
+    expired
+  };
+}
+
+const initialKeyHealth = checkKeyAge();
+if (initialKeyHealth.status === 'expired') {
+  console.warn(`[SECURITY WARNING] Service keys are ${initialKeyHealth.ageDays} days old (exceeds max ${initialKeyHealth.maxAgeDays} days). Immediate rotation required!`);
+} else if (initialKeyHealth.status === 'rotation_due') {
+  console.info(`[SECURITY INFO] Service keys are ${initialKeyHealth.ageDays} days old. Rotation recommended (30-day policy).`);
+}
+
+/**
  * Timing-safe Bearer token middleware for operator endpoints.
+ * Supports primary active key and secondary previous key for zero-downtime rotation.
  */
 export function requireBearerAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -67,7 +101,12 @@ export function requireBearerAuth(req, res, next) {
   const keyHash   = createHash('sha256').update(VERIFICATION_API_KEY).digest();
 
   if (!timingSafeEqual(tokenHash, keyHash)) {
-    return res.status(401).json({ error: 'Unauthorized', code: 'INVALID_AUTH' });
+    const prevKey = process.env.VERIFICATION_API_KEY_PREVIOUS;
+    if (prevKey && timingSafeEqual(tokenHash, createHash('sha256').update(prevKey).digest())) {
+      res.setHeader('X-Key-Rotation-Status', 'grace-period-active');
+    } else {
+      return res.status(401).json({ error: 'Unauthorized', code: 'INVALID_AUTH' });
+    }
   }
 
   req.callerTier = 'bearer_api_key';
@@ -76,7 +115,8 @@ export function requireBearerAuth(req, res, next) {
 
 /**
  * Narrower-scoped authorization middleware for destructive on-chain revocation.
- * Supports X-Revoke-Key header or primary Bearer authentication matching REVOKE_API_KEY.
+ * Supports X-Revoke-Key header or primary Bearer authentication matching REVOKE_API_KEY,
+ * with secondary REVOKE_API_KEY_PREVIOUS grace support during active rotation.
  */
 export function requireRevokeAuth(req, res, next) {
   const explicitRevokeKey = req.headers['x-revoke-key'];
@@ -92,7 +132,12 @@ export function requireRevokeAuth(req, res, next) {
   const expectedHash = createHash('sha256').update(REVOKE_API_KEY).digest();
 
   if (!timingSafeEqual(candidateHash, expectedHash)) {
-    return res.status(403).json({ error: 'Forbidden: Invalid revocation authorization key', code: 'REVOCATION_UNAUTHORIZED' });
+    const prevRevokeKey = process.env.REVOKE_API_KEY_PREVIOUS;
+    if (prevRevokeKey && timingSafeEqual(candidateHash, createHash('sha256').update(prevRevokeKey).digest())) {
+      res.setHeader('X-Key-Rotation-Status', 'grace-period-active');
+    } else {
+      return res.status(403).json({ error: 'Forbidden: Invalid revocation authorization key', code: 'REVOCATION_UNAUTHORIZED' });
+    }
   }
 
   req.callerTier = 'revoke_api_key';
@@ -138,9 +183,16 @@ export function createApp(options = {}) {
 
   // Health check endpoint (unauthenticated)
   app.get('/healthz', (req, res) => {
+    const keyHealth = checkKeyAge();
     res.json({
       status: 'ok',
-      service: 'verification-api'
+      service: 'verification-api',
+      keyRotation: {
+        status: keyHealth.status,
+        ageDays: keyHealth.ageDays ?? null,
+        rotationDue: keyHealth.rotationDue ?? false,
+        dualKeyGraceActive: Boolean(process.env.VERIFICATION_API_KEY_PREVIOUS || process.env.REVOKE_API_KEY_PREVIOUS)
+      }
     });
   });
 
