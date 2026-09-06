@@ -5,6 +5,14 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { authenticate, requireRole, getClientIp } from '../auth/middleware.js';
 import { createLedgerExecutor } from '../ledger/executor.js';
+import {
+  evaluateModeratorApproval,
+  validatePhysicalChecklist,
+  getActivePolicy,
+  setActivePolicy,
+  resetPolicyToDefault,
+  POLICY_PROFILES
+} from '../policy/routingPolicy.js';
 
 export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor = null }) {
   const router = express.Router();
@@ -419,9 +427,12 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       }
 
       // Case 3: Moderator Approves Request -> Scenario B Policy
+      // Case 3: Moderator Approves Request -> Governed by Active Policy
       if (normalizedAction === 'APPROVE') {
-        // Subcase 3A: Hard-Channel Issuance -> AUTO-EXECUTES
-        if (request.request_type === 'issuance' && request.submission_channel === 'hard') {
+        const policyEval = evaluateModeratorApproval(request);
+        const policy = getActivePolicy();
+
+        if (policyEval.action === 'AUTO_EXECUTE') {
           const execResult = await ledgerExecutor.executeIssuance(request);
 
           repos.requests.updateModDecision(id, {
@@ -441,10 +452,10 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
             role: 'mod',
             client_ip: clientIp,
             request_id: id,
-            submission_channel: 'hard',
+            submission_channel: request.submission_channel,
             details: {
               execution_tx_id: execResult.txId,
-              policy: 'SCENARIO_B_HARD_CHANNEL_AUTO_EXECUTE',
+              policy: policyEval.policyCode || policy.name,
               note: reason || null
             }
           });
@@ -459,88 +470,40 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
           });
         }
 
-        // Subcase 3B: Soft-Channel Issuance -> Escalates to Root
-        if (request.request_type === 'issuance' && request.submission_channel === 'soft') {
-          repos.requests.updateModDecision(id, {
-            status: 'AWAITING_ROOT_ACCEPT',
-            moderator_id: modId,
-            moderator_username: modUsername,
-            moderator_action: 'APPROVE',
-            moderator_reason: reason || 'Soft scan approved by moderator; escalated for Root authorization'
-          });
+        // Subcase: Escalates to Root
+        const auditAction = request.request_type === 'revocation'
+          ? 'MOD_APPROVED_REVOCATION_ESCALATED_ROOT'
+          : 'MOD_APPROVED_ESCALATED_ROOT';
 
-          repos.auditLog.record({
-            action: 'MOD_APPROVED_ESCALATED_ROOT',
-            status: 'PENDING',
-            actor_id: modId,
-            username: modUsername,
-            role: 'mod',
-            client_ip: clientIp,
-            request_id: id,
-            submission_channel: 'soft',
-            details: {
-              policy: 'SCENARIO_B_SOFT_CHANNEL_ROOT_GATE',
-              note: reason || null
-            }
-          });
-
-          return res.status(200).json({
-            success: true,
-            status: 'AWAITING_ROOT_ACCEPT',
-            executed: false,
-            moderator_action: 'APPROVE',
-            routing_tier: 'AWAITING_ROOT_ACCEPT'
-          });
-        }
-
-        // Subcase 3C: Revocation (Hard or Soft) -> Strictly Escalates to Root
-        if (request.request_type === 'revocation') {
-          repos.requests.updateModDecision(id, {
-            status: 'AWAITING_ROOT_ACCEPT',
-            moderator_id: modId,
-            moderator_username: modUsername,
-            moderator_action: 'APPROVE',
-            moderator_reason: reason || 'Revocation reviewed by moderator; strictly escalated to Root'
-          });
-
-          repos.auditLog.record({
-            action: 'MOD_APPROVED_REVOCATION_ESCALATED_ROOT',
-            status: 'PENDING',
-            actor_id: modId,
-            username: modUsername,
-            role: 'mod',
-            client_ip: clientIp,
-            request_id: id,
-            submission_channel: request.submission_channel,
-            credential_id: request.credential_id,
-            details: {
-              policy: 'SCENARIO_B_REVOCATION_ROOT_GATE_STRICT',
-              note: reason || null
-            }
-          });
-
-          return res.status(200).json({
-            success: true,
-            status: 'AWAITING_ROOT_ACCEPT',
-            executed: false,
-            moderator_action: 'APPROVE',
-            routing_tier: 'AWAITING_ROOT_ACCEPT'
-          });
-        }
-
-        // Subcase 3D: Routine Key Rotation
         repos.requests.updateModDecision(id, {
           status: 'AWAITING_ROOT_ACCEPT',
           moderator_id: modId,
           moderator_username: modUsername,
           moderator_action: 'APPROVE',
-          moderator_reason: reason || 'Routine rotation requested'
+          moderator_reason: reason || policyEval.message
+        });
+
+        repos.auditLog.record({
+          action: auditAction,
+          status: 'PENDING',
+          actor_id: modId,
+          username: modUsername,
+          role: 'mod',
+          client_ip: clientIp,
+          request_id: id,
+          submission_channel: request.submission_channel,
+          credential_id: request.credential_id,
+          details: {
+            policy: policyEval.policyCode || policy.name,
+            note: reason || null
+          }
         });
 
         return res.status(200).json({
           success: true,
           status: 'AWAITING_ROOT_ACCEPT',
           executed: false,
+          moderator_action: 'APPROVE',
           routing_tier: 'AWAITING_ROOT_ACCEPT'
         });
       }
@@ -799,6 +762,52 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       driftDetected: false,
       timestamp: new Date().toISOString()
     });
+  });
+
+  /**
+   * GET /api/requests/policy
+   * Retrieve active governance policy profile & available profiles
+   */
+  router.get('/policy', authenticate, (req, res) => {
+    return res.status(200).json({
+      active: getActivePolicy(),
+      availableProfiles: Object.keys(POLICY_PROFILES)
+    });
+  });
+
+  /**
+   * POST /api/requests/policy
+   * Dynamic governance policy configuration (Root only)
+   */
+  router.post('/policy', authenticate, requireRole(['root']), (req, res) => {
+    try {
+      const { profile, customConfig } = req.body;
+      if (profile) {
+        setActivePolicy(profile);
+      } else if (customConfig) {
+        setActivePolicy(customConfig);
+      } else {
+        return res.status(400).json({ error: 'MISSING_POLICY', message: 'Must provide profile or customConfig' });
+      }
+
+      repos.auditLog.record({
+        action: 'POLICY_PROFILE_CHANGED',
+        status: 'SUCCESS',
+        actor_id: req.user.userId,
+        username: req.user.username,
+        role: 'root',
+        client_ip: getClientIp(req),
+        details: { newPolicy: getActivePolicy().name }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Routing policy successfully updated',
+        activePolicy: getActivePolicy()
+      });
+    } catch (err) {
+      return res.status(400).json({ error: 'POLICY_UPDATE_FAILED', message: err.message });
+    }
   });
 
   /**
