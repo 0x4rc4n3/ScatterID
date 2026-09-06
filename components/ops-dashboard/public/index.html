@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScatterID Operations Console</title>
+  <script>
+    const token = sessionStorage.getItem('scatterid_ops_token');
+    const userRaw = sessionStorage.getItem('scatterid_ops_user');
+    if (token && userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        if (u.role === 'mod') {
+          window.location.replace('/mod.html');
+        } else if (u.role === 'root') {
+          window.location.replace('/root.html');
+        } else {
+          window.location.replace('/test_harness.html');
+        }
+      } catch(e) {
+        window.location.replace('/login.html');
+      }
+    } else {
+      window.location.replace('/login.html');
+    }
+  </script>
+</head>
+<body style="font-family:sans-serif; text-align:center; padding:50px;">
+  <h2>Redirecting to ScatterID Operations Console...</h2>
+  <p><a href="/login.html">Click here if you are not automatically redirected</a></p>
+</body>
+</html>

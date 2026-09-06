@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScatterID — Operations Staff Sign In</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --red-600: #dc2626;
+      --red-100: #fee2e2;
+      --green-600: #16a34a;
+      --green-100: #dcfce7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--slate-900);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid var(--primary);
+    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    .brand p { margin: 2px 0 0 0; font-size: 11.5px; color: #94a3b8; }
+    .container {
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 0 16px;
+      width: 100%;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 6px;
+    }
+    .req { color: var(--red-600); font-weight: bold; margin-left: 2px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .pwd-wrapper { position: relative; }
+    .toggle-pwd {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 11px 18px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    .notice {
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-top: 18px;
+    }
+    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
+    .notice-error { background: var(--red-100); border-left: 4px solid var(--red-600); color: #7f1d1d; }
+    .links-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 18px;
+      font-size: 12.5px;
+    }
+    .links-bar a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .links-bar a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>ScatterID v2.1 Operations Console</h1>
+      <p>Zone 2: Management & Disaster Recovery LAN</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2 class="card-title">Staff Authentication</h2>
+      <p style="font-size:13px; color:var(--slate-600); margin:0 0 20px 0;">
+        Sign in with your staff account credentials. Fields marked with <span class="req">*</span> are required.
+      </p>
+
+      <div id="errorBanner" class="notice notice-error" style="display:none; margin-top:0; margin-bottom:16px;"></div>
+
+      <div class="form-group">
+        <label>Staff Username <span class="req">*</span></label>
+        <input type="text" id="loginUsername" placeholder="e.g. mod_sarah or root_admin" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label>Password / Temporary OTP <span class="req">*</span></label>
+        <div class="pwd-wrapper">
+          <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+          <button type="button" class="toggle-pwd" onclick="togglePass('loginPassword', this)">Show</button>
+        </div>
+      </div>
+
+      <!-- MFA INPUT (Visible for established accounts or when required) -->
+      <div class="form-group" id="totpSection">
+        <label>6-Digit Authenticator Code (TOTP) / Recovery Code</label>
+        <input type="text" id="loginTotp" placeholder="Enter 6-digit code (leave blank if first login)" maxlength="20" style="letter-spacing:1px; font-weight:600;">
+        <span style="font-size:11.5px; color:var(--slate-600); display:block; margin-top:4px;">
+          Leave empty if using a temporary one-time password for first-time onboarding.
+        </span>
+      </div>
+
+      <button class="btn-primary" id="btnLogin" onclick="handleLogin()">Sign In to Console</button>
+
+      <div class="notice notice-info">
+        <b>SOP Segregation Notice:</b><br>
+        This console is strictly for review, authorization, and key management (Roles: <code>mod</code>, <code>root</code>). Help Desk Clerks conduct degree attestation intake at port 5000.
+      </div>
+
+      <div class="links-bar">
+        <a href="/test_harness.html">← Unified Operations Shell</a>
+        <a href="/onboarding.html">Account Onboarding Wizard →</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePass(inputId, btn) {
+      const inp = document.getElementById(inputId);
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        inp.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const totpVal = document.getElementById('loginTotp').value.trim();
+      const errBanner = document.getElementById('errorBanner');
+      errBanner.style.display = 'none';
+
+      if (!username) {
+        showError('Please enter your Staff Username.');
+        return;
+      }
+      if (!password) {
+        showError('Please enter your Password or Temporary OTP.');
+        return;
+      }
+
+      const btn = document.getElementById('btnLogin');
+      btn.disabled = true;
+      btn.textContent = 'Authenticating...';
+
+      try {
+        const payload = { username, password };
+        if (totpVal) {
+          if (/^\d{6}$/.test(totpVal)) {
+            payload.totp_code = totpVal;
+          } else {
+            payload.recovery_code = totpVal;
+          }
+        }
+
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.status === 401 && data.mfaRequired) {
+          showError('Two-Factor Authentication Required: Please enter the 6-digit code from your authenticator app in the TOTP field.');
+          document.getElementById('loginTotp').focus();
+          btn.disabled = false;
+          btn.textContent = 'Sign In to Console';
+          return;
+        }
+
+        if (!res.ok) {
+          showError(data.message || data.error || 'Authentication failed. Verify credentials.');
+          btn.disabled = false;
+          btn.textContent = 'Sign In to Console';
+          return;
+        }
+
+        // Case A: First-time setup required
+        if (data.requireFirstTimeSetup) {
+          sessionStorage.setItem('scatterid_temp_token', data.tempToken);
+          sessionStorage.setItem('scatterid_onboarding_data', JSON.stringify(data));
+          window.location.href = '/onboarding.html';
+          return;
+        }
+
+        // Case B: Full login success
+        sessionStorage.setItem('scatterid_ops_token', data.token);
+        sessionStorage.setItem('scatterid_ops_user', JSON.stringify(data.user));
+
+        if (data.user.role === 'mod') {
+          window.location.href = '/mod.html';
+        } else if (data.user.role === 'root') {
+          window.location.href = '/root.html';
+        } else {
+          window.location.href = '/test_harness.html';
+        }
+      } catch (err) {
+        showError('Could not reach backend server: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Sign In to Console';
+      }
+    }
+
+    function showError(msg) {
+      const errBanner = document.getElementById('errorBanner');
+      errBanner.textContent = msg;
+      errBanner.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

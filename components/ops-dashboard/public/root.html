@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScatterID — Root Executive Console</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --green-600: #16a34a;
+      --green-100: #dcfce7;
+      --amber-600: #d97706;
+      --amber-100: #fef3c7;
+      --red-600: #dc2626;
+      --red-100: #fee2e2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--slate-900);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid var(--primary);
+    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    .nav-links { display: flex; gap: 12px; align-items: center; font-size: 13px; }
+    .nav-links a { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
+    .nav-links a:hover { color: #fff; background: var(--slate-800); }
+    .user-tag {
+      background: #fbcfe8;
+      color: #9d174d;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      width: 100%;
+      flex: 1;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 0;
+      border-bottom: 1px solid var(--slate-100);
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid var(--slate-200); padding: 10px 12px; text-align: left; }
+    th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-soft { background: #bae6fd; color: #0369a1; }
+    .badge-rev { background: #fee2e2; color: #991b1b; }
+    .empty-state {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--slate-600);
+      background: var(--slate-50);
+      border: 1px dashed var(--slate-200);
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+    .empty-state .icon { font-size: 26px; color: var(--green-600); margin-bottom: 4px; }
+    button {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.btn-green { background: var(--green-600); }
+    button.btn-green:hover { background: #15803d; }
+    button.secondary { background: var(--slate-600); }
+    button.secondary:hover { background: var(--slate-700); }
+    .notice {
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
+    .notice-auto { background: var(--green-100); border-left: 4px solid var(--green-600); color: #14532d; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>ScatterID Root Console</h1>
+    </div>
+    <div class="nav-links">
+      <span class="user-tag" id="userBadge">Root Administrator</span>
+      <a href="/test_harness.html">Unified Shell</a>
+      <a href="/mod.html">Moderator Queue</a>
+      <a href="/root.html" style="color:#38bdf8;">Root Console</a>
+      <button class="secondary" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <div id="statusAlert" style="display:none;" class="notice notice-auto"></div>
+
+    <!-- AWAITING ROOT QUEUE -->
+    <div class="card">
+      <div class="card-title">
+        <span>🛡️ Awaiting Root Authorization (High-Risk Escalations & Revocations)</span>
+        <button onclick="fetchRootQueues()" style="font-size:12px;">⟳ Refresh Queues</button>
+      </div>
+
+      <div class="notice notice-info" style="margin-top:0;">
+        <b>Cryptographic Separation:</b><br>
+        All Soft-Channel issuances (digital scans) and Revocations strictly require Root Administrator authorization before irreversible Hyperledger Fabric ledger anchoring.
+      </div>
+
+      <div id="emptyAwaiting" class="empty-state" style="display:none;">
+        <div class="icon">✓</div>
+        <b>All Clear: No requests awaiting Root authorization</b>
+      </div>
+
+      <table id="awaitingTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Type</th>
+            <th>Channel</th>
+            <th>Attestation Candidate</th>
+            <th>Intake Stamp</th>
+            <th>Root Action</th>
+          </tr>
+        </thead>
+        <tbody id="awaitingTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- FLAGGED QUEUE -->
+    <div class="card">
+      <div class="card-title">
+        <span>🚩 Moderator Flagged Queue (Suspicious / Discrepancy Cases)</span>
+      </div>
+
+      <div id="emptyFlagged" class="empty-state" style="display:none;">
+        <div class="icon">✓</div>
+        <b>All Clear: No requests in the Flagged Queue</b>
+      </div>
+
+      <table id="flaggedTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Type</th>
+            <th>Flag Reason</th>
+            <th>Attribution</th>
+            <th>Root Override</th>
+          </tr>
+        </thead>
+        <tbody id="flaggedTbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    let token = '';
+    let currentUser = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      token = sessionStorage.getItem('scatterid_ops_token') || '';
+      const rawUser = sessionStorage.getItem('scatterid_ops_user');
+      if (rawUser) {
+        try { currentUser = JSON.parse(rawUser); } catch(e) {}
+      }
+
+      if (!token || !currentUser || currentUser.role !== 'root') {
+        alert('Access Denied: Root Administrator credentials required for this console.');
+        window.location.href = '/login.html';
+        return;
+      }
+
+      document.getElementById('userBadge').textContent = `Staff: ${currentUser.username} (ROOT)`;
+      fetchRootQueues();
+    });
+
+    async function fetchRootQueues() {
+      // 1. Awaiting Root Queue
+      const awTbody = document.getElementById('awaitingTbody');
+      const awTable = document.getElementById('awaitingTable');
+      const awEmpty = document.getElementById('emptyAwaiting');
+
+      try {
+        const res = await fetch('/api/requests/queue/awaiting-root', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const list = data.requests || [];
+
+        if (list.length === 0) {
+          awTable.style.display = 'none';
+          awEmpty.style.display = 'block';
+        } else {
+          awEmpty.style.display = 'none';
+          awTable.style.display = 'table';
+          awTbody.innerHTML = '';
+
+          list.forEach(r => {
+            const tr = document.createElement('tr');
+            let summary = 'HEC Credential';
+            if (r.claimant_data) {
+              try {
+                const c = JSON.parse(r.claimant_data);
+                summary = (c.graduate && c.graduate.fullName) || c.fullName || 'Candidate';
+              } catch(e) {}
+            } else if (r.credential_id) {
+              summary = `Target: ${r.credential_id}`;
+            }
+
+            tr.innerHTML = `
+              <td><code>${r.id}</code></td>
+              <td><b>${r.request_type.toUpperCase()}</b></td>
+              <td><span class="badge badge-soft">${r.submission_channel.toUpperCase()}</span></td>
+              <td>${summary}</td>
+              <td>${r.clerk_username} @ ${r.station_id}</td>
+              <td><button class="btn-green" onclick="executeRootAction('${r.id}')">⚡ Authorize & Anchor on Fabric</button></td>
+            `;
+            awTbody.appendChild(tr);
+          });
+        }
+      } catch(e) {
+        awTbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Error: ${e.message}</td></tr>`;
+      }
+
+      // 2. Flagged Queue
+      const flTbody = document.getElementById('flaggedTbody');
+      const flTable = document.getElementById('flaggedTable');
+      const flEmpty = document.getElementById('emptyFlagged');
+
+      try {
+        const res = await fetch('/api/requests/queue/flagged', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const list = data.requests || [];
+
+        if (list.length === 0) {
+          flTable.style.display = 'none';
+          flEmpty.style.display = 'block';
+        } else {
+          flEmpty.style.display = 'none';
+          flTable.style.display = 'table';
+          flTbody.innerHTML = '';
+
+          list.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${r.id}</code></td>
+              <td><b>${r.request_type.toUpperCase()}</b></td>
+              <td style="color:var(--red-600); font-weight:600;">${r.rejection_reason || 'Flagged for forensic review'}</td>
+              <td>${r.clerk_username} @ ${r.station_id}</td>
+              <td><button class="btn-green" onclick="executeRootAction('${r.id}')">Executive Override & Anchor</button></td>
+            `;
+            flTbody.appendChild(tr);
+          });
+        }
+      } catch(e) {
+        flTbody.innerHTML = `<tr><td colspan="5" style="color:var(--red-600);">Error: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function executeRootAction(id) {
+      if (!confirm(`Authorize and execute ledger anchoring for ${id}?`)) return;
+
+      const alertEl = document.getElementById('statusAlert');
+      alertEl.style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/requests/${encodeURIComponent(id)}/root-execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ action: 'execute' })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert('Execution failed: ' + (data.message || data.error));
+          return;
+        }
+
+        alertEl.style.display = 'block';
+        alertEl.innerHTML = `
+          <b>✓ Root Authorization Successful!</b><br>
+          Request <code>${id}</code> executed on Hyperledger Fabric. Transaction Hash: <code>${data.tx_hash || 'tx-fabric-' + Date.now()}</code>
+        `;
+
+        fetchRootQueues();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function doLogout() {
+      sessionStorage.removeItem('scatterid_ops_token');
+      sessionStorage.removeItem('scatterid_ops_user');
+      window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>

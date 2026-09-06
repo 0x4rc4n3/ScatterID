@@ -261,18 +261,18 @@
         </p>
 
         <div class="form-group">
-          <label>Username</label>
+          <label>Username <span style="color:var(--red-600); font-weight:bold;">*</span></label>
           <input type="text" id="loginUsername" placeholder="Enter username (e.g. root_admin, mod_sarah)">
         </div>
 
         <div class="form-group">
-          <label>Password / Temporary Pass</label>
+          <label>Password / Temporary Pass <span style="color:var(--red-600); font-weight:bold;">*</span></label>
           <input type="password" id="loginPassword" placeholder="Enter account password or temporary OTP">
         </div>
 
         <div id="mfaDailyInputs" style="display:none;">
           <div class="form-group">
-            <label>6-Digit Authenticator Code (TOTP)</label>
+            <label>6-Digit Authenticator Code (TOTP) <span style="color:var(--red-600); font-weight:bold;">*</span></label>
             <input type="text" id="loginTotp" placeholder="e.g. 123456">
           </div>
           <div class="form-group">
@@ -304,12 +304,18 @@
         </div>
 
         <div class="form-group">
-          <label>1. Create New Permanent Password (Min 10 characters)</label>
+          <label>1. Create New Permanent Password (Min 10 characters) <span style="color:var(--red-600); font-weight:bold;">*</span></label>
           <input type="password" id="newPermanentPass" placeholder="Enter your permanent password">
         </div>
 
+        <div class="form-group">
+          <label>2. Confirm New Permanent Password <span style="color:var(--red-600); font-weight:bold;">*</span></label>
+          <input type="password" id="confirmPermanentPass" placeholder="Re-enter permanent password to verify">
+          <span id="passMatchHarnessFeedback" style="font-size:12px; display:block; margin-top:4px;"></span>
+        </div>
+
         <div id="onboardingMfaSection">
-          <label>2. Mobile Authenticator App Setup (Google Authenticator, Authy, FreeOTP)</label>
+          <label>3. Mobile Authenticator App Setup (Google Authenticator, Authy, FreeOTP)</label>
           <p style="font-size:12px; color:var(--slate-600); margin:0 0 10px 0;">
             Scan the QR code with your mobile app, or copy the manual entry secret below.
           </p>
@@ -320,24 +326,31 @@
           </div>
 
           <div class="form-group" style="margin-top:14px;">
-            <label>Verify 6-Digit TOTP Code from Mobile Phone</label>
-            <input type="text" id="onboardingTotpCode" placeholder="Enter 6 digits generated on your phone">
-          </div>
-
-          <div class="form-group">
-            <label>3. Single-Use Emergency Recovery Codes (Save Offline!)</label>
-            <p style="font-size:12px; color:var(--slate-600); margin:0 0 6px 0;">
-              If your phone is lost, these codes allow one-time emergency access.
-            </p>
-            <div class="codes-grid" id="onboardingCodesGrid"></div>
+            <label>Verify 6-Digit TOTP Code from Mobile Phone <span style="color:var(--red-600); font-weight:bold;">*</span></label>
+            <input type="text" id="onboardingTotpCode" placeholder="Enter 6 digits generated on your phone" maxlength="6" style="letter-spacing:2px; font-weight:700; text-align:center; font-size:16px;">
           </div>
         </div>
 
         <button onclick="doCompleteFirstTimeSetup()" style="width:100%; margin-top:10px;">
-          Complete Setup & Enter Dashboard
+          Complete Setup & Activate Account
         </button>
 
         <pre id="onboardingOutput" style="display:none;"></pre>
+      </div>
+
+      <!-- VIEW C: RECOVERY CODES REVEAL (Hidden until setup completes successfully) -->
+      <div id="viewOnboardingSuccess" class="card" style="max-width: 600px; margin: 20px auto; display:none;">
+        <h2 class="card-title" style="color:var(--green-600);">✓ Account Activated Successfully!</h2>
+        <div class="notice-box notice-auto">
+          <div>
+            <b>Password and TOTP Authenticator Confirmed!</b><br>
+            Save these <b>8 Single-Use Emergency Recovery Codes</b> offline. Each code allows emergency access if you ever lose your phone.
+          </div>
+        </div>
+        <div class="codes-grid" id="onboardingCodesGrid"></div>
+        <button onclick="proceedFromOnboardingSuccess()" style="width:100%; margin-top:12px; background:var(--green-600);">
+          I Have Saved These Codes → Proceed to Dashboard
+        </button>
       </div>
 
     </div>
@@ -655,12 +668,21 @@
       }
     }
 
+    let pendingSuccessToken = '';
+    let pendingSuccessUser = null;
+
     async function doCompleteFirstTimeSetup() {
       if (!pendingOnboardingData) return;
 
       const newPassword = document.getElementById('newPermanentPass').value.trim();
+      const confirmPass = document.getElementById('confirmPermanentPass').value.trim();
+
       if (!newPassword || newPassword.length < 10) {
         alert('Please create a permanent password of at least 10 characters.');
+        return;
+      }
+      if (newPassword !== confirmPass) {
+        alert('Passwords do not match! Please verify both password fields.');
         return;
       }
 
@@ -700,12 +722,29 @@
           return;
         }
 
-        alert('Account setup complete! Entering operations dashboard.');
+        pendingSuccessToken = data.token;
+        pendingSuccessUser = data.user;
+
+        // Display recovery codes on the success screen
+        const grid = document.getElementById('onboardingCodesGrid');
+        grid.innerHTML = '';
+        (recoveryCodes || []).forEach((code, i) => {
+          const b = document.createElement('div');
+          b.className = 'code-box';
+          b.textContent = `[${i + 1}] ${code}`;
+          grid.appendChild(b);
+        });
+
         document.getElementById('viewOnboarding').style.display = 'none';
-        establishSession(data.token, data.user);
+        document.getElementById('viewOnboardingSuccess').style.display = 'block';
       } catch (err) {
         out.textContent = 'Setup Error: ' + err.message;
       }
+    }
+
+    function proceedFromOnboardingSuccess() {
+      document.getElementById('viewOnboardingSuccess').style.display = 'none';
+      establishSession(pendingSuccessToken, pendingSuccessUser);
     }
 
     function establishSession(token, user) {
@@ -765,7 +804,7 @@
       emptyState.style.display = 'none';
 
       try {
-        const res = await fetch('/api/requests/queue/pending', {
+        const res = await fetch('/api/requests/pending', {
           headers: { 'Authorization': `Bearer ${activeToken}` }
         });
         const data = await res.json();

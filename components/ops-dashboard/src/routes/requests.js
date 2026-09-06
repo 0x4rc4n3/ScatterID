@@ -162,6 +162,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       return res.status(201).json({
         success: true,
         requestId: created.id,
+        request: created,
         status: created.status,
         submission_channel: created.submission_channel,
         attribution: {
@@ -264,6 +265,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       return res.status(201).json({
         success: true,
         requestId: created.id,
+        request: created,
         status: created.status,
         submission_channel: created.submission_channel,
         attribution: {
@@ -311,10 +313,11 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
    * - Reject -> Closes immediately as REJECTED.
    * - Flag -> Escalates to FLAGGED with mandatory reason.
    */
-  router.post('/:id/decide', authenticate, requireRole(['mod']), async (req, res) => {
+  const handleModDecide = async (req, res) => {
     try {
       const { id } = req.params;
-      const { action, reason } = req.body || {};
+      const { action, reason, notes } = req.body || {};
+      const decisionReason = reason || notes;
       const clientIp = getClientIp(req);
       const modId = req.user.userId;
       const modUsername = req.user.username;
@@ -330,7 +333,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       const normalizedAction = action.toUpperCase();
 
       // Reject and Flag mandatorily require a stated reason
-      if ((normalizedAction === 'REJECT' || normalizedAction === 'FLAG') && (!reason || reason.trim().length < 3)) {
+      if ((normalizedAction === 'REJECT' || normalizedAction === 'FLAG') && (!decisionReason || decisionReason.trim().length < 3)) {
         return res.status(400).json({
           error: 'REASON_REQUIRED',
           message: `A mandatory reason is required when moderator selects ${normalizedAction}`
@@ -545,31 +548,38 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       console.error('Moderator decision error:', err);
       return res.status(500).json({ error: 'DECISION_FAILED', message: err.message });
     }
-  });
+  };
+
+  router.post('/:id/decide', authenticate, requireRole(['mod']), handleModDecide);
+  router.post('/:id/mod-action', authenticate, requireRole(['mod']), handleModDecide);
 
   /**
-   * GET /api/requests/queue/awaiting-root
+   * GET /api/requests/queue/awaiting-root & /api/requests/awaiting-root
    * Root queue for Soft-Channel Issue & Revocation requests (FR-12).
    */
-  router.get('/queue/awaiting-root', authenticate, requireRole(['root']), (req, res) => {
+  const getAwaitingRootHandler = (req, res) => {
     const list = repos.requests.getAwaitingRoot();
     return res.status(200).json({
       count: list.length,
       requests: list
     });
-  });
+  };
+  router.get('/queue/awaiting-root', authenticate, requireRole(['root']), getAwaitingRootHandler);
+  router.get('/awaiting-root', authenticate, requireRole(['root']), getAwaitingRootHandler);
 
   /**
-   * GET /api/requests/queue/flagged
+   * GET /api/requests/queue/flagged & /api/requests/flagged
    * Root queue for Moderator-flagged requests (FR-13).
    */
-  router.get('/queue/flagged', authenticate, requireRole(['root']), (req, res) => {
+  const getFlaggedHandler = (req, res) => {
     const list = repos.requests.getFlaggedForRoot();
     return res.status(200).json({
       count: list.length,
       requests: list
     });
-  });
+  };
+  router.get('/queue/flagged', authenticate, requireRole(['root']), getFlaggedHandler);
+  router.get('/flagged', authenticate, requireRole(['root']), getFlaggedHandler);
 
   /**
    * POST /api/requests/:id/root-execute
@@ -683,16 +693,19 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     }
   });
   /**
-   * GET /api/requests/pending
+   * GET /api/requests/pending & GET /api/requests/queue/pending
    * Frontline queue for Moderators (act) and Root (view) - FR-10.
    */
-  router.get('/pending', authenticate, requireRole(['mod', 'root']), (req, res) => {
+  const getPendingQueueHandler = (req, res) => {
     const pendingList = repos.requests.getPendingForMod();
     return res.status(200).json({
       count: pendingList.length,
       requests: pendingList
     });
-  });
+  };
+
+  router.get('/pending', authenticate, requireRole(['mod', 'root']), getPendingQueueHandler);
+  router.get('/queue/pending', authenticate, requireRole(['mod', 'root']), getPendingQueueHandler);
 
   /**
    * GET /api/requests/:id
