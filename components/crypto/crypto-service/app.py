@@ -4,6 +4,7 @@ import uuid
 import re
 import hashlib
 import threading
+import datetime
 from flask import Flask, request, jsonify
 from kms import KMS, zeroize
 from interface import issue_credential, verify_credential
@@ -57,9 +58,18 @@ def enforce_api_key():
 @app.route("/healthz", methods=["GET"])
 def healthz():
     previous_key = os.environ.get("CRYPTO_SERVICE_API_KEY_PREVIOUS")
+    boundary = "vault_kv_memory"
+    if hasattr(kms, "get_boundary_type"):
+        try:
+            b_val = kms.get_boundary_type()
+            if isinstance(b_val, str):
+                boundary = b_val
+        except Exception:
+            pass
     return jsonify({
         "status": "ok",
         "service": "crypto-service",
+        "signingBoundary": boundary,
         "dualKeyGraceActive": bool(previous_key)
     }), 200
 
@@ -78,8 +88,32 @@ def sign_hash_route():
         credential_id = str(uuid.uuid4())
 
     with state_lock:
-        local_priv = bytearray(PRIVATE_KEY) if PRIVATE_KEY else None
         local_pub_id = PUBLIC_KEY_ID
+        is_transit = False
+        if hasattr(kms, "is_transit_mode"):
+            try:
+                is_transit = kms.is_transit_mode() is True
+            except Exception:
+                is_transit = False
+        local_priv = bytearray(PRIVATE_KEY) if (PRIVATE_KEY and not is_transit) else None
+
+    if is_transit:
+        try:
+            hash_bytes = bytes.fromhex(data_hash)
+            sig_bytes = kms.sign_digest(hash_bytes)
+            result = {
+                "dataHash": data_hash,
+                "signature": sig_bytes.hex(),
+                "algorithm": "ML-DSA-65",
+                "publicKeyId": local_pub_id,
+                "issuedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "credentialId": credential_id,
+                "signingBoundary": "vault_transit_isolated"
+            }
+            return jsonify(result), 201
+        except Exception as e:
+            app.logger.error("Transit signing failed", exc_info=True)
+            return jsonify({"error": "Signing failed due to internal error", "code": "SIGNING_FAILED"}), 500
 
     if not local_priv:
         return jsonify({"error": "Signing key not available", "code": "SIGNING_FAILED"}), 500

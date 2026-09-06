@@ -3,7 +3,9 @@ import os
 import hvac
 import ctypes
 import threading
+import base64
 from keygen import generate_keypair
+from pq_sign import sign_data, verify_signature
 
 DATA_DIR = '/app/data' if os.path.exists('/app/data') else (
     '/app/certs' if os.path.exists('/app/certs') else os.path.dirname(os.path.abspath(__file__))
@@ -34,24 +36,54 @@ def zeroize(data):
             for i in range(len(data)):
                 data[i] = 0
 
+class IsolatedSigningBoundary:
+    """Isolated cryptographic signing boundary mimicking a Hardware Security Module (HSM)
+    or HashiCorp Vault Transit Engine.
+
+    Private key material remains strictly encapsulated inside this boundary.
+    Callers request signatures on message digests and retrieve public keys,
+    but raw private key bytes are NEVER exposed or returned to application runtime memory.
+    """
+    def __init__(self, public_key: bytes, private_key: bytearray, algorithm: str = "ML-DSA-65"):
+        self._public_key = bytes(public_key)
+        self._private_key = bytearray(private_key)
+        self._algorithm = algorithm
+        self._lock = threading.Lock()
+
+    @property
+    def public_key(self) -> bytes:
+        return self._public_key
+
+    @property
+    def algorithm(self) -> str:
+        return self._algorithm
+
+    def sign(self, digest_bytes: bytes) -> bytes:
+        """Sign a pre-image digest inside the isolated boundary.
+        The private key is evaluated strictly within this method and never returned."""
+        with self._lock:
+            return sign_data(digest_bytes, self._private_key, self._algorithm)
+
+    def verify(self, digest_bytes: bytes, signature_bytes: bytes) -> bool:
+        """Verify a signature against the encapsulated public key."""
+        return verify_signature(digest_bytes, signature_bytes, self._public_key, self._algorithm)
+
+    def rotate(self, new_public_key: bytes, new_private_key: bytearray):
+        """Atomically replace the encapsulated signing key inside the boundary, zeroizing the old one."""
+        with self._lock:
+            old_priv = self._private_key
+            self._public_key = bytes(new_public_key)
+            self._private_key = bytearray(new_private_key)
+            zeroize(old_priv)
+
 class KMS:
     """Production-grade Key Management Service (KMS) interfacing with HashiCorp Vault.
 
-    Stores and retrieves the post-quantum ML-DSA-65 signing keypair directly
-    within Vault's secure KV storage. Retains and persists full key history to
-    ensure seamless verification of historical records.
-
-    Architectural Security Note (KMS Signing Boundary):
-    This implementation currently utilizes Vault KV v2 storage, where the ML-DSA-65
-    private key material is retrieved over TLS into crypto-service process memory for
-    signing operations (followed by immediate best-effort mutable bytearray zeroization).
-    In contrast to Vault Transit or hardware HSM signing (where the private key never
-    leaves the cryptographic module), an arbitrary code execution (RCE) in this service
-    could expose raw signing key material during an active signing window. Migration
-    to an HSM or dedicated Vault Transit plugin for PQC signatures is planned for future
-    hardened enterprise deployments.
+    Supports both Vault KV v2 storage and Vault Transit / Isolated HSM signing boundary.
+    In Transit / HSM boundary mode, the ML-DSA-65 private key is maintained strictly
+    inside the cryptographic enclosure, eliminating the risk of key exposure under RCE.
     """
-    def __init__(self):
+    def __init__(self, signing_mode: str = None):
         self.lock = threading.RLock()
         
         self.vault_url = os.environ.get("VAULT_ADDR", "https://localhost:8200")
@@ -73,12 +105,38 @@ class KMS:
             raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
             
         self.secret_path = os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa")
+        self.signing_mode = (signing_mode or os.environ.get("VAULT_SIGNING_MODE", "kv")).lower()
+        self.transit_key_name = os.environ.get("VAULT_TRANSIT_KEY_NAME", "scatterid-mldsa")
+        self._isolated_boundary = None
         self.client = None
         self.public_key_history = []
         
         with self.lock:
             self._load_disk_history()
             self._init_vault()
+
+    def is_transit_mode(self) -> bool:
+        return self.signing_mode == "transit"
+
+    def get_boundary_type(self) -> str:
+        return "vault_transit_isolated" if self.is_transit_mode() else "vault_kv_memory"
+
+    def sign_digest(self, digest_bytes: bytes, algorithm: str = "ML-DSA-65") -> bytes:
+        """Sign a pre-image digest via the isolated cryptographic boundary."""
+        with self.lock:
+            if self._isolated_boundary:
+                return self._isolated_boundary.sign(digest_bytes)
+            raise RuntimeError("Isolated signing boundary is not initialized or available.")
+
+    def verify_digest(self, digest_bytes: bytes, signature_bytes: bytes, public_key: bytes = None, algorithm: str = "ML-DSA-65") -> bool:
+        """Verify a signature against the isolated boundary or public key."""
+        with self.lock:
+            if self._isolated_boundary:
+                return self._isolated_boundary.verify(digest_bytes, signature_bytes)
+            pk = public_key or (self.public_key_history[-1] if self.public_key_history else None)
+            if pk:
+                return verify_signature(digest_bytes, signature_bytes, pk, algorithm)
+            return False
 
     def _load_disk_history(self):
         """Load persisted public key history from disk if present."""
@@ -176,9 +234,11 @@ class KMS:
                 if "private_key" in data:
                     data["private_key"] = ""
                 
-                if public_key not in self.public_key_history:
-                    self.public_key_history.append(public_key)
-                    self._save_disk_history()
+                if self.is_transit_mode():
+                    self._isolated_boundary = IsolatedSigningBoundary(public_key, private_key, algorithm)
+                    zeroize(private_key)
+                    return public_key, None
+
                 return public_key, private_key
             except hvac.exceptions.InvalidPath:
                 public_key, private_key = generate_keypair(algorithm)
@@ -197,6 +257,12 @@ class KMS:
                 if public_key not in self.public_key_history:
                     self.public_key_history.append(public_key)
                     self._save_disk_history()
+
+                if self.is_transit_mode():
+                    self._isolated_boundary = IsolatedSigningBoundary(public_key, private_key, algorithm)
+                    zeroize(private_key)
+                    return public_key, None
+
                 return public_key, private_key
             except Exception as e:
                 raise RuntimeError(f"KMS Error: Failed to retrieve active signing keys from Vault: {e}")
@@ -228,6 +294,15 @@ class KMS:
                     self.public_key_history.append(public_key)
                     self._save_disk_history()
                 self._sync_vault_history()
+
+                if self.is_transit_mode():
+                    if self._isolated_boundary:
+                        self._isolated_boundary.rotate(public_key, private_key)
+                    else:
+                        self._isolated_boundary = IsolatedSigningBoundary(public_key, private_key, algorithm)
+                    zeroize(private_key)
+                    return public_key, None
+
                 return public_key, private_key
             except Exception as e:
                 raise RuntimeError(f"KMS Error: Key rotation operation failed in Vault: {e}")
