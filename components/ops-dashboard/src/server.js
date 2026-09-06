@@ -16,6 +16,25 @@ import { createKeysRouter } from './routes/keys.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const JWT_SECRET = process.env.JWT_SECRET || '';
+
+// Fail-fast startup check: Ops console requires explicit, cryptographically secure JWT_SECRET
+if (!JWT_SECRET) {
+  console.error(
+    'FATAL: JWT_SECRET environment variable must be set. ' +
+    'The ops-dashboard cannot start without a session signing secret.'
+  );
+  process.exit(1);
+}
+
+if (Buffer.byteLength(JWT_SECRET, 'utf8') < 32) {
+  console.error(
+    'FATAL: JWT_SECRET entropy is insufficient. ' +
+    'Session secret must be at least 32 bytes (256 bits) to prevent offline forgery under Kerckhoffs threat model.'
+  );
+  process.exit(1);
+}
+
 export function createApp({ db: customDb = null, repos: customRepos = null } = {}) {
   const app = express();
   const db = customDb || getDb();

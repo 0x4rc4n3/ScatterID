@@ -1,6 +1,7 @@
 // Automated Unit, Integration & Rollback Tests for ScatterID Ops Database & Migration Engine
 // Tests WAL mode, Foreign Key enforcement, Table Schemas, Constraints, and Rollback
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';

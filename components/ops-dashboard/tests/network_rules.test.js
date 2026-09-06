@@ -1,6 +1,7 @@
 // Automated Unit & Integration Tests for Phase 8: Network Micro-Segmentation & Firewall Scripts
 // Document ID: SEC-NET-07 / Master Blueprint: start.md
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
