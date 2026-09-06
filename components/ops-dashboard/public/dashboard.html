@@ -6,29 +6,30 @@
   <title>ScatterID Operations Console — Appsmith Internal Desk</title>
   <style>
     :root {
-      --bg-app: #f8fafc;
-      --bg-sidebar: #0f172a;
-      --bg-topbar: #1e293b;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-      --text-main: #0f172a;
-      --text-dim: #64748b;
+      --bg-app: #080c14;
+      --bg-sidebar: #0b1120;
+      --bg-topbar: #0f172a;
+      --bg-card: #0f172a;
+      --border-color: #1e293b;
+      --border-focus: #0284c7;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
       --text-sidebar: #94a3b8;
       --text-sidebar-active: #ffffff;
       
-      /* Design Doc §10 Palette */
-      --neutral-fill: #F1EFE8;
-      --neutral-border: #5F5E5A;
-      --process-fill: #E6F1FB;
-      --process-border: #185FA5;
-      --approve-fill: #E1F5EE;
-      --approve-border: #0F6E56;
-      --reject-fill: #FCEBEB;
-      --reject-border: #A32D2D;
-      --flag-fill: #FEF3C7;
-      --flag-border: #D97706;
-      --root-fill: #EEEDFE;
-      --root-border: #534AB7;
+      /* Dark Appsmith Palette */
+      --neutral-fill: #1e293b;
+      --neutral-border: #475569;
+      --process-fill: rgba(30, 64, 175, 0.25);
+      --process-border: #38bdf8;
+      --approve-fill: rgba(16, 185, 129, 0.2);
+      --approve-border: #10b981;
+      --reject-fill: rgba(239, 68, 68, 0.2);
+      --reject-border: #ef4444;
+      --flag-fill: rgba(245, 158, 11, 0.2);
+      --flag-border: #f59e0b;
+      --root-fill: rgba(168, 85, 247, 0.2);
+      --root-border: #a855f7;
       
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -61,7 +62,7 @@
       justify-content: space-between;
       padding: 0 24px;
       z-index: 20;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid var(--border-color);
     }
     .org-title {
       font-size: 15px;
@@ -106,7 +107,7 @@
       height: 100vh;
       flex-shrink: 0;
       z-index: 30;
-      border-right: 1px solid #1e293b;
+      border-right: 1px solid var(--border-color);
     }
     .sidebar-brand {
       height: 52px;
@@ -114,11 +115,11 @@
       align-items: center;
       padding: 0 20px;
       gap: 10px;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid var(--border-color);
       color: #fff;
       font-weight: 800;
       font-size: 15px;
-      background: #0b1120;
+      background: #070a0f;
     }
     .sidebar-brand span.logo-box {
       width: 26px;
@@ -195,10 +196,10 @@
       border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 16px 18px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
     .stat-card.root-highlight {
-      background: var(--root-fill);
+      background: rgba(168, 85, 247, 0.12);
       border-color: var(--root-border);
     }
     .stat-label {
@@ -215,7 +216,7 @@
       color: var(--text-main);
     }
     .stat-card.root-highlight .stat-value {
-      color: var(--root-border);
+      color: #c084fc;
     }
 
     /* Tables & Cards (§4, §5) */
@@ -223,7 +224,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       overflow: hidden;
     }
     .table-header-bar {
@@ -232,7 +233,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #fafafa;
+      background: #111c30;
     }
     .table-title {
       font-size: 14px;
@@ -249,8 +250,8 @@
       text-align: left;
     }
     table.dense-table th {
-      background: #f1f5f9;
-      color: #475569;
+      background: #0e1726;
+      color: #94a3b8;
       font-size: 11.5px;
       font-weight: 700;
       text-transform: uppercase;
@@ -259,12 +260,13 @@
     }
     table.dense-table td {
       padding: 10px 14px;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid #1a273e;
       vertical-align: middle;
       font-size: 12.5px;
+      color: #e2e8f0;
     }
     table.dense-table tr:hover td {
-      background: #f8fafc;
+      background: #16233b;
       cursor: pointer;
     }
 
@@ -290,8 +292,8 @@
       gap: 6px;
     }
     .tab-strip button.active {
-      color: #0284c7;
-      border-bottom-color: #0284c7;
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
     }
     .tab-strip button.root-tab.active {
       color: var(--root-border);
@@ -309,9 +311,9 @@
       font-weight: 700;
     }
     .channel-badge.hard {
-      background: #e2e8f0;
-      color: #1e293b;
-      border: 1px solid #94a3b8;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #475569;
     }
     .channel-badge.soft {
       background: var(--flag-fill);
@@ -337,69 +339,91 @@
       color: var(--approve-border);
       border-color: var(--approve-border);
     }
-    .btn-approve:hover { background: #c6f0e2; }
+    .btn-approve:hover { background: rgba(16, 185, 129, 0.35); }
 
     .btn-root-accept {
-      background: #0f6e56;
-      color: #ffffff;
-      border-color: #0f6e56;
+      background: #10b981;
+      color: #064e3b;
+      border-color: #10b981;
+      font-weight: 800;
     }
-    .btn-root-accept:hover { background: #0a4f3e; }
+    .btn-root-accept:hover { background: #059669; color: #fff; }
 
     .btn-reject {
       background: var(--reject-fill);
       color: var(--reject-border);
       border-color: var(--reject-border);
     }
-    .btn-reject:hover { background: #fad2d2; }
+    .btn-reject:hover { background: rgba(239, 68, 68, 0.35); }
 
     .btn-flag {
       background: var(--flag-fill);
       color: var(--flag-border);
       border-color: var(--flag-border);
     }
-    .btn-flag:hover { background: #fde68a; }
+    .btn-flag:hover { background: rgba(245, 158, 11, 0.35); }
 
     .btn-neutral {
-      background: #f1f5f9;
-      color: #334155;
-      border-color: #cbd5e1;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-color: #475569;
     }
-    .btn-neutral:hover { background: #e2e8f0; }
+    .btn-neutral:hover { background: #334155; }
+
+    /* Inputs, Selects, and Textareas */
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    select,
+    textarea {
+      background: #0a1120;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3);
+    }
 
     /* Modals (§1, §5) */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(2px);
+      background: rgba(8, 12, 20, 0.8);
+      backdrop-filter: blur(4px);
       z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
     }
     .modal-box {
-      background: #ffffff;
+      background: #0f172a;
       border-radius: 8px;
       width: 500px;
       max-width: 90vw;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       border: 1px solid var(--border-color);
       overflow: hidden;
+      color: #f8fafc;
     }
     .modal-header {
       padding: 16px 20px;
-      background: #f8fafc;
+      background: #111c30;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .modal-header h3 { margin: 0; font-size: 15px; }
-    .modal-body { padding: 20px; font-size: 13.5px; line-height: 1.5; }
+    .modal-header h3 { margin: 0; font-size: 15px; color: #f8fafc; }
+    .modal-body { padding: 20px; font-size: 13.5px; line-height: 1.5; color: #cbd5e1; }
     .modal-footer {
       padding: 14px 20px;
-      background: #f8fafc;
+      background: #111c30;
       border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: flex-end;
@@ -410,7 +434,7 @@
     .drawer-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(8, 12, 20, 0.6);
       z-index: 90;
       display: none;
     }
@@ -421,28 +445,29 @@
       width: 560px;
       max-width: 95vw;
       height: calc(100vh - 52px);
-      background: #ffffff;
-      border-left: 1px solid #cbd5e1;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+      background: #0f172a;
+      border-left: 1px solid var(--border-color);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.5);
       z-index: 91;
       display: flex;
       flex-direction: column;
       transition: right 0.25s ease;
+      color: #f8fafc;
     }
     .detail-drawer.open { right: 0; }
     .drawer-header {
       padding: 16px 20px;
-      border-bottom: 1px solid #e2e8f0;
-      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      background: #111c30;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .drawer-content { padding: 20px; overflow-y: auto; flex: 1; }
+    .drawer-content { padding: 20px; overflow-y: auto; flex: 1; color: #cbd5e1; }
     .drawer-footer {
       padding: 16px 20px;
-      border-top: 1px solid #e2e8f0;
-      background: #fafafa;
+      border-top: 1px solid var(--border-color);
+      background: #111c30;
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -451,13 +476,13 @@
     code {
       font-family: var(--font-mono);
       font-size: 12px;
-      background: #f1f5f9;
+      background: #1e293b;
       padding: 2px 6px;
       border-radius: 4px;
-      color: #0369a1;
+      color: #38bdf8;
     }
     pre.code-block {
-      background: #0f172a;
+      background: #080c14;
       color: #7dd3fc;
       padding: 12px;
       border-radius: 6px;
@@ -465,15 +490,17 @@
       font-size: 12px;
       overflow-x: auto;
       margin: 8px 0;
+      border: 1px solid #1e293b;
     }
 
     /* Emergency Panel Highlight (§6.2) */
     .emergency-panel {
-      background: #fff5f5;
-      border: 1px solid #fecaca;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
       border-radius: 6px;
       padding: 20px;
       margin-bottom: 20px;
+      color: #fecaca;
     }
   </style>
 </head>
@@ -939,7 +966,7 @@
           <p style="margin:0; font-size:12px; color:var(--text-dim);">Configurable Risk Postures, Dual-Control Enclaves, and Operational Routing</p>
         </div>
         <div id="policyRoleBadgeWrap">
-          <span class="badge" style="background:#f1f5f9; color:#0f172a; padding:4px 10px; border-radius:4px; font-weight:700;" id="activePolicyBadge">Scenario B</span>
+          <span class="badge" style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; padding:4px 10px; border-radius:4px; font-weight:700;" id="activePolicyBadge">Scenario B</span>
         </div>
       </div>
 
@@ -948,43 +975,43 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <div class="stat-label">CURRENTLY ACTIVE POLICY</div>
-            <h3 style="margin:6px 0 4px 0; font-size:16px;" id="activePolicyName">Scenario B — Tiered Risk Policy</h3>
+            <h3 style="margin:6px 0 4px 0; font-size:16px; color:#f8fafc;" id="activePolicyName">Scenario B — Tiered Risk Policy</h3>
             <p style="margin:0; font-size:12.5px; color:var(--text-dim); max-width:650px;" id="activePolicyDesc">
               High-assurance in-person requests auto-execute upon moderator approval; remote and high-impact actions require Root Administrator authorization.
             </p>
           </div>
-          <span class="role-badge" style="background:#e1f5ee; color:#0f6e56; border:1px solid #0f6e56;">ACTIVE IN PRODUCTION</span>
+          <span class="role-badge" style="background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid #10b981;">ACTIVE IN PRODUCTION</span>
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color);">
-          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+          <div style="background:#111c30; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
             <div style="font-size:11px; color:var(--text-dim); font-weight:700;">HARD-CHANNEL ISSUANCE</div>
-            <div style="font-size:13px; font-weight:800; color:#0f6e56; margin-top:3px;" id="ruleIssuanceHard">AUTO-EXECUTE</div>
+            <div style="font-size:13px; font-weight:800; color:#10b981; margin-top:3px;" id="ruleIssuanceHard">AUTO-EXECUTE</div>
           </div>
-          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+          <div style="background:#111c30; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
             <div style="font-size:11px; color:var(--text-dim); font-weight:700;">SOFT-CHANNEL ISSUANCE</div>
-            <div style="font-size:13px; font-weight:800; color:#534ab7; margin-top:3px;" id="ruleIssuanceSoft">ROUTE TO ROOT</div>
+            <div style="font-size:13px; font-weight:800; color:#a855f7; margin-top:3px;" id="ruleIssuanceSoft">ROUTE TO ROOT</div>
           </div>
-          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+          <div style="background:#111c30; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
             <div style="font-size:11px; color:var(--text-dim); font-weight:700;">HARD/SOFT REVOCATIONS</div>
-            <div style="font-size:13px; font-weight:800; color:#a32d2d; margin-top:3px;" id="ruleRevocationAll">ROUTE TO ROOT (MANDATORY)</div>
+            <div style="font-size:13px; font-weight:800; color:#ef4444; margin-top:3px;" id="ruleRevocationAll">ROUTE TO ROOT (MANDATORY)</div>
           </div>
         </div>
       </div>
 
       <!-- Policy Profile Selection (Root only) -->
-      <div class="panel-card" style="margin-bottom:20px;">
-        <h3 style="margin-top:0; font-size:15px; margin-bottom:12px;">Standard Organizational Governance Profiles</h3>
+      <div class="table-container" style="margin-bottom:20px; padding:20px;">
+        <h3 style="margin-top:0; font-size:15px; margin-bottom:12px; color:#f8fafc;">Standard Organizational Governance Profiles</h3>
         <p style="font-size:12px; color:var(--text-dim); margin-top:0; margin-bottom:16px;">
           Select a predefined posture or customize rules to match your client organization's compliance standard.
         </p>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
           <!-- Scenario B Card -->
-          <div class="channel-card" style="border:2px solid #10b981; padding:16px; border-radius:8px; background:#ffffff;">
+          <div class="channel-card" style="border:2px solid #10b981; padding:16px; border-radius:8px; background:#111c30;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario B — Tiered Risk</span>
-              <span class="badge" style="background:#d1fae5; color:#065f46; font-size:10.5px; padding:2px 6px; border-radius:3px;">RECOMMENDED</span>
+              <span style="font-weight:700; font-size:13.5px; color:#f8fafc;">Scenario B — Tiered Risk</span>
+              <span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#10b981; font-size:10.5px; padding:2px 6px; border-radius:3px; border:1px solid #10b981;">RECOMMENDED</span>
             </div>
             <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
               High throughput for verified physical counter intake. Remote uploads and revocations strictly gated to Root Administrator.
@@ -995,10 +1022,10 @@
           </div>
 
           <!-- Scenario A Card -->
-          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#ffffff;">
+          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#111c30;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario A — Strict Dual-Control</span>
-              <span class="badge" style="background:#eeedfe; color:#534ab7; font-size:10.5px; padding:2px 6px; border-radius:3px;">FOUR-EYES</span>
+              <span style="font-weight:700; font-size:13.5px; color:#f8fafc;">Scenario A — Strict Dual-Control</span>
+              <span class="badge" style="background:rgba(168, 85, 247, 0.2); color:#a855f7; font-size:10.5px; padding:2px 6px; border-radius:3px; border:1px solid #a855f7;">FOUR-EYES</span>
             </div>
             <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
               Every issuance and revocation requires explicit Root Administrator authorization, regardless of in-person or digital channel.
@@ -1009,10 +1036,10 @@
           </div>
 
           <!-- Scenario C Card -->
-          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#ffffff;">
+          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#111c30;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario C — Delegated Autonomy</span>
-              <span class="badge" style="background:#e6f1fb; color:#185fa5; font-size:10.5px; padding:2px 6px; border-radius:3px;">DELEGATED</span>
+              <span style="font-weight:700; font-size:13.5px; color:#f8fafc;">Scenario C — Delegated Autonomy</span>
+              <span class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; font-size:10.5px; padding:2px 6px; border-radius:3px; border:1px solid #38bdf8;">DELEGATED</span>
             </div>
             <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
               Moderators possess direct ledger execution authority for all issuances. Revocations remain strictly Root-gated.
@@ -1023,7 +1050,7 @@
           </div>
         </div>
 
-        <div id="modPolicyNotice" style="margin-top:16px; padding:12px; background:#f1f5f9; border-radius:6px; font-size:12px; color:#475569; display:none;">
+        <div id="modPolicyNotice" style="margin-top:16px; padding:12px; background:#111c30; border-radius:6px; font-size:12px; color:var(--text-dim); border:1px solid var(--border-color); display:none;">
           ℹ️ <b>Governance Note:</b> Routing policies can only be altered by the Root Administrator. Current policy is actively enforced across all intake queues.
         </div>
       </div>
@@ -1331,8 +1358,8 @@
       try { claim = JSON.parse(req.claimant_data); } catch(e) {}
 
       bodyHtml += `
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-bottom:16px;">
-          <h4 style="margin:0 0 8px 0; font-size:13px; color:#0369a1;">Claimant Data & Attributes</h4>
+        <div style="background:#111c30; border:1px solid var(--border-color); border-radius:6px; padding:14px; margin-bottom:16px;">
+          <h4 style="margin:0 0 8px 0; font-size:13px; color:#38bdf8;">Claimant Data & Attributes</h4>
           <pre class="code-block">${JSON.stringify(claim, null, 2)}</pre>
         </div>
       `;
@@ -1341,7 +1368,7 @@
         bodyHtml += `
           <div style="background:var(--neutral-fill); border:1px solid var(--neutral-border); border-radius:6px; padding:12px; margin-bottom:16px;">
             <b>Physical Document Proof Viewer:</b><br>
-            <span style="color:#475569;">Physically inspected at Help Desk — no digital copy retained (Data Minimization Standard).</span><br>
+            <span style="color:var(--text-dim);">Physically inspected at Help Desk — no digital copy retained (Data Minimization Standard).</span><br>
             <div style="margin-top:8px; font-size:12px;">
               ✓ Security Watermarks & Guilloche verified<br>
               ✓ Embossed Seal & Controller signature verified<br>
