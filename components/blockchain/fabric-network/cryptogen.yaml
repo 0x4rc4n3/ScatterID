@@ -8,13 +8,21 @@ OrdererOrgs:
         SANS:
           - localhost
           - 127.0.0.1
+      - Hostname: orderer2
+        SANS:
+          - localhost
+          - 127.0.0.1
+      - Hostname: orderer3
+        SANS:
+          - localhost
+          - 127.0.0.1
 
 PeerOrgs:
   - Name: Issuer
     Domain: issuer.scatterid.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
       SANS:
         - localhost
         - 127.0.0.1
@@ -25,7 +33,7 @@ PeerOrgs:
     Domain: verifier.scatterid.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
       SANS:
         - localhost
         - 127.0.0.1
