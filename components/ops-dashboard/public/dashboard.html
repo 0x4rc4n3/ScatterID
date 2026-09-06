@@ -508,6 +508,9 @@
       <a class="nav-item" onclick="switchPage('health', this)">
         <span>🩺 System Health</span>
       </a>
+      <a class="nav-item" onclick="switchPage('policy', this)" id="navItemPolicy">
+        <span>⚙️ Governance Policy</span>
+      </a>
     </nav>
   </aside>
 
@@ -926,6 +929,106 @@
       </div>
     </section>
 
+    <!-- ============================================================= -->
+    <!-- 8. PAGE: GOVERNANCE POLICY (§Agile Policy Engine) -->
+    <!-- ============================================================= -->
+    <section id="page-policy" class="page-section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div>
+          <h2 style="margin:0 0 4px 0; font-size:18px;">Agile Governance Policy Engine</h2>
+          <p style="margin:0; font-size:12px; color:var(--text-dim);">Configurable Risk Postures, Dual-Control Enclaves, and Operational Routing</p>
+        </div>
+        <div id="policyRoleBadgeWrap">
+          <span class="badge" style="background:#f1f5f9; color:#0f172a; padding:4px 10px; border-radius:4px; font-weight:700;" id="activePolicyBadge">Scenario B</span>
+        </div>
+      </div>
+
+      <!-- Active Policy Banner -->
+      <div class="stat-card" style="border-left:4px solid #10b981; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div class="stat-label">CURRENTLY ACTIVE POLICY</div>
+            <h3 style="margin:6px 0 4px 0; font-size:16px;" id="activePolicyName">Scenario B — Tiered Risk Policy</h3>
+            <p style="margin:0; font-size:12.5px; color:var(--text-dim); max-width:650px;" id="activePolicyDesc">
+              High-assurance in-person requests auto-execute upon moderator approval; remote and high-impact actions require Root Administrator authorization.
+            </p>
+          </div>
+          <span class="role-badge" style="background:#e1f5ee; color:#0f6e56; border:1px solid #0f6e56;">ACTIVE IN PRODUCTION</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color);">
+          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+            <div style="font-size:11px; color:var(--text-dim); font-weight:700;">HARD-CHANNEL ISSUANCE</div>
+            <div style="font-size:13px; font-weight:800; color:#0f6e56; margin-top:3px;" id="ruleIssuanceHard">AUTO-EXECUTE</div>
+          </div>
+          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+            <div style="font-size:11px; color:var(--text-dim); font-weight:700;">SOFT-CHANNEL ISSUANCE</div>
+            <div style="font-size:13px; font-weight:800; color:#534ab7; margin-top:3px;" id="ruleIssuanceSoft">ROUTE TO ROOT</div>
+          </div>
+          <div style="background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+            <div style="font-size:11px; color:var(--text-dim); font-weight:700;">HARD/SOFT REVOCATIONS</div>
+            <div style="font-size:13px; font-weight:800; color:#a32d2d; margin-top:3px;" id="ruleRevocationAll">ROUTE TO ROOT (MANDATORY)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy Profile Selection (Root only) -->
+      <div class="panel-card" style="margin-bottom:20px;">
+        <h3 style="margin-top:0; font-size:15px; margin-bottom:12px;">Standard Organizational Governance Profiles</h3>
+        <p style="font-size:12px; color:var(--text-dim); margin-top:0; margin-bottom:16px;">
+          Select a predefined posture or customize rules to match your client organization's compliance standard.
+        </p>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <!-- Scenario B Card -->
+          <div class="channel-card" style="border:2px solid #10b981; padding:16px; border-radius:8px; background:#ffffff;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario B — Tiered Risk</span>
+              <span class="badge" style="background:#d1fae5; color:#065f46; font-size:10.5px; padding:2px 6px; border-radius:3px;">RECOMMENDED</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
+              High throughput for verified physical counter intake. Remote uploads and revocations strictly gated to Root Administrator.
+            </p>
+            <div id="btnWrapScenarioB" style="display:none;">
+              <button class="btn btn-approve" style="width:100%; font-size:12px;" onclick="selectPolicyProfile('SCENARIO_B')">Activate Scenario B →</button>
+            </div>
+          </div>
+
+          <!-- Scenario A Card -->
+          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#ffffff;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario A — Strict Dual-Control</span>
+              <span class="badge" style="background:#eeedfe; color:#534ab7; font-size:10.5px; padding:2px 6px; border-radius:3px;">FOUR-EYES</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
+              Every issuance and revocation requires explicit Root Administrator authorization, regardless of in-person or digital channel.
+            </p>
+            <div id="btnWrapScenarioA" style="display:none;">
+              <button class="btn btn-neutral" style="width:100%; font-size:12px;" onclick="selectPolicyProfile('SCENARIO_A')">Activate Scenario A →</button>
+            </div>
+          </div>
+
+          <!-- Scenario C Card -->
+          <div class="channel-card" style="border:2px solid var(--border-color); padding:16px; border-radius:8px; background:#ffffff;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; font-size:13.5px; color:#0f172a;">Scenario C — Delegated Autonomy</span>
+              <span class="badge" style="background:#e6f1fb; color:#185fa5; font-size:10.5px; padding:2px 6px; border-radius:3px;">DELEGATED</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-dim); margin:8px 0 12px 0;">
+              Moderators possess direct ledger execution authority for all issuances. Revocations remain strictly Root-gated.
+            </p>
+            <div id="btnWrapScenarioC" style="display:none;">
+              <button class="btn btn-neutral" style="width:100%; font-size:12px;" onclick="selectPolicyProfile('SCENARIO_C')">Activate Scenario C →</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="modPolicyNotice" style="margin-top:16px; padding:12px; background:#f1f5f9; border-radius:6px; font-size:12px; color:#475569; display:none;">
+          ℹ️ <b>Governance Note:</b> Routing policies can only be altered by the Root Administrator. Current policy is actively enforced across all intake queues.
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- DETAIL DRAWER (§4, §5) -->
@@ -1025,6 +1128,11 @@
         document.getElementById('rootRoutineSection').style.display = 'block';
         document.getElementById('rootUserManagementSection').style.display = 'block';
         document.getElementById('rootReconcileBtnWrap').style.display = 'block';
+        document.getElementById('btnWrapScenarioB').style.display = 'block';
+        document.getElementById('btnWrapScenarioA').style.display = 'block';
+        document.getElementById('btnWrapScenarioC').style.display = 'block';
+      } else {
+        document.getElementById('modPolicyNotice').style.display = 'block';
       }
     }
 
@@ -1038,6 +1146,7 @@
       if (pageId === 'credentials') loadCredentials();
       if (pageId === 'moderation') loadPendingQueue();
       if (pageId === 'audit') loadAuditLog();
+      if (pageId === 'policy') loadPolicyData();
     }
 
     function switchModQueueTab(tabId, btn) {
@@ -1460,6 +1569,48 @@
           tbody.appendChild(tr);
         });
       } catch(e) {}
+    }
+
+    // GOVERNANCE POLICY LOADER (§Agile Policy Engine)
+    async function loadPolicyData() {
+      try {
+        const res = await apiFetch('/api/requests/policy');
+        if (!res.ok) return;
+        const data = await res.json();
+        const pol = data.active;
+        if (!pol) return;
+
+        document.getElementById('activePolicyName').textContent = pol.name || 'Custom Policy';
+        document.getElementById('activePolicyDesc').textContent = pol.description || '';
+        document.getElementById('activePolicyBadge').textContent = pol.name ? pol.name.split('—')[0].trim() : 'Active';
+        document.getElementById('ruleIssuanceHard').textContent = pol.issuance ? pol.issuance.hard : 'AUTO_EXECUTE';
+        document.getElementById('ruleIssuanceSoft').textContent = pol.issuance ? pol.issuance.soft : 'ROUTE_TO_ROOT';
+        document.getElementById('ruleRevocationAll').textContent = pol.revocation ? pol.revocation.hard : 'ROUTE_TO_ROOT';
+      } catch (err) {
+        console.error('Failed to load policy data:', err);
+      }
+    }
+
+    async function selectPolicyProfile(profileKey) {
+      if (!confirm(`Are you sure you want to switch the active organization governance posture to ${profileKey}? This will dynamically re-route all new moderator approvals.`)) {
+        return;
+      }
+      try {
+        const res = await apiFetch('/api/requests/policy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile: profileKey })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert('Policy change failed: ' + (data.message || data.error));
+          return;
+        }
+        alert(`Governance policy successfully updated to: ${data.activePolicy.name}`);
+        loadPolicyData();
+      } catch (err) {
+        alert('Network error updating policy: ' + err.message);
+      }
     }
 
     function doLogout() {
