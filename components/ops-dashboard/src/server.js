@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { getDb } from '../db/index.js';
 import { createRepositories } from '../db/models/index.js';
 import { createAuthRouter } from './routes/auth.js';
+import { createRequestsRouter } from './routes/requests.js';
 
 export function createApp({ db: customDb = null, repos: customRepos = null } = {}) {
   const app = express();
@@ -27,8 +28,9 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
     });
   });
 
-  // Mount Auth Router
+  // Mount Routers
   app.use('/api/auth', createAuthRouter({ db, repos }));
+  app.use('/api/requests', createRequestsRouter({ db, repos }));
 
   // Global 404 handler
   app.use((req, res) => {
