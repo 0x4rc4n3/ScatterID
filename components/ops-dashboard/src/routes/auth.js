@@ -13,7 +13,8 @@ import {
 } from '../auth/totp.js';
 import {
   generateRecoveryCodesBatch,
-  hashRecoveryCode
+  hashRecoveryCode,
+  hashRecoveryCodeLegacy
 } from '../auth/recoveryCodes.js';
 import { signToken } from '../auth/tokens.js';
 import { authenticate, requireRole, getClientIp } from '../auth/middleware.js';
@@ -194,7 +195,12 @@ export function createAuthRouter({ db, repos, rateLimiter = defaultRateLimiter }
         // Try Recovery Code if TOTP failed or not provided
         if (!mfaVerified && recovery_code) {
           const codeHash = hashRecoveryCode(recovery_code);
-          const codeValid = repos.recoveryCodes.verifyAndConsumeCode(user.id, codeHash);
+          let codeValid = repos.recoveryCodes.verifyAndConsumeCode(user.id, codeHash);
+          if (!codeValid) {
+            // Backward-compatible fallback for legacy unkeyed SHA-256 hashes
+            const legacyHash = hashRecoveryCodeLegacy(recovery_code);
+            codeValid = repos.recoveryCodes.verifyAndConsumeCode(user.id, legacyHash);
+          }
           if (codeValid) {
             mfaVerified = true;
             mfaMethod = 'recovery_code';
