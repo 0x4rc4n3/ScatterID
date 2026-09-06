@@ -520,26 +520,32 @@ export function createAuthRouter({ db, repos }) {
       }
 
       const isMfaMandatory = user.role === 'mod' || user.role === 'root';
-      const hasMfaInputs = Boolean(totpSecret && totpCode);
+      const cleanTotpCode = typeof totpCode === 'string' ? totpCode.replace(/\s+/g, '').replace(/-/g, '').trim() : '';
+      let secretToVerify = totpSecret;
+      if (!secretToVerify && user.totp_secret) {
+        try { secretToVerify = decryptTotpSecret(user.totp_secret); } catch(e) {}
+      }
+
+      const hasMfaInputs = Boolean(secretToVerify && cleanTotpCode);
       const shouldConfigureMfa = isMfaMandatory || hasMfaInputs;
       let encryptedSecret = user.totp_secret;
       let totpEnabled = user.totp_enabled;
 
       if (shouldConfigureMfa) {
-        if (!totpSecret || !totpCode) {
+        if (!secretToVerify || !cleanTotpCode) {
           return res.status(400).json({
             error: 'MFA_VERIFICATION_REQUIRED',
             message: 'Both TOTP secret and 6-digit verification code are required'
           });
         }
-        const isValid = verifyTotpCode(totpSecret, totpCode);
+        const isValid = verifyTotpCode(secretToVerify, cleanTotpCode, 2);
         if (!isValid) {
           return res.status(400).json({
             error: 'INVALID_TOTP_CODE',
             message: 'The 6-digit TOTP code is invalid or expired. Please check your authenticator app.'
           });
         }
-        encryptedSecret = encryptTotpSecret(totpSecret);
+        encryptedSecret = encryptTotpSecret(secretToVerify);
         totpEnabled = 1;
       }
 
@@ -581,6 +587,7 @@ export function createAuthRouter({ db, repos }) {
         success: true,
         message: 'Account onboarding completed successfully.',
         token,
+        recoveryCodes: Array.isArray(recoveryCodes) ? recoveryCodes : [],
         user: {
           id: user.id,
           username: user.username,

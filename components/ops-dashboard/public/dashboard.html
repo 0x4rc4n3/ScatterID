@@ -531,7 +531,10 @@
     <!-- 1. PAGE: OVERVIEW (§3) -->
     <!-- ============================================================= -->
     <section id="page-overview" class="page-section active">
-      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">Operations Overview</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0; font-size:18px;">Operations Overview</h2>
+        <button class="btn btn-neutral" style="padding:4px 10px; font-size:12px;" onclick="loadOverview()">⟳ Refresh Overview</button>
+      </div>
 
       <div class="stats-row">
         <div class="stat-card">
@@ -957,17 +960,49 @@
     let cachedCredentials = [];
     let cachedPending = [];
 
-    window.addEventListener('DOMContentLoaded', () => {
+    async function apiFetch(url, options = {}) {
+      options.headers = options.headers || {};
+      options.headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(url, options);
+      if (res.status === 401) {
+        sessionStorage.clear();
+        window.location.replace('/login.html?reason=session_expired');
+        throw new Error('Session expired');
+      }
+      return res;
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
       token = sessionStorage.getItem('scatterid_ops_token') || '';
       const rawUser = sessionStorage.getItem('scatterid_ops_user');
       if (rawUser) {
         try { currentUser = JSON.parse(rawUser); } catch(e) {}
       }
 
-      if (!token || !currentUser) {
+      if (!token || !currentUser || token === 'undefined' || rawUser === 'undefined') {
+        sessionStorage.clear();
         window.location.replace('/login.html');
         return;
       }
+
+      // Live verification with backend auth endpoint
+      try {
+        const meRes = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (meRes.status === 401) {
+          sessionStorage.clear();
+          window.location.replace('/login.html?reason=session_expired');
+          return;
+        }
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.user) {
+            currentUser = meData.user;
+            sessionStorage.setItem('scatterid_ops_user', JSON.stringify(currentUser));
+          }
+        }
+      } catch(e) {}
 
       applyRoleView(currentUser.role);
       loadOverview();
@@ -1016,6 +1051,19 @@
       if (tabId === 'flagged') loadFlaggedQueue();
     }
 
+    function refreshActiveQueue() {
+      const activeBtn = document.querySelector('#modQueueTabStrip button.active');
+      const text = activeBtn ? activeBtn.textContent.toLowerCase() : 'pending';
+      if (text.includes('awaiting')) {
+        loadAwaitingRootQueue();
+      } else if (text.includes('flagged')) {
+        loadFlaggedQueue();
+      } else {
+        loadPendingQueue();
+      }
+      loadOverview();
+    }
+
     function switchKeyTab(tabId, btn) {
       document.querySelectorAll('#page-keyrotation .tab-strip button').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('#page-keyrotation .subtab-content').forEach(c => c.style.display = 'none');
@@ -1026,7 +1074,7 @@
     // OVERVIEW DATA LOADER (§3)
     async function loadOverview() {
       try {
-        const statsRes = await fetch('/api/requests/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+        const statsRes = await apiFetch('/api/requests/stats');
         if (statsRes.ok) {
           const s = await statsRes.json();
           document.getElementById('statTotalCreds').textContent = s.totalCredentials || 0;
@@ -1047,7 +1095,7 @@
           }
         }
 
-        const auditRes = await fetch('/api/requests/audit-log?limit=10', { headers: { 'Authorization': `Bearer ${token}` } });
+        const auditRes = await apiFetch('/api/requests/audit-log?limit=10');
         if (auditRes.ok) {
           const data = await auditRes.json();
           const tbody = document.getElementById('overviewRecentAuditTbody');
@@ -1077,7 +1125,7 @@
     async function loadCredentials() {
       const tbody = document.getElementById('credentialsTableTbody');
       try {
-        const res = await fetch('/api/requests/credentials-list', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch('/api/requests/credentials-list');
         if (!res.ok) return;
         const data = await res.json();
         cachedCredentials = data.credentials || [];
@@ -1124,7 +1172,7 @@
     async function loadPendingQueue() {
       const tbody = document.getElementById('pendingQueueTbody');
       try {
-        const res = await fetch('/api/requests/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch('/api/requests/pending');
         if (!res.ok) return;
         const data = await res.json();
         cachedPending = data.requests || [];
@@ -1304,9 +1352,9 @@
 
     async function executeModDecision(reqId, decision, notes = '') {
       try {
-        const res = await fetch(`/api/requests/${reqId}/decide`, {
+        const res = await apiFetch(`/api/requests/${reqId}/decide`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ decision, notes, reason: notes })
         });
         const data = await res.json();
@@ -1324,7 +1372,7 @@
     async function loadAwaitingRootQueue() {
       const tbody = document.getElementById('awaitingQueueTbody');
       try {
-        const res = await fetch('/api/requests/awaiting-root', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch('/api/requests/awaiting-root');
         if (!res.ok) return;
         const data = await res.json();
         const list = data.requests || [];
@@ -1365,9 +1413,9 @@
 
     async function executeRootAccept(reqId) {
       try {
-        const res = await fetch(`/api/requests/${reqId}/root-decide`, {
+        const res = await apiFetch(`/api/requests/${reqId}/root-decide`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'execute' })
         });
         closeModal();
@@ -1392,7 +1440,7 @@
     async function loadAuditLog() {
       const tbody = document.getElementById('auditLogTbody');
       try {
-        const res = await fetch('/api/requests/audit-log?limit=50', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch('/api/requests/audit-log?limit=50');
         if (!res.ok) return;
         const data = await res.json();
         const logs = data.logs || [];

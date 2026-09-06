@@ -85,6 +85,41 @@
   </footer>
 
   <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Check query params
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'session_expired') {
+        showError('Your previous session has expired or was terminated. Please authenticate again.');
+      }
+
+      // Check existing session
+      const existingToken = sessionStorage.getItem('scatterid_ops_token');
+      if (existingToken) {
+        try {
+          const meRes = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${existingToken}` }
+          });
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            if (meData.user && (meData.user.role === 'mod' || meData.user.role === 'root')) {
+              window.location.replace('/dashboard.html');
+              return;
+            }
+          }
+        } catch(e) {}
+      }
+
+      // Enter key listeners
+      ['loginUsername', 'loginPassword', 'loginTotp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+          });
+        }
+      });
+    });
+
     function togglePass(inputId, btn) {
       const inp = document.getElementById(inputId);
       if (inp.type === 'password') {
@@ -99,7 +134,7 @@
     async function handleLogin() {
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value.trim();
-      const totpVal = document.getElementById('loginTotp').value.trim();
+      const totpVal = document.getElementById('loginTotp').value.trim().replace(/\s+/g, '').replace(/-/g, '');
       const errBanner = document.getElementById('errorBanner');
       errBanner.style.display = 'none';
 
@@ -156,7 +191,16 @@
           return;
         }
 
-        // Case B: Full login success
+        // Case B: Clerk role detected (Help desk portal is on port 5000)
+        if (data.user && data.user.role === 'clerk') {
+          sessionStorage.setItem('scatterid_clerk_token', data.token);
+          sessionStorage.setItem('scatterid_clerk_user', JSON.stringify(data.user));
+          alert('Clerk authentication confirmed. Redirecting to the ScatterID Client Portal (Port 5000)...');
+          window.location.href = 'http://localhost:5000';
+          return;
+        }
+
+        // Case C: Full ops console login success (mod/root)
         sessionStorage.setItem('scatterid_ops_token', data.token);
         sessionStorage.setItem('scatterid_ops_user', JSON.stringify(data.user));
         window.location.href = '/dashboard.html';

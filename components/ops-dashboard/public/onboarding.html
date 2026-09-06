@@ -199,7 +199,7 @@
     async function submitOnboarding() {
       const p1 = document.getElementById('pass1').value.trim();
       const p2 = document.getElementById('pass2').value.trim();
-      const code = document.getElementById('verifyCode').value.trim();
+      const code = document.getElementById('verifyCode').value.trim().replace(/\s+/g, '').replace(/-/g, '');
       const errBox = document.getElementById('wizardError');
       errBox.style.display = 'none';
 
@@ -221,9 +221,14 @@
       btn.textContent = 'Verifying Code & Activating...';
 
       try {
+        const secret = (onboardingData && onboardingData.mfaSetup && onboardingData.mfaSetup.secret) || '';
+        const recoveryList = (onboardingData && onboardingData.mfaSetup && onboardingData.mfaSetup.recoveryCodes) || [];
+
         const payload = {
           newPassword: p1,
-          totpCode: code
+          totpCode: code,
+          totpSecret: secret,
+          recoveryCodes: recoveryList
         };
 
         const res = await fetch('/api/auth/first-time-setup', {
@@ -249,7 +254,10 @@
         authenticatedUser = data.user;
 
         // Populate and reveal Step 2 (Recovery Codes)
-        savedRecoveryCodes = data.recoveryCodes || [];
+        savedRecoveryCodes = (data.recoveryCodes && data.recoveryCodes.length > 0)
+          ? data.recoveryCodes
+          : recoveryList;
+
         const grid = document.getElementById('recoveryCodesList');
         grid.innerHTML = '';
         savedRecoveryCodes.forEach((c, idx) => {
@@ -296,7 +304,11 @@
     }
 
     function proceedToDashboard() {
-      window.location.href = '/dashboard.html';
+      if (authenticatedUser && authenticatedUser.role === 'clerk') {
+        window.location.href = 'http://localhost:5000';
+      } else {
+        window.location.href = '/dashboard.html';
+      }
     }
   </script>
 </body>
