@@ -27,9 +27,9 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
   }));
   app.use(express.json({ limit: '100kb' }));
 
-  // Redirect root to test harness
+  // Redirect root to index.html router
   app.get('/', (req, res) => {
-    res.redirect('/test_harness.html');
+    res.redirect('/index.html');
   });
 
   // Serve zero-dependency bare-bones HTML test harness
