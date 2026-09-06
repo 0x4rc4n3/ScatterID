@@ -2,6 +2,7 @@
 // Document ID: DEV-TEST-DASHBOARD-01 / ISSUE-104
 // Validates Role Hierarchy, Managerial Queues, Rejection/Flagging, Cryptographic Lifecycle, & Audit
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';

@@ -3,8 +3,23 @@
 
 import crypto from 'node:crypto';
 
-function getJwtSecret() {
-  return process.env.JWT_SECRET || 'scatterid-ops-dashboard-session-secret-key-2026';
+export const MIN_JWT_SECRET_ENTROPY_BYTES = 32; // 256 bits
+
+export function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'CRITICAL: JWT_SECRET environment variable is missing. ' +
+      'Ops Dashboard requires an explicit high-entropy session signing secret (minimum 32 bytes / 256 bits).'
+    );
+  }
+  if (Buffer.byteLength(secret, 'utf8') < MIN_JWT_SECRET_ENTROPY_BYTES) {
+    throw new Error(
+      'CRITICAL: JWT_SECRET entropy is insufficient. ' +
+      `Session secret must be at least ${MIN_JWT_SECRET_ENTROPY_BYTES} bytes (256 bits) to ensure HMAC-SHA256 unforgeability.`
+    );
+  }
+  return secret;
 }
 
 function base64UrlEncode(strOrBuffer) {

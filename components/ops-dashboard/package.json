@@ -5,7 +5,7 @@
   "description": "ScatterID Operations, Access Control & Moderation Queue Service",
   "main": "src/server.js",
   "scripts": {
-    "test": "node --test tests/**/*.test.js",
+    "test": "JWT_SECRET=${JWT_SECRET:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef} node --test tests/**/*.test.js",
     "migrate": "node db/migrations/runner.js up",
     "migrate:rollback": "node db/migrations/runner.js down",
     "migrate:status": "node db/migrations/runner.js status"

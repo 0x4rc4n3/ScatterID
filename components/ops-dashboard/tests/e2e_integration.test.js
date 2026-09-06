@@ -2,6 +2,7 @@
 // Verifies all Scenario B flows, Static Test Harness, MFA Phone Migration, and Disaster Recovery
 // Document ID: DEV-ARCH-08 / Master Blueprint: start.md
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';

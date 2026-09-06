@@ -2,6 +2,7 @@
 // Validates customizable risk postures (Scenario B, Scenario A, Scenario C, Custom)
 // Document ID: DEV-ARCH-08 / ISSUE-102
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { describe, test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';

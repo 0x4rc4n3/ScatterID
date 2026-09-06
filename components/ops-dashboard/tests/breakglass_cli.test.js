@@ -1,6 +1,7 @@
 // Automated Unit & Integration Tests for Phase 6: Offline Break-Glass Emergency CLI
 // Document ID: SEC-OPS-06
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';

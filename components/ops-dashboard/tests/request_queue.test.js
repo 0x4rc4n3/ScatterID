@@ -1,6 +1,7 @@
 // Automated Unit & Integration Tests for Phase 3: Request Intake & Audit Attribution Queue
 // Document ID: DEV-ARCH-08 / ADDENDUM-01 / SEC-OPS-06
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
