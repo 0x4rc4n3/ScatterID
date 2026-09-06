@@ -1,138 +1,160 @@
 # ScatterID Client Portal & Help Desk — UI/UX Design Doc
 
-*Companion doc: `03-client-portal-requirements-and-access.md` covers what the system must do and
-who can do it. This doc covers how it looks and behaves.*
+*Companion doc: `03-client-portal-requirements-and-access.md` covers functional requirements, network boundaries, and access rules. This doc covers visual layout, component states, and clerk interaction patterns.*
 
-**Builder:** Flowbite (Tailwind-based component library), no build step required — assemble from
-existing tabs/cards/badges/alerts/modals rather than hand-designing.
+**Builder:** Flowbite (Tailwind CSS component library), zero build step required — assembled from existing cards, forms, badges, modals, and alerts.
 
-## 1. Design Principles
+## 1. Design Principles & Operational Focus
 
-- **Two audiences, two visual registers, one codebase.** Sandbox mode should feel like a polished
-  sales/marketing surface — confident, a little bit "look how real this is." Help Desk mode should
-  feel like a plain operational form — fast, low-friction, no marketing copy, nothing to admire.
-  Don't let Sandbox's visual flourish leak into Help Desk screens or vice versa.
-- **Mode must be unmistakable at a glance.** Someone glancing at a screen over a clerk's shoulder,
-  or a clerk glancing at their own screen after a context switch, should instantly know whether
-  they're looking at Sandbox or Help Desk — never rely on reading text to tell them apart.
-- **Real numbers, not placeholders.** Sandbox mode's whole trust-building job depends on this
-  (unchanged from original doc). Help Desk mode's equivalent is real request IDs and real status
-  transitions — no "Lorem ipsum"-style placeholder states anywhere a clerk will actually use it.
+- **Primary Interface: Operational Help Desk**: The primary interface is an authenticated, low-friction operational console for intake clerks. No marketing copy, no simulated animations. Fast, reliable data entry for counter operations.
+- **Sandbox Mode Deferred**: Public demo / sandbox interfaces are **deferred and disabled** in initial production rollout. Architecture retains structural styling classes if reactivated later.
+- **Unambiguous Audit Attribution**: The clerk must always see who they are authenticated as, their assigned intake station ID, and network security status in a persistent top bar.
+- **High-Contrast Channel Distinction**: Clerks must immediately perceive the difference between **Hard Channel** (in-person physical inspection) and **Soft Channel** (digital upload) intake workflows.
 
-## 2. Mode Distinction (the most important visual decision in this doc)
+## 2. Global Header & Clerk Station Bar
 
-- **Persistent top banner**, different per mode, never absent:
-  - Sandbox: light, marketing-toned banner — *"You're in the public sandbox — sample data only,
-    not a production identity service."* (satisfies FR-8) Light background, friendly icon.
-  - Help Desk: solid, high-contrast banner — *"Help Desk — [Clerk name] — [Issue / Verify / Revoke]
-    Desk"* with a small live/authenticated indicator. Darker, more "operational console" tone,
-    never using the same background color as the Sandbox banner.
-- **Separate entry URLs/routes** (`/sandbox` vs `/helpdesk`) even though it's one codebase — a
-  clerk should never land on Help Desk mode by following a Sandbox link, or vice versa.
-- **No shared visual chrome beyond the base Flowbite theme** — logo placement, banner, and primary
-  action button color should differ enough between modes that a screenshot alone tells you which
-  one you're looking at.
+A persistent, dark-slate header (`bg-slate-900 text-slate-100 border-b border-slate-800`) sits at the top of every screen:
 
-## 3. Sandbox Mode — Page Structure (unchanged core, reference only)
+```
++-----------------------------------------------------------------------------------------------+
+|  [ScatterID Help Desk]   Desk: [Issue | Verify | Revoke]       Clerk: Alice (clk_042)        |
+|                                                                Station: Counter-03 [VPN OK]   |
+|                                                                [Security / Pass] [Log Out]    |
++-----------------------------------------------------------------------------------------------+
+```
 
-Same three-tab Flowbite Tabs layout as the original design (Holder Studio / Verifier Portal /
-Tamper Simulator) — see original build guide §6.2–6.4 for the base component code, which is
-unchanged. Recap of the key UX beat that must survive any restyling:
+- **Live Status Indicator**: Green pulse dot with `VPN Connected (10.20.0.14)` verifying the clerk is inside the secure counter network zone.
+- **Clerk Identity Badge**: Monospace pill showing `clk_042 | Station Counter-03`.
+- **Quick Links**:
+  - Direct link to `Request Tracking Lookup` modal.
+  - Clerk Security dropdown: `Change Password`, `View Session Details`.
 
-- **Holder Studio:** preset selector → live canonical JSON preview → Issue button → credential
-  card with real hash/signature/key ID.
-- **Verifier Portal:** paste/upload → Verify → Level 1 (hash) and Level 2 (signature) results
-  shown as **two separate badges**, never collapsed into one boolean — this separation is itself
-  part of the credibility story.
-- **Tamper Simulator:** flip-a-byte button → re-verify → an unambiguous, visually loud REJECTED
-  state (red, full-width badge, not a small inline label) — test this specific moment with a
-  non-technical person; if they don't immediately register failure, it's not loud enough yet.
-- Sandbox disclaimer (FR-8) must be visible without scrolling on page load, on every sandbox page,
-  not just the landing tab.
+## 3. Help Desk Desks — Layouts & Workflows
 
-## 4. Help Desk Mode — Page Structure (new)
+### 3.1 Issue Desk
 
-Login screen (plain, Flowbite form component, no marketing content) → lands on the desk(s) the
-account is scoped to (per `HELP_DESK_SCOPE`, see requirements doc §3.1). If scoped to `all`, show
-a tab strip identical in mechanism to Sandbox's (same Flowbite Tabs component, different content
-and tone) for **Issue Desk / Verify Desk / Revoke Desk**.
+Form structured in three clear vertical sections using Flowbite Card containers:
 
-### 4.1 Issue Desk
+#### Section 1: Claimant Details
+- Claimant Full Legal Name (`input[type="text"]`)
+- Claimant Date of Birth / Identifier (`input[type="date"]`)
+- Credential Type Selector (`select`: National ID, Civil Registry, Professional Credential)
+- Attribute key-value pairs (dynamically rendered based on credential type schema)
 
-- Claimant data form (name, marks/fields relevant to the credential type — same field set the org
-  configured for the credential type).
-- **Channel selector**, prominent, above the fold: two large radio-style cards, not a small
-  dropdown — this decision matters enough to deserve visual weight:
-  - "Hard — physical document present" (icon: physical document/seal)
-  - "Soft — digital submission" (icon: upload/scan)
-- If Hard selected: no file upload shown; instead a short checklist/notes field for the clerk to
-  record what they physically inspected (matches the internal dashboard's "physically inspected"
-  panel on the other end).
-- If Soft selected: file upload widget (drag-and-drop + browse), accepted formats shown explicitly
-  (PDF/JPG/PNG), file preview thumbnail after upload.
-- Submit → confirmation screen: request ID (large, copyable), plain-language next step ("Sent for
-  moderator review — you can check its status anytime with this ID"). No jargon about queues or
-  internal roles.
+#### Section 2: Verification Channel Selector (Crucial Interactive Component)
+Two large, clickable radio cards side-by-side:
 
-### 4.2 Verify Desk
+```
++------------------------------------------+  +------------------------------------------+
+| (*) HARD CHANNEL                         |  | ( ) SOFT CHANNEL                         |
+|     Physical Document Inspected In-Person|  |     Digital Upload / Scan Submission     |
+|     (Fast-track: Auto-executes upon Mod) |  |     (Escalates: Requires Mod + Root)     |
++------------------------------------------+  +------------------------------------------+
+```
 
-- Same visual shape as Sandbox's Verifier Portal (paste/upload → Verify → two-badge result) but
-  **restyled in Help Desk's operational tone** (see §2) and hitting the real gateway. Add a small,
-  permanent label distinguishing this from Sandbox's tamper-testing framing — this screen is a
-  real check with real consequences, not a demo of what happens when something's wrong.
-- No Tamper Simulator equivalent here — flipping bytes on a real credential has no operational
-  purpose at the Help Desk.
+- **When "HARD CHANNEL" is active**:
+  - File upload widget is **hidden**.
+  - Renders **Physical Document Inspection Checklist** (Flowbite checkbox group):
+    - [ ] Physical document presented in original form (no photocopies)
+    - [ ] Security features inspected (UV watermark / holographic seal / microtext)
+    - [ ] Facial likeness matched against in-person claimant
+    - [ ] Physical condition of document verified (no tampering / delamination)
+  - Textarea: `Inspector Observations / Document Serial Number` (required).
 
-### 4.3 Revoke Desk
+- **When "SOFT CHANNEL" is active**:
+  - Checklist is **hidden**.
+  - Renders **Document Upload Zone** (Flowbite drag-and-drop file upload):
+    - Supported formats: `.pdf`, `.png`, `.jpeg` (Max 15MB).
+    - Client-side SHA-256 hash calculated and displayed in monospace preview immediately upon file drop.
+  - Notice badge: *"Soft channel submissions require supervisory Root review before issuance."*
 
-- Same shape as Issue Desk: claimant/credential lookup field, reason field, same channel-selector
-  pattern (Hard/Soft), same confirmation-screen-with-request-ID pattern on submit.
-- Because revoke is more consequential than issue from the requester's perspective, add one extra
-  confirmation step before submit: a plain summary ("You are requesting revocation of credential
-  {id} for reason: {reason}. Submit for review?") — this is still just creating a request, not an
-  execution, so it's a lighter confirmation than anything on the Internal Dashboard, but still
-  more than a bare submit button.
+#### Section 3: Audit Attribution & Submission
+- Summary card displaying the exact attribution stamp that will accompany the request:
+  - `Submitted By: Alice (clk_042) | Station: Counter-03 | Channel: HARD`
+- Button: `Submit Credential Request` (Flowbite Primary Blue button).
+- **Post-Submission Confirmation Modal**:
+  - Flowbite Success Alert.
+  - Large monospace Request ID: `REQ-2026-0905-HARD-08421` (one-click copy button).
+  - Workflow routing explanation:
+    - *Hard Channel:* "Forwarded to Moderator Queue for direct verification & auto-issuance."
+    - *Soft Channel:* "Forwarded to Moderator Queue. Root authorization required."
 
-### 4.4 Request Status Lookup (shared, Issue + Revoke)
+---
 
-- Simple search-by-ID field, accessible from a persistent link in the Help Desk banner.
-- Result shows a status stepper (Submitted → Under Review → [Executed | Rejected]), not internal
-  detail — no visibility into Mod's or Root's reasoning, channel evidence, or flag status. Keep
-  this deliberately minimal; anything more belongs on the Internal Dashboard, not here.
+### 3.2 Verify Desk
 
-## 5. Component Notes
+A zero-latency, direct verification console connected to the local Verification Gateway:
 
-- **Channel selector cards** (§4.1): use Flowbite's card component with a radio input bound to
-  each card's click target (not just the tiny radio dot) — on a tablet at an intake counter, the
-  whole card should be tappable.
-- **Confirmation screens** (post-submit, both desks): use Flowbite's Alert component in its
-  "success" variant, plus the request ID rendered in a monospace, copyable code block — matches
-  the "show real values" principle from NFR-2.
-- **Status stepper**: a simple horizontal Flowbite stepper/breadcrumb pattern; use only the
-  neutral/blue/green/red palette already established for the Internal Dashboard (§10 of that
-  doc) so a request's visual state language is consistent across both surfaces even though clerks
-  never see the dashboard itself.
+- **Input Methods**:
+  - Tab 1: **Upload Credential File** (`.json` credential token)
+  - Tab 2: **Paste Credential JSON / Hash**
+  - Tab 3: **Scan QR Code** (via counter camera or USB barcode scanner)
+- **Action**: Flowbite button: `Run Immediate Verification`.
+- **Result Display**:
+  - Two prominent status cards side-by-side (never merged into one):
+    - **Level 1 Verification (Integrity)**:
+      - Green Badge: `PASSED: RFC 8785 Canonical Hash Matches SHA-256 Payload`
+      - Shows calculated hash vs embedded hash.
+    - **Level 2 Verification (Authenticity & PQC Signature)**:
+      - Green Badge: `PASSED: ML-DSA-87 Quantum-Safe Signature Valid`
+      - Displays Signer Key ID: `pqc-mldsa-root-v2` and Ledger Status: `ACTIVE (Hyperledger Fabric)`.
+  - If Revoked:
+    - Red Alert Box: `FAILED / REVOKED: Credential was revoked on 2026-08-12. Reason: Reported Lost.`
 
-## 6. States & Edge Cases
+---
 
-- **Upload failure (Soft channel):** clear inline error under the upload widget, never a modal
-  that interrupts the flow — the clerk is often mid-conversation with a requester.
-- **Session timeout (Help Desk):** redirect to login with the in-progress form data preserved in
-  browser memory (not submitted, not lost) and a visible "Your session expired — please log back
-  in to continue" message, so a clerk mid-intake doesn't lose a requester's data.
-- **Gateway unreachable:** Help Desk desks show a plain "Verification service is currently
-  unavailable — please try again shortly" state rather than a raw error; Sandbox mode should never
-  show this at all, since it must work standalone even if the real gateway is down (per NFR-3 in
-  the requirements doc).
-- **`FRONT_DESK_ENABLED=false`:** Issue/Revoke Desk forms render for the requester directly with
-  the same layout — just without the clerk-facing banner/login wrapper. Same components, different
-  access wrapper.
+### 3.3 Revoke Desk
 
-## 7. Responsive Notes
+Intake interface for credential revocation requests:
 
-- **Sandbox mode:** must work well down to 375px (prospects opening a link on a phone after a
-  sales call) — stack the tab content vertically, keep the canonical-JSON and tamper-simulator
-  code blocks horizontally scrollable rather than shrinking font size illegibly.
-- **Help Desk mode:** primary target is tablet width (≥768px, an intake counter device) with phone
-  width (375px) as a secondary/acceptable fallback, not a design priority — channel-selector cards
-  in particular should stack to full-width single-column below 480px.
+- Credential ID search field (auto-completes active credentials if connected).
+- Revocation Reason Selector (`dropdown`):
+  - `Key Compromise / Credential Lost`
+  - `Claimant Identity Data Superseded`
+  - `Administrative Withdrawal / Fraud Discovered`
+  - `Claimant Deceased`
+- Revocation Channel Selector (Hard vs Soft with same radio-card UI as Issue Desk).
+- **High-Impact Confirmation Dialog**:
+  - Modal with warning banner: *"Revocation permanently invalidates this credential on Hyperledger Fabric. Under Tiered Risk controls, all revocations require final authorization and execution by the Root Administrator."*
+  - Submit generates Request ID: `REQ-2026-0905-REV-00192`.
+
+---
+
+### 3.4 Request Status Lookup Modal
+
+- Monospace search input: `Enter Request ID (e.g. REQ-2026-...)`.
+- Returns interactive progress stepper:
+  - Step 1: `Submitted by Counter` (Completed - Green)
+  - Step 2: `Moderator Review` (In-Progress - Blue, or Completed)
+  - Step 3: `Root Authorization` (Pending for Soft/Revoke, Skipped for Hard Issue)
+  - Step 4: `Ledger Execution` (Executed - Green, or Rejected - Red)
+- Does not disclose internal secret keys, moderator private remarks, or internal logs to the clerk.
+
+---
+
+### 3.5 Clerk Security & Password Update Screen
+
+Modal accessible from Clerk Profile in top header:
+- `Current Password` input.
+- `New Password` input (enforces min 12 characters, complexity meter).
+- `Confirm New Password` input.
+- Displays station details and session expiry timer.
+
+## 4. Color Palette & Accessibility
+
+| Element | Palette | Standard |
+|---|---|---|
+| Background (App) | `bg-slate-50 dark:bg-slate-900` | WCAG AAA |
+| Station Bar | `bg-slate-900 text-slate-100` | High contrast |
+| Hard Channel Accent | `border-blue-600 bg-blue-50/20` | Clearly distinguishable |
+| Soft Channel Accent | `border-amber-600 bg-amber-50/20` | Distinct amber tone |
+| Level-1 Hash Valid | `bg-emerald-100 text-emerald-800 border-emerald-500` | Standard green |
+| Level-2 PQC Valid | `bg-teal-100 text-teal-800 border-teal-500` | Standard teal |
+| Rejected / Revoked | `bg-rose-100 text-rose-800 border-rose-500` | Unambiguous red |
+
+## 5. Responsive Behavior
+
+- **Counter Tablet (≥768px)**: Primary operational target. Two-column layouts for channel selector cards and verification results.
+- **Intake Terminal (Desktop ≥1024px)**: Full width layout with quick lookup drawer.
+- **Compact Viewport (375px–640px)**: Channel selector cards and verification badges stack vertically into single columns. Monospace hashes wrap or display with horizontal overflow scroll.
+
