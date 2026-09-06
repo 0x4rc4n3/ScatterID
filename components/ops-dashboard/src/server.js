@@ -75,8 +75,8 @@ export async function startServer(port = process.env.PORT || 8080) {
   const { app } = createApp({ db, repos });
   return app.listen(port, () => {
     console.log(`=============================================================`);
-    console.log(`  ScatterID Ops Dashboard running at http://0.0.0.0:${port}`);
-    console.log(`  Test Harness available at http://localhost:${port}/test_harness.html`);
+    console.log(`  ScatterID Ops Console running at http://0.0.0.0:${port}`);
+    console.log(`  Console UI available at http://localhost:${port}/dashboard.html`);
     console.log(`=============================================================`);
   });
 }

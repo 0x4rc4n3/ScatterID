@@ -101,15 +101,23 @@ describe('Phase 7: Master End-to-End Integration Suite', () => {
     cleanupTestDb();
   });
 
-  test('1. Zero-Dependency Raw HTML Test Harness Static Serving', async () => {
-    const res = await request.get('/test_harness.html');
-    assert.equal(res.status, 200);
-    assert.match(res.text, /ScatterID v2.1 Operations/);
-    assert.match(res.text, /Staff Authentication/);
-    assert.match(res.text, /Self-Service Phone Migration/);
-    assert.match(res.text, /Help Desk Counter Intake/);
-    assert.match(res.text, /Moderation Review Queue/);
-    assert.match(res.text, /Root Execution Console/);
+  test('1. Production Operations Console & Authentication Static Serving', async () => {
+    const resDash = await request.get('/dashboard.html');
+    assert.equal(resDash.status, 200);
+    assert.match(resDash.text, /ScatterID Operations Console/);
+    assert.match(resDash.text, /Moderation Queue/);
+
+    const resLogin = await request.get('/login.html');
+    assert.equal(resLogin.status, 200);
+    assert.match(resLogin.text, /Staff Authentication/);
+
+    const resRoot = await request.get('/');
+    assert.equal(resRoot.status, 302);
+    assert.equal(resRoot.headers.location, '/index.html');
+
+    const resIndex = await request.get('/index.html');
+    assert.equal(resIndex.status, 200);
+    assert.match(resIndex.text, /Redirecting to ScatterID Operations Console/);
   });
 
   test('2. Scenario B Flow 1: Hard-Channel Issuance Auto-Execution End-to-End', async () => {
