@@ -35,7 +35,7 @@ if (Buffer.byteLength(JWT_SECRET, 'utf8') < 32) {
   process.exit(1);
 }
 
-export function createApp({ db: customDb = null, repos: customRepos = null } = {}) {
+export function createApp({ db: customDb = null, repos: customRepos = null, rateLimiter = undefined } = {}) {
   const app = express();
   const db = customDb || getDb();
   const repos = customRepos || createRepositories(db);
@@ -64,7 +64,7 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
   });
 
   // Mount Routers
-  app.use('/api/auth', createAuthRouter({ db, repos }));
+  app.use('/api/auth', createAuthRouter({ db, repos, rateLimiter }));
   app.use('/api/requests', createRequestsRouter({ db, repos }));
   app.use('/api/keys', createKeysRouter({ db, repos }));
 
