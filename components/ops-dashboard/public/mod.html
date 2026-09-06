@@ -3,237 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScatterID — Moderator Review Queue</title>
-  <style>
-    :root {
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --slate-900: #0f172a;
-      --slate-800: #1e293b;
-      --slate-700: #334155;
-      --slate-600: #475569;
-      --slate-200: #e2e8f0;
-      --slate-100: #f1f5f9;
-      --slate-50: #f8fafc;
-      --green-600: #16a34a;
-      --green-100: #dcfce7;
-      --amber-600: #d97706;
-      --amber-100: #fef3c7;
-      --red-600: #dc2626;
-      --red-100: #fee2e2;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--slate-50);
-      color: var(--slate-900);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: var(--slate-900);
-      color: #fff;
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid var(--primary);
-    }
-    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; }
-    .nav-links { display: flex; gap: 12px; align-items: center; font-size: 13px; }
-    .nav-links a { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
-    .nav-links a:hover { color: #fff; background: var(--slate-800); }
-    .user-tag {
-      background: var(--slate-800);
-      border: 1px solid var(--slate-700);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 16px;
-      width: 100%;
-      flex: 1;
-    }
-    .card {
-      background: #fff;
-      border: 1px solid var(--slate-200);
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      margin-bottom: 20px;
-    }
-    .card-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-top: 0;
-      border-bottom: 1px solid var(--slate-100);
-      padding-bottom: 10px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { border: 1px solid var(--slate-200); padding: 10px 12px; text-align: left; }
-    th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
-    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .badge-hard { background: #fef08a; color: #854d0e; }
-    .badge-soft { background: #bae6fd; color: #0369a1; }
-    .empty-state {
-      padding: 36px 20px;
-      text-align: center;
-      color: var(--slate-600);
-      background: var(--slate-50);
-      border: 1px dashed var(--slate-200);
-      border-radius: 6px;
-      margin-top: 12px;
-    }
-    .empty-state .icon { font-size: 28px; color: var(--green-600); margin-bottom: 4px; }
-    button {
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-      font-size: 13px;
-      padding: 6px 12px;
-      border-radius: 5px;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover { background: var(--primary-hover); }
-    button.btn-green { background: var(--green-600); }
-    button.btn-green:hover { background: #15803d; }
-    button.btn-red { background: var(--red-600); }
-    button.btn-red:hover { background: #b91c1c; }
-    button.btn-amber { background: var(--amber-600); }
-    button.btn-amber:hover { background: #b45309; }
-    button.secondary { background: var(--slate-600); }
-    button.secondary:hover { background: var(--slate-700); }
-    .drawer {
-      position: fixed;
-      top: 0;
-      right: -600px;
-      width: 580px;
-      max-width: 100vw;
-      height: 100vh;
-      background: #fff;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-      transition: right 0.3s ease;
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-    }
-    .drawer.open { right: 0; }
-    .drawer-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0,0,0,0.4);
-      z-index: 999;
-      display: none;
-    }
-    .drawer-overlay.open { display: block; }
-    .claim-field { margin-bottom: 12px; }
-    .claim-field label { font-size: 11.5px; font-weight: 700; color: var(--slate-600); text-transform: uppercase; display: block; }
-    .claim-field .val { font-size: 13.5px; font-weight: 600; color: var(--slate-900); }
-    .notice {
-      padding: 12px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
-    .notice-auto { background: var(--green-100); border-left: 4px solid var(--green-600); color: #14532d; }
-    .notice-warn { background: var(--amber-100); border-left: 4px solid var(--amber-600); color: #78350f; }
-  </style>
+  <title>ScatterID — Moderator Review Console</title>
+  <link rel="stylesheet" href="/scatterid-theme.css">
 </head>
 <body>
-
-  <header>
-    <div class="brand">
-      <h1>ScatterID Operations Console</h1>
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">S</div>
+      <div class="brand-info">
+        <h1>ScatterID Moderator Console</h1>
+        <p>Tiered Risk Governance & Attestation Review Queue (Zone 2)</p>
+      </div>
     </div>
-    <div class="nav-links">
-      <span class="user-tag" id="userBadge">Staff: Authenticating...</span>
-      <a href="/test_harness.html">Unified Shell</a>
-      <a href="/mod.html" style="color:#38bdf8;">Moderator Queue</a>
-      <a href="/root.html">Root Console</a>
-      <button class="secondary" onclick="doLogout()">Sign Out</button>
+    <div class="system-status-bar">
+      <span class="status-chip" id="userBadge">Staff: Authenticating...</span>
+      <button class="btn btn-secondary small" onclick="fetchQueue()">⟳ Refresh Queue</button>
+      <button class="btn btn-ghost small" onclick="doLogout()">Sign Out</button>
     </div>
   </header>
 
-  <div class="container">
-    <div class="card">
-      <div class="card-title">
-        <span>📋 Moderator Review Queue (Zone 2)</span>
-        <button onclick="fetchQueue()" style="font-size:12px;">⟳ Refresh Queue</button>
+  <main class="main-container">
+    <div class="panel-card">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Pending Attestation Requests
+          </h2>
+          <p class="panel-subtitle">Review Physical & Digital Attestation Invariants Prior to Ledger Execution</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <span class="badge badge-hard" id="countHard">0 HARD</span>
+          <span class="badge badge-soft" id="countSoft">0 SOFT</span>
+        </div>
       </div>
 
-      <div id="statusAlert" style="display:none;" class="notice notice-auto"></div>
+      <div id="statusAlert" style="display:none;" class="banner-box"></div>
 
-      <div class="notice notice-info" style="margin-top:0;">
-        <b>Scenario B Governance Policy:</b><br>
-        • <b>Hard-Channel (In-Person HEC Attestation):</b> Approving triggers <b>immediate Post-Quantum anchoring</b> on Hyperledger Fabric without Root.<br>
-        • <b>Soft-Channel (Digital Scan):</b> Approving <b>escalates</b> to Root Administrator queue (anti-forgery defense).<br>
-        • <b>Flagged:</b> Moderator notes suspect documents and escalates to Root Flagged Queue.
+      <div class="banner-box banner-info">
+        <div>
+          <b>Tiered Risk Governance Policy:</b><br>
+          &bull; <b>Hard-Channel (Physical Counter Inspection):</b> Moderator approval triggers <b>immediate Post-Quantum anchoring</b> on Hyperledger Fabric without Root.<br>
+          &bull; <b>Soft-Channel (Digital Scan):</b> Moderator approval <b>escalates to Root Administrator</b> queue for high-assurance anti-forgery review.<br>
+          &bull; <b>Suspicious / Irregular:</b> Moderator enters mandatory notes and flags the request into the Root Flagged Queue.
+        </div>
       </div>
 
-      <div id="emptyBox" class="empty-state" style="display:none;">
-        <div class="icon">✓</div>
-        <b style="font-size:15px; color:var(--green-600);">All Clear: Queue is Empty</b>
-        <p style="margin:4px 0 0 0; font-size:13px;">No requests currently awaiting moderation review.</p>
+      <div id="emptyBox" class="empty-state-box" style="display:none;">
+        <div class="empty-state-icon">🛡️</div>
+        <b style="font-size:16px; color:var(--emerald-bright);">Queue is Empty &bull; All Attestations Processed</b>
+        <p style="margin:6px 0 0 0; font-size:13px; color:var(--text-dim);">No requests currently awaiting moderation review.</p>
       </div>
 
-      <table id="queueTable" style="display:none;">
-        <thead>
-          <tr>
-            <th>Request ID</th>
-            <th>Type</th>
-            <th>Channel</th>
-            <th>HEC Attestation / Candidate Summary</th>
-            <th>Intake Attribution</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="queueTbody"></tbody>
-      </table>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="queueTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Type</th>
+              <th>Channel</th>
+              <th>Attestation Record Summary</th>
+              <th>Intake Attribution</th>
+              <th>Review</th>
+            </tr>
+          </thead>
+          <tbody id="queueTbody"></tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </main>
 
   <!-- REVIEW DRAWER -->
-  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
-  <div class="drawer" id="reviewDrawer">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--slate-200); padding-bottom:12px; margin-bottom:16px;">
-      <h3 style="margin:0; font-size:16px;" id="drawerTitle">Request Review</h3>
-      <button class="secondary" onclick="closeDrawer()">✕ Close</button>
+  <div class="drawer-backdrop" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <aside class="side-drawer" id="reviewDrawer">
+    <div class="drawer-header">
+      <div>
+        <h3 style="margin:0; font-size:16px; color:var(--text-main);" id="drawerTitle">Request Inspection</h3>
+        <p style="margin:2px 0 0 0; font-size:11.5px; color:var(--text-dim);" id="drawerSubtitle">ScatterID Cryptographic Intake Record</p>
+      </div>
+      <button class="btn btn-ghost small" onclick="closeDrawer()">✕ Close</button>
     </div>
 
-    <div id="drawerBody" style="flex:1;"></div>
+    <div class="drawer-body" id="drawerBody"></div>
 
-    <div style="border-top:1px solid var(--slate-200); padding-top:16px; margin-top:16px;">
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px; font-weight:700; color:var(--slate-700); display:block; margin-bottom:4px;">
-          Moderator Review Notes / Reason (Required for Reject & Flag)
+    <div class="drawer-footer" style="flex-direction:column; gap:12px;">
+      <div style="width:100%;">
+        <label class="form-label" style="font-size:12px; margin-bottom:4px;">
+          Moderator Review Notes / Decision Justification (Required for Reject & Flag)
         </label>
-        <input type="text" id="modDecisionNotes" placeholder="e.g. Verified HEC hologram & registrar seal" style="width:100%; padding:8px 10px; border:1px solid var(--slate-300); border-radius:4px; font-size:13px;">
+        <input type="text" id="modDecisionNotes" placeholder="e.g. Verified physical watermark, security seal, and identity match" style="font-size:13px;">
       </div>
 
-      <div style="display:flex; gap:8px;">
-        <button class="btn-green" style="flex:1;" onclick="executeDecision('approve')">✓ Approve Request</button>
-        <button class="btn-amber" style="flex:1;" onclick="executeDecision('flag')">🚩 Flag to Root</button>
-        <button class="btn-red" style="flex:1;" onclick="executeDecision('reject')">✕ Reject Request</button>
+      <div style="display:flex; gap:8px; width:100%;">
+        <button class="btn btn-emerald" style="flex:1;" onclick="executeDecision('approve')">
+          ✓ Approve Request
+        </button>
+        <button class="btn btn-secondary" style="flex:1; border-color:var(--amber-bright); color:var(--amber-bright);" onclick="executeDecision('flag')">
+          🚩 Flag to Root
+        </button>
+        <button class="btn btn-danger" style="flex:1;" onclick="executeDecision('reject')">
+          ✕ Reject
+        </button>
       </div>
     </div>
-  </div>
+  </aside>
+
+  <footer class="app-footer">
+    ScatterID Operations &bull; Zone 2 Moderator Console &bull; Automated & Gated Ledger Execution
+  </footer>
 
   <script>
     let token = '';
@@ -261,24 +138,34 @@
       const tbody = document.getElementById('queueTbody');
       const table = document.getElementById('queueTable');
       const emptyBox = document.getElementById('emptyBox');
-
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Fetching pending requests...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-dim);">Loading pending queue...</td></tr>';
       table.style.display = 'table';
       emptyBox.style.display = 'none';
 
       try {
-        // Fetch from either endpoint
         const res = await fetch('/api/requests/pending', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await res.json();
 
-        if (!res.ok) {
-          tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Access Denied: ${data.message || data.error}</td></tr>`;
+        if (res.status === 401 || res.status === 403) {
+          alert('Session invalid or unauthorized for Moderator console. Please log in.');
+          sessionStorage.clear();
+          window.location.href = '/login.html';
           return;
         }
 
+        const data = await res.json();
         const list = data.requests || [];
+
+        let hardCount = 0;
+        let softCount = 0;
+        list.forEach(r => {
+          if (r.submission_channel === 'hard') hardCount++;
+          else softCount++;
+        });
+        document.getElementById('countHard').textContent = `${hardCount} HARD`;
+        document.getElementById('countSoft').textContent = `${softCount} SOFT`;
+
         if (list.length === 0) {
           table.style.display = 'none';
           emptyBox.style.display = 'block';
@@ -292,15 +179,15 @@
         list.forEach(r => {
           const tr = document.createElement('tr');
           const chanClass = r.submission_channel === 'hard' ? 'badge-hard' : 'badge-soft';
-          let summary = 'HEC Credential';
+          let summary = 'ScatterID Record';
 
           if (r.claimant_data) {
             try {
               const c = JSON.parse(r.claimant_data);
-              const grad = (c.graduate && c.graduate.fullName) || c.fullName || (c.claimant && c.claimant.fullName) || 'Candidate';
-              const deg = (c.degree && c.degree.program) || c.credentialType || 'Degree';
-              const univ = (c.degree && c.degree.institution) || '';
-              summary = `<b>${grad}</b> — ${deg} ${univ ? '(' + univ + ')' : ''}`;
+              const name = (c.subjectData && c.subjectData.fullName) || (c.graduate && c.graduate.fullName) || c.fullName || (c.claimant && c.claimant.fullName) || 'Subject';
+              const title = (c.subjectData && c.subjectData.recordTitle) || c.recordTitle || c.credentialType || 'Attestation Record';
+              const auth = (c.subjectData && c.subjectData.issuingAuthority) || c.issuingAuthority || '';
+              summary = `<b style="color:var(--text-main);">${name}</b> — <span style="color:var(--text-dim);">${title}</span> ${auth ? '<span style="color:var(--text-muted); font-size:12px;">(' + auth + ')</span>' : ''}`;
             } catch (e) {
               summary = r.claimant_data.slice(0, 60);
             }
@@ -310,40 +197,41 @@
 
           tr.innerHTML = `
             <td><code>${r.id}</code></td>
-            <td><b>${r.request_type.toUpperCase()}</b></td>
+            <td><span class="badge ${r.request_type === 'issue' ? 'badge-cyan' : 'badge-rose'}">${r.request_type.toUpperCase()}</span></td>
             <td><span class="badge ${chanClass}">${r.submission_channel.toUpperCase()}</span></td>
             <td>${summary}</td>
-            <td>${r.clerk_username || 'Counter'} <span style="font-size:11px; color:#64748b;">(${r.station_id || 'STATION-01'})</span></td>
-            <td><button onclick='openDrawer(${JSON.stringify(r)})'>Review & Decide</button></td>
+            <td><span style="font-weight:600; color:var(--text-main);">${r.clerk_username || 'Staff'}</span> <span style="font-size:11.5px; color:var(--text-muted);">(${r.station_id || 'STATION-01'})</span></td>
+            <td><button class="btn btn-secondary small" onclick='openDrawer(${JSON.stringify(r)})'>Inspect &bull; Decide</button></td>
           `;
           tbody.appendChild(tr);
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Network Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="color:var(--rose-bright); padding:20px; text-align:center;">Network Error: ${err.message}</td></tr>`;
       }
     }
 
     function openDrawer(req) {
       selectedRequest = req;
       document.getElementById('drawerTitle').textContent = `Review: ${req.id}`;
+      document.getElementById('drawerSubtitle').textContent = `Type: ${req.request_type.toUpperCase()} &bull; Channel: ${req.submission_channel.toUpperCase()}`;
 
       let bodyHtml = `
-        <div class="claim-field"><label>Request Identifier</label><div class="val"><code>${req.id}</code></div></div>
-        <div class="claim-field"><label>Channel</label><div class="val"><span class="badge ${req.submission_channel === 'hard' ? 'badge-hard':'badge-soft'}">${req.submission_channel.toUpperCase()} CHANNEL</span></div></div>
-        <div class="claim-field"><label>Intake Staff & Station</label><div class="val">${req.clerk_username} @ ${req.station_id}</div></div>
+        <div class="form-group"><label class="form-label">Request Identifier</label><code>${req.id}</code></div>
+        <div class="form-group"><label class="form-label">Submission Channel</label><span class="badge ${req.submission_channel === 'hard' ? 'badge-hard':'badge-soft'}">${req.submission_channel.toUpperCase()} CHANNEL</span></div>
+        <div class="form-group"><label class="form-label">Attribution & Counter Station</label><span style="color:var(--text-main); font-weight:600;">${req.clerk_username}</span> @ <code>${req.station_id}</code> &bull; <span style="font-size:12px; color:var(--text-muted);">${new Date(req.created_at).toLocaleString()}</span></div>
       `;
 
       if (req.claimant_data) {
         try {
           const c = JSON.parse(req.claimant_data);
           bodyHtml += `
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin:12px 0;">
-              <h4 style="margin:0 0 8px 0; font-size:13px; color:var(--primary);">Claimant & Degree Details</h4>
-              <pre style="margin:0; font-size:12px; max-height:220px; overflow-y:auto; background:var(--slate-900); color:#7dd3fc; padding:10px; border-radius:4px;">${JSON.stringify(c, null, 2)}</pre>
+            <div style="margin:16px 0;">
+              <label class="form-label" style="color:var(--cyan-bright);">Structured Attestation Claims (RFC-8785)</label>
+              <pre class="code-block" style="max-height:240px; overflow-y:auto;">${JSON.stringify(c, null, 2)}</pre>
             </div>
           `;
         } catch (e) {
-          bodyHtml += `<div class="claim-field"><label>Raw Data</label><div class="val">${req.claimant_data}</div></div>`;
+          bodyHtml += `<div class="form-group"><label class="form-label">Raw Data</label><div>${req.claimant_data}</div></div>`;
         }
       }
 
@@ -351,12 +239,16 @@
         try {
           const chk = JSON.parse(req.inspection_checklist);
           bodyHtml += `
-            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px; margin:10px 0; font-size:12.5px;">
-              <b>Physical Inspection Checklist (Counter Verified):</b><br>
-              • Substrate & Watermarks: ${chk.substrate_material_integrity ? '✓ VERIFIED' : '✗'}<br>
-              • Optical Security / Holograms: ${chk.optical_security_features ? '✓ VERIFIED' : '✗'}<br>
-              • Identity & Biometrics: ${chk.biometric_face_match ? '✓ VERIFIED' : '✗'}<br>
-              • Authority Seal & Serial: ${chk.authority_seal_and_serial ? '✓ VERIFIED' : '✗'}
+            <div class="checklist-container" style="margin:14px 0;">
+              <b style="font-size:12.5px; color:var(--emerald-bright); display:block; margin-bottom:8px;">
+                Physical Inspection Checkpoints (Counter Verified):
+              </b>
+              <div style="font-size:12px; line-height:1.7; color:var(--text-dim);">
+                <div>${chk.substrate_material_integrity ? '✓ <span style="color:#d1fae5;">VERIFIED</span>' : '✗ UNVERIFIED'}: Substrate & Security Watermarks</div>
+                <div>${chk.optical_security_features ? '✓ <span style="color:#d1fae5;">VERIFIED</span>' : '✗ UNVERIFIED'}: Optically Variable Features & Holograms</div>
+                <div>${chk.biometric_face_match ? '✓ <span style="color:#d1fae5;">VERIFIED</span>' : '✗ UNVERIFIED'}: Identity Photo & Biometric Verification</div>
+                <div>${chk.authority_seal_and_serial ? '✓ <span style="color:#d1fae5;">VERIFIED</span>' : '✗ UNVERIFIED'}: Issuing Authority Seal & Serial Number</div>
+              </div>
             </div>
           `;
         } catch (e) {}
@@ -364,76 +256,80 @@
 
       if (req.evidence_sha256) {
         bodyHtml += `
-          <div class="claim-field">
-            <label>Digital Evidence SHA-256 Digest</label>
-            <div class="val"><code style="font-size:11px; word-break:break-all;">${req.evidence_sha256}</code></div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Digital Evidence SHA-256 Digest</label>
+            <code style="word-break:break-all; display:block; padding:8px 10px;">${req.evidence_sha256}</code>
           </div>
         `;
       }
 
       document.getElementById('drawerBody').innerHTML = bodyHtml;
+      document.getElementById('modDecisionNotes').value = '';
+      document.getElementById('drawerOverlay').style.display = 'block';
       document.getElementById('reviewDrawer').classList.add('open');
-      document.getElementById('drawerOverlay').classList.add('open');
     }
 
     function closeDrawer() {
       document.getElementById('reviewDrawer').classList.remove('open');
-      document.getElementById('drawerOverlay').classList.remove('open');
-      document.getElementById('modDecisionNotes').value = '';
+      document.getElementById('drawerOverlay').style.display = 'none';
       selectedRequest = null;
     }
 
-    async function executeDecision(action) {
+    async function executeDecision(decision) {
       if (!selectedRequest) return;
       const notes = document.getElementById('modDecisionNotes').value.trim();
 
-      if ((action === 'flag' || action === 'reject') && !notes) {
-        alert('A reason note is required when flagging or rejecting a request.');
+      if ((decision === 'reject' || decision === 'flag') && !notes) {
+        alert(`Mandatory requirement: A justification note/reason is required to ${decision.toUpperCase()} a request.`);
+        document.getElementById('modDecisionNotes').focus();
         return;
       }
 
-      const alertEl = document.getElementById('statusAlert');
-      alertEl.style.display = 'none';
-
       try {
-        const res = await fetch(`/api/requests/${encodeURIComponent(selectedRequest.id)}/decide`, {
+        const res = await fetch(`/api/requests/${selectedRequest.id}/decide`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({
-            action: action.toUpperCase(),
-            reason: notes || 'Verified and approved by regional moderator'
-          })
+          body: JSON.stringify({ decision, notes, reason: notes })
         });
 
         const data = await res.json();
-        if (!res.ok) {
-          alert('Decision failed: ' + (data.message || data.error));
-          return;
-        }
-
         closeDrawer();
 
-        alertEl.style.display = 'block';
-        alertEl.innerHTML = `
-          <b>✓ Decision Recorded Successfully!</b><br>
-          Request <code>${data.request.id}</code> updated to status: <b>${data.request.status}</b>.<br>
-          ${data.request.status === 'EXECUTED_ON_LEDGER' ? '⚡ <i>Hard-Channel auto-executed immediately on Post-Quantum Hyperledger Fabric.</i>' : ''}
-          ${data.request.status === 'AWAITING_ROOT' ? '🔒 <i>Soft-Channel escalated to Root Administrator for final execution.</i>' : ''}
-          ${data.request.status === 'FLAGGED' ? '🚩 <i>Request escalated to Root Flagged Queue for forensic review.</i>' : ''}
-        `;
+        const alertBox = document.getElementById('statusAlert');
+        alertBox.style.display = 'flex';
+
+        if (res.ok) {
+          if (decision === 'approve') {
+            if (data.autoExecuted) {
+              alertBox.className = 'banner-box banner-success';
+              alertBox.innerHTML = `<div><b>✓ Hard-Channel Request Approved & Auto-Executed:</b> Post-Quantum anchor committed to Fabric ledger successfully (TxID: <code>${data.txId || 'committed'}</code>).</div>`;
+            } else {
+              alertBox.className = 'banner-box banner-warning';
+              alertBox.innerHTML = `<div><b>✓ Soft-Channel Request Approved:</b> Gated to Root Executive queue for final authorization (anti-forgery defense).</div>`;
+            }
+          } else if (decision === 'flag') {
+            alertBox.className = 'banner-box banner-warning';
+            alertBox.innerHTML = `<div><b>🚩 Request Flagged:</b> Moved to Root Flagged Queue for executive security review.</div>`;
+          } else {
+            alertBox.className = 'banner-box banner-error';
+            alertBox.innerHTML = `<div><b>✕ Request Rejected:</b> Case closed permanently with reason logged.</div>`;
+          }
+        } else {
+          alertBox.className = 'banner-box banner-error';
+          alertBox.innerHTML = `<div><b>Error:</b> ${data.message || data.error}</div>`;
+        }
 
         fetchQueue();
       } catch (err) {
-        alert('Error: ' + err.message);
+        alert('Network error executing decision: ' + err.message);
       }
     }
 
     function doLogout() {
-      sessionStorage.removeItem('scatterid_ops_token');
-      sessionStorage.removeItem('scatterid_ops_user');
+      sessionStorage.clear();
       window.location.href = '/login.html';
     }
   </script>

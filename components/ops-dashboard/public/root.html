@@ -4,201 +4,142 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ScatterID — Root Executive Console</title>
-  <style>
-    :root {
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --slate-900: #0f172a;
-      --slate-800: #1e293b;
-      --slate-700: #334155;
-      --slate-600: #475569;
-      --slate-200: #e2e8f0;
-      --slate-100: #f1f5f9;
-      --slate-50: #f8fafc;
-      --green-600: #16a34a;
-      --green-100: #dcfce7;
-      --amber-600: #d97706;
-      --amber-100: #fef3c7;
-      --red-600: #dc2626;
-      --red-100: #fee2e2;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--slate-50);
-      color: var(--slate-900);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: var(--slate-900);
-      color: #fff;
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid var(--primary);
-    }
-    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; }
-    .nav-links { display: flex; gap: 12px; align-items: center; font-size: 13px; }
-    .nav-links a { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
-    .nav-links a:hover { color: #fff; background: var(--slate-800); }
-    .user-tag {
-      background: #fbcfe8;
-      color: #9d174d;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 16px;
-      width: 100%;
-      flex: 1;
-    }
-    .card {
-      background: #fff;
-      border: 1px solid var(--slate-200);
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      margin-bottom: 24px;
-    }
-    .card-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-top: 0;
-      border-bottom: 1px solid var(--slate-100);
-      padding-bottom: 10px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { border: 1px solid var(--slate-200); padding: 10px 12px; text-align: left; }
-    th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
-    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .badge-soft { background: #bae6fd; color: #0369a1; }
-    .badge-rev { background: #fee2e2; color: #991b1b; }
-    .empty-state {
-      padding: 32px 20px;
-      text-align: center;
-      color: var(--slate-600);
-      background: var(--slate-50);
-      border: 1px dashed var(--slate-200);
-      border-radius: 6px;
-      margin-top: 12px;
-    }
-    .empty-state .icon { font-size: 26px; color: var(--green-600); margin-bottom: 4px; }
-    button {
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-      font-size: 13px;
-      padding: 6px 12px;
-      border-radius: 5px;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover { background: var(--primary-hover); }
-    button.btn-green { background: var(--green-600); }
-    button.btn-green:hover { background: #15803d; }
-    button.secondary { background: var(--slate-600); }
-    button.secondary:hover { background: var(--slate-700); }
-    .notice {
-      padding: 12px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
-    .notice-auto { background: var(--green-100); border-left: 4px solid var(--green-600); color: #14532d; }
-  </style>
+  <link rel="stylesheet" href="/scatterid-theme.css">
 </head>
 <body>
-
-  <header>
-    <div class="brand">
-      <h1>ScatterID Root Console</h1>
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">S</div>
+      <div class="brand-info">
+        <h1>ScatterID Root Executive Console</h1>
+        <p>Cryptographic Governance, Key Lifecycle & Final Ledger Authority (Zone 3)</p>
+      </div>
     </div>
-    <div class="nav-links">
-      <span class="user-tag" id="userBadge">Root Administrator</span>
-      <a href="/test_harness.html">Unified Shell</a>
-      <a href="/mod.html">Moderator Queue</a>
-      <a href="/root.html" style="color:#38bdf8;">Root Console</a>
-      <button class="secondary" onclick="doLogout()">Sign Out</button>
+    <div class="system-status-bar">
+      <span class="status-chip" id="userBadge">Root Admin: Authenticating...</span>
+      <button class="btn btn-secondary small" onclick="refreshAll()">⟳ Refresh Queues</button>
+      <button class="btn btn-ghost small" onclick="doLogout()">Sign Out</button>
     </div>
   </header>
 
-  <div class="container">
+  <main class="main-container">
+    <div id="statusAlert" style="display:none;" class="banner-box"></div>
 
-    <div id="statusAlert" style="display:none;" class="notice notice-auto"></div>
-
-    <!-- AWAITING ROOT QUEUE -->
-    <div class="card">
-      <div class="card-title">
-        <span>🛡️ Awaiting Root Authorization (High-Risk Escalations & Revocations)</span>
-        <button onclick="fetchRootQueues()" style="font-size:12px;">⟳ Refresh Queues</button>
+    <!-- QUEUE 1: AWAITING ROOT AUTHORIZATION -->
+    <div class="panel-card">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Requests Awaiting Root Authorization
+          </h2>
+          <p class="panel-subtitle">Approved Soft-Channel Submissions & Non-Negotiable Revocation Intakes</p>
+        </div>
+        <span class="badge badge-purple" id="badgeAwaitingCount">0 PENDING ROOT</span>
       </div>
 
-      <div class="notice notice-info" style="margin-top:0;">
-        <b>Cryptographic Separation:</b><br>
-        All Soft-Channel issuances (digital scans) and Revocations strictly require Root Administrator authorization before irreversible Hyperledger Fabric ledger anchoring.
+      <div class="banner-box banner-warning" style="font-size:12.5px;">
+        <div>
+          <b>Security Invariant (SEC-OPS-06):</b><br>
+          Soft-channel submissions (digital scans) and revocations are strictly prohibited from auto-executing. They require an explicit post-quantum authorization stamp from Root Executive credentials to anchor on Hyperledger Fabric.
+        </div>
       </div>
 
-      <div id="emptyAwaiting" class="empty-state" style="display:none;">
-        <div class="icon">✓</div>
-        <b>All Clear: No requests awaiting Root authorization</b>
+      <div id="awaitingEmpty" class="empty-state-box" style="display:none;">
+        <div class="empty-state-icon">🛡️</div>
+        <b style="font-size:15px; color:var(--emerald-bright);">Awaiting-Root Queue Clear</b>
+        <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-dim);">No requests currently require root authorization.</p>
       </div>
 
-      <table id="awaitingTable" style="display:none;">
-        <thead>
-          <tr>
-            <th>Request ID</th>
-            <th>Type</th>
-            <th>Channel</th>
-            <th>Attestation Candidate</th>
-            <th>Intake Stamp</th>
-            <th>Root Action</th>
-          </tr>
-        </thead>
-        <tbody id="awaitingTbody"></tbody>
-      </table>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="awaitingTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Type</th>
+              <th>Channel</th>
+              <th>Attestation Record Summary</th>
+              <th>Intake Attribution</th>
+              <th>Executive Action</th>
+            </tr>
+          </thead>
+          <tbody id="awaitingTbody"></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- FLAGGED QUEUE -->
-    <div class="card">
-      <div class="card-title">
-        <span>🚩 Moderator Flagged Queue (Suspicious / Discrepancy Cases)</span>
+    <!-- QUEUE 2: FLAGGED REQUESTS (SUSPICIOUS CASES) -->
+    <div class="panel-card">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title" style="color:var(--rose-bright);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            Flagged & Irregular Attestations
+          </h2>
+          <p class="panel-subtitle">Submissions Escalated by Moderators for Forensics or Inconsistency</p>
+        </div>
+        <span class="badge badge-rose" id="badgeFlaggedCount">0 FLAGGED</span>
       </div>
 
-      <div id="emptyFlagged" class="empty-state" style="display:none;">
-        <div class="icon">✓</div>
-        <b>All Clear: No requests in the Flagged Queue</b>
+      <div id="flaggedEmpty" class="empty-state-box" style="display:none;">
+        <div class="empty-state-icon">✓</div>
+        <b style="font-size:15px; color:var(--emerald-bright);">Flagged Queue Clear</b>
+        <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-dim);">No flagged submissions pending security review.</p>
       </div>
 
-      <table id="flaggedTable" style="display:none;">
-        <thead>
-          <tr>
-            <th>Request ID</th>
-            <th>Type</th>
-            <th>Flag Reason</th>
-            <th>Attribution</th>
-            <th>Root Override</th>
-          </tr>
-        </thead>
-        <tbody id="flaggedTbody"></tbody>
-      </table>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="flaggedTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Type</th>
+              <th>Channel</th>
+              <th>Summary & Flag Reason</th>
+              <th>Attribution</th>
+              <th>Resolution</th>
+            </tr>
+          </thead>
+          <tbody id="flaggedTbody"></tbody>
+        </table>
+      </div>
     </div>
 
-  </div>
+    <!-- PQC KEY LIFECYCLE SUMMARY -->
+    <div class="panel-card">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            PQC Key Lifecycle & Gateway Phasing (NIST FIPS-204)
+          </h2>
+          <p class="panel-subtitle">Dual-Key Verification Gateway Phasing & Quantum-Resistant Key Pools</p>
+        </div>
+        <span class="badge badge-cyan">ML-DSA-87</span>
+      </div>
+
+      <div class="grid-3" id="keyStatsGrid">
+        <div style="background:#060a12; border:1px solid var(--border-subtle); padding:16px; border-radius:var(--radius-sm);">
+          <div style="font-size:11.5px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Active PQC Signing Key</div>
+          <div style="font-size:15px; font-weight:700; color:var(--emerald-bright); margin-top:6px;">pqc-mldsa87-active-v1</div>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:4px;">NIST Security Level 5 (256-bit post-quantum)</div>
+        </div>
+        <div style="background:#060a12; border:1px solid var(--border-subtle); padding:16px; border-radius:var(--radius-sm);">
+          <div style="font-size:11.5px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Pre-Staged Standby Keys</div>
+          <div style="font-size:15px; font-weight:700; color:var(--cyan-bright); margin-top:6px;">3 Keys Available</div>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:4px;">Pre-distributed to verification gateway</div>
+        </div>
+        <div style="background:#060a12; border:1px solid var(--border-subtle); padding:16px; border-radius:var(--radius-sm);">
+          <div style="font-size:11.5px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Gateway Phasing Window</div>
+          <div style="font-size:15px; font-weight:700; color:var(--purple-bright); margin-top:6px;">86,400s Grace Active</div>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:4px;">Zero-downtime dual-key overlapping support</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    ScatterID Operations &bull; Zone 3 Root Executive Console &bull; Post-Quantum Sovereign Ledger Authority
+  </footer>
 
   <script>
     let token = '';
@@ -206,33 +147,44 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       token = sessionStorage.getItem('scatterid_ops_token') || '';
-      const rawUser = sessionStorage.getItem('scatterid_ops_user');
-      if (rawUser) {
-        try { currentUser = JSON.parse(rawUser); } catch(e) {}
+      const raw = sessionStorage.getItem('scatterid_ops_user');
+      if (raw) {
+        try { currentUser = JSON.parse(raw); } catch(e) {}
       }
 
       if (!token || !currentUser || currentUser.role !== 'root') {
-        alert('Access Denied: Root Administrator credentials required for this console.');
+        alert('Access Denied: Root Executive Console requires root administrator privileges.');
         window.location.href = '/login.html';
         return;
       }
 
-      document.getElementById('userBadge').textContent = `Staff: ${currentUser.username} (ROOT)`;
-      fetchRootQueues();
+      document.getElementById('userBadge').textContent = `Root Admin: ${currentUser.username}`;
+      refreshAll();
     });
 
-    async function fetchRootQueues() {
-      // 1. Awaiting Root Queue
+    function refreshAll() {
+      loadAwaitingRoot();
+      loadFlagged();
+    }
+
+    async function loadAwaitingRoot() {
       const awTbody = document.getElementById('awaitingTbody');
       const awTable = document.getElementById('awaitingTable');
-      const awEmpty = document.getElementById('emptyAwaiting');
+      const awEmpty = document.getElementById('awaitingEmpty');
 
       try {
-        const res = await fetch('/api/requests/queue/awaiting-root', {
+        const res = await fetch('/api/requests/awaiting-root', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!res.ok) {
+          awTbody.innerHTML = `<tr><td colspan="6" style="color:var(--rose-bright); text-align:center; padding:16px;">Failed to fetch queue: HTTP ${res.status}</td></tr>`;
+          return;
+        }
+
         const data = await res.json();
         const list = data.requests || [];
+        document.getElementById('badgeAwaitingCount').textContent = `${list.length} PENDING ROOT`;
 
         if (list.length === 0) {
           awTable.style.display = 'none';
@@ -244,42 +196,57 @@
 
           list.forEach(r => {
             const tr = document.createElement('tr');
-            let summary = 'HEC Credential';
+            let summary = 'ScatterID Record';
             if (r.claimant_data) {
               try {
                 const c = JSON.parse(r.claimant_data);
-                summary = (c.graduate && c.graduate.fullName) || c.fullName || 'Candidate';
+                const name = (c.subjectData && c.subjectData.fullName) || (c.graduate && c.graduate.fullName) || c.fullName || 'Subject';
+                const title = (c.subjectData && c.subjectData.recordTitle) || c.recordTitle || c.credentialType || 'Attestation';
+                summary = `<b style="color:var(--text-main);">${name}</b> — <span style="color:var(--text-dim);">${title}</span>`;
               } catch(e) {}
             } else if (r.credential_id) {
-              summary = `Target: ${r.credential_id}`;
+              summary = `Revocation Target: <code>${r.credential_id}</code>`;
             }
 
             tr.innerHTML = `
               <td><code>${r.id}</code></td>
-              <td><b>${r.request_type.toUpperCase()}</b></td>
+              <td><span class="badge ${r.request_type === 'issue' ? 'badge-cyan' : 'badge-rose'}">${r.request_type.toUpperCase()}</span></td>
               <td><span class="badge badge-soft">${r.submission_channel.toUpperCase()}</span></td>
               <td>${summary}</td>
-              <td>${r.clerk_username} @ ${r.station_id}</td>
-              <td><button class="btn-green" onclick="executeRootAction('${r.id}')">⚡ Authorize & Anchor on Fabric</button></td>
+              <td><span style="font-weight:600; color:var(--text-main);">${r.clerk_username || 'Staff'}</span> @ <code>${r.station_id}</code></td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-emerald small" onclick="executeRootAction('${r.id}')">⚡ Authorize & Anchor</button>
+                  <button class="btn btn-danger small" onclick="rejectRootAction('${r.id}')">✕ Reject</button>
+                </div>
+              </td>
             `;
             awTbody.appendChild(tr);
           });
         }
       } catch(e) {
-        awTbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Error: ${e.message}</td></tr>`;
+        awTbody.innerHTML = `<tr><td colspan="6" style="color:var(--rose-bright); text-align:center; padding:16px;">Error: ${e.message}</td></tr>`;
       }
+    }
 
-      // 2. Flagged Queue
+    async function loadFlagged() {
       const flTbody = document.getElementById('flaggedTbody');
       const flTable = document.getElementById('flaggedTable');
-      const flEmpty = document.getElementById('emptyFlagged');
+      const flEmpty = document.getElementById('flaggedEmpty');
 
       try {
-        const res = await fetch('/api/requests/queue/flagged', {
+        const res = await fetch('/api/requests/flagged', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!res.ok) {
+          flTbody.innerHTML = `<tr><td colspan="6" style="color:var(--rose-bright); text-align:center; padding:16px;">Failed to fetch queue: HTTP ${res.status}</td></tr>`;
+          return;
+        }
+
         const data = await res.json();
         const list = data.requests || [];
+        document.getElementById('badgeFlaggedCount').textContent = `${list.length} FLAGGED`;
 
         if (list.length === 0) {
           flTable.style.display = 'none';
@@ -291,29 +258,44 @@
 
           list.forEach(r => {
             const tr = document.createElement('tr');
+            let summary = 'ScatterID Record';
+            if (r.claimant_data) {
+              try {
+                const c = JSON.parse(r.claimant_data);
+                const name = (c.subjectData && c.subjectData.fullName) || (c.graduate && c.graduate.fullName) || c.fullName || 'Subject';
+                summary = `<b style="color:var(--text-main);">${name}</b>`;
+              } catch(e) {}
+            }
+
             tr.innerHTML = `
               <td><code>${r.id}</code></td>
-              <td><b>${r.request_type.toUpperCase()}</b></td>
-              <td style="color:var(--red-600); font-weight:600;">${r.rejection_reason || 'Flagged for forensic review'}</td>
-              <td>${r.clerk_username} @ ${r.station_id}</td>
-              <td><button class="btn-green" onclick="executeRootAction('${r.id}')">Executive Override & Anchor</button></td>
+              <td><span class="badge ${r.request_type === 'issue' ? 'badge-cyan' : 'badge-rose'}">${r.request_type.toUpperCase()}</span></td>
+              <td><span class="badge ${r.submission_channel === 'hard' ? 'badge-hard' : 'badge-soft'}">${r.submission_channel.toUpperCase()}</span></td>
+              <td>
+                ${summary}<br>
+                <span style="color:var(--rose-bright); font-size:12px;">Reason: ${r.flag_reason || 'Irregularity noted by moderator'}</span>
+              </td>
+              <td><span style="font-weight:600;">${r.clerk_username}</span> @ <code>${r.station_id}</code></td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-emerald small" onclick="executeRootAction('${r.id}')">Clear & Execute</button>
+                  <button class="btn btn-danger small" onclick="rejectRootAction('${r.id}')">Dismiss Case</button>
+                </div>
+              </td>
             `;
             flTbody.appendChild(tr);
           });
         }
       } catch(e) {
-        flTbody.innerHTML = `<tr><td colspan="5" style="color:var(--red-600);">Error: ${e.message}</td></tr>`;
+        flTbody.innerHTML = `<tr><td colspan="6" style="color:var(--rose-bright); text-align:center; padding:16px;">Error: ${e.message}</td></tr>`;
       }
     }
 
-    async function executeRootAction(id) {
-      if (!confirm(`Authorize and execute ledger anchoring for ${id}?`)) return;
-
-      const alertEl = document.getElementById('statusAlert');
-      alertEl.style.display = 'none';
+    async function executeRootAction(reqId) {
+      if (!confirm(`Authorize and execute Request ${reqId} on Hyperledger Fabric ledger?`)) return;
 
       try {
-        const res = await fetch(`/api/requests/${encodeURIComponent(id)}/root-execute`, {
+        const res = await fetch(`/api/requests/${reqId}/root-decide`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -322,27 +304,54 @@
           body: JSON.stringify({ action: 'execute' })
         });
         const data = await res.json();
+        const alertBox = document.getElementById('statusAlert');
+        alertBox.style.display = 'flex';
 
-        if (!res.ok) {
-          alert('Execution failed: ' + (data.message || data.error));
-          return;
+        if (res.ok) {
+          alertBox.className = 'banner-box banner-success';
+          alertBox.innerHTML = `<div><b>✓ Request ${reqId} Authorized & Executed:</b> Post-Quantum anchor committed to Fabric ledger successfully (TxID: <code>${data.txId || 'committed'}</code>).</div>`;
+        } else {
+          alertBox.className = 'banner-box banner-error';
+          alertBox.innerHTML = `<div><b>Error Authorizing Request:</b> ${data.message || data.error}</div>`;
         }
+        refreshAll();
+      } catch(err) {
+        alert('Network error: ' + err.message);
+      }
+    }
 
-        alertEl.style.display = 'block';
-        alertEl.innerHTML = `
-          <b>✓ Root Authorization Successful!</b><br>
-          Request <code>${id}</code> executed on Hyperledger Fabric. Transaction Hash: <code>${data.tx_hash || 'tx-fabric-' + Date.now()}</code>
-        `;
+    async function rejectRootAction(reqId) {
+      const reason = prompt(`Enter mandatory reason for root rejection of Request ${reqId}:`);
+      if (!reason) return;
 
-        fetchRootQueues();
-      } catch (err) {
-        alert('Error: ' + err.message);
+      try {
+        const res = await fetch(`/api/requests/${reqId}/root-decide`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ action: 'reject', reason })
+        });
+        const data = await res.json();
+        const alertBox = document.getElementById('statusAlert');
+        alertBox.style.display = 'flex';
+
+        if (res.ok) {
+          alertBox.className = 'banner-box banner-error';
+          alertBox.innerHTML = `<div><b>✕ Request ${reqId} Rejected by Root:</b> Case closed permanently.</div>`;
+        } else {
+          alertBox.className = 'banner-box banner-error';
+          alertBox.innerHTML = `<div><b>Error:</b> ${data.message || data.error}</div>`;
+        }
+        refreshAll();
+      } catch(err) {
+        alert('Network error: ' + err.message);
       }
     }
 
     function doLogout() {
-      sessionStorage.removeItem('scatterid_ops_token');
-      sessionStorage.removeItem('scatterid_ops_user');
+      sessionStorage.clear();
       window.location.href = '/login.html';
     }
   </script>

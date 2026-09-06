@@ -4,234 +4,136 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ScatterID — Mandatory Security Onboarding</title>
-  <style>
-    :root {
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --slate-900: #0f172a;
-      --slate-800: #1e293b;
-      --slate-700: #334155;
-      --slate-600: #475569;
-      --slate-200: #e2e8f0;
-      --slate-100: #f1f5f9;
-      --slate-50: #f8fafc;
-      --green-600: #16a34a;
-      --green-100: #dcfce7;
-      --red-600: #dc2626;
-      --red-100: #fee2e2;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--slate-50);
-      color: var(--slate-900);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: var(--slate-900);
-      color: #fff;
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid var(--primary);
-    }
-    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; }
-    .container {
-      max-width: 560px;
-      margin: 30px auto;
-      padding: 0 16px;
-      width: 100%;
-    }
-    .card {
-      background: #fff;
-      border: 1px solid var(--slate-200);
-      border-radius: 8px;
-      padding: 28px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .card-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 0;
-      border-bottom: 1px solid var(--slate-100);
-      padding-bottom: 10px;
-      margin-bottom: 16px;
-    }
-    .req { color: var(--red-600); font-weight: bold; margin-left: 2px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
-    input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--slate-200);
-      border-radius: 6px;
-      font-size: 14px;
-      font-family: inherit;
-    }
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-    }
-    .pwd-wrapper { position: relative; }
-    .toggle-pwd {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      font-size: 12px;
-      color: var(--primary);
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn {
-      width: 100%;
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-      font-size: 14px;
-      padding: 11px 18px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-green { background: var(--green-600); }
-    .btn-green:hover { background: #15803d; }
-    .notice {
-      padding: 12px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 18px;
-    }
-    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
-    .notice-success { background: var(--green-100); border-left: 4px solid var(--green-600); color: #14532d; }
-    .notice-error { background: var(--red-100); border-left: 4px solid var(--red-600); color: #7f1d1d; }
-    .qr-box {
-      text-align: center;
-      padding: 16px;
-      background: var(--slate-50);
-      border: 1px solid var(--slate-200);
-      border-radius: 6px;
-      margin: 14px 0;
-    }
-    .codes-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin: 16px 0;
-    }
-    .code-box {
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
-      padding: 10px;
-      text-align: center;
-      font-family: monospace;
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: 4px;
-      letter-spacing: 1px;
-    }
-  </style>
+  <link rel="stylesheet" href="/scatterid-theme.css">
 </head>
 <body>
-
-  <header>
-    <div class="brand">
-      <h1>ScatterID Operations Setup</h1>
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">S</div>
+      <div class="brand-info">
+        <h1>ScatterID Security Enrollment</h1>
+        <p>Post-Quantum Cryptographic Trust Engine & MFA Provisioning</p>
+      </div>
     </div>
-    <div style="font-size:13px; color:#cbd5e1;">
-      <span id="headerStaffLabel">Staff Onboarding</span>
+    <div class="system-status-bar">
+      <span class="status-chip" id="headerStaffLabel">Staff Onboarding</span>
+      <a href="/login.html" class="btn btn-ghost small">Cancel & Sign In</a>
     </div>
   </header>
 
-  <div class="container">
-
+  <main class="main-container" style="max-width: 600px;">
     <!-- STEP 1: FORM WIZARD (Active initially) -->
-    <div id="wizardStep" class="card">
-      <h2 class="card-title">First-Time Account Setup & MFA Enrollment</h2>
-
-      <div class="notice notice-info">
-        <b>Mandatory Password & TOTP Configuration:</b><br>
-        You signed in with a temporary one-time password. To secure this station, enter your permanent password twice (to prevent typos) and enroll your mobile authenticator app.
+    <div id="wizardStep" class="panel-card">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            First-Time Account Setup & MFA Enrollment
+          </h2>
+          <p class="panel-subtitle">Activate Permanent Password and Mobile Authenticator (TOTP)</p>
+        </div>
+        <span class="badge badge-purple">MFA-SETUP</span>
       </div>
 
-      <div id="wizardError" class="notice notice-error" style="display:none;"></div>
+      <div class="banner-box banner-info">
+        <div>
+          <b>Security Enrollment Required:</b><br>
+          You authenticated with a temporary one-time password. To secure this station, enter your permanent password twice (to eliminate typos) and enroll your mobile authenticator app.
+        </div>
+      </div>
+
+      <div id="wizardError" class="banner-box banner-error" style="display:none;"></div>
 
       <div class="form-group">
-        <label>Staff Username</label>
-        <input type="text" id="dispUsername" readonly style="background:#f1f5f9; font-weight:600;">
+        <label class="form-label">Staff Username</label>
+        <input type="text" id="dispUsername" readonly style="background:var(--bg-muted); font-weight:600; color:var(--cyan-bright);">
       </div>
 
       <!-- PASSWORD INPUT 1 -->
       <div class="form-group">
-        <label>New Permanent Password (min 10 chars) <span class="req">*</span></label>
-        <div class="pwd-wrapper">
+        <label class="form-label">New Permanent Password (min 10 chars) <span class="req">*</span></label>
+        <div class="pwd-field-wrap">
           <input type="password" id="pass1" placeholder="Enter new permanent password">
-          <button type="button" class="toggle-pwd" onclick="toggleField('pass1', this)">Show</button>
+          <button type="button" class="pwd-toggle-btn" onclick="toggleField('pass1', this)">Show</button>
         </div>
       </div>
 
-      <!-- PASSWORD INPUT 2 (CONFIRMATION TO PREVENT TYPOS) -->
+      <!-- PASSWORD INPUT 2 (CONFIRMATION) -->
       <div class="form-group">
-        <label>Confirm New Permanent Password <span class="req">*</span></label>
-        <div class="pwd-wrapper">
+        <label class="form-label">Confirm New Permanent Password <span class="req">*</span></label>
+        <div class="pwd-field-wrap">
           <input type="password" id="pass2" placeholder="Re-enter same permanent password to verify">
-          <button type="button" class="toggle-pwd" onclick="toggleField('pass2', this)">Show</button>
+          <button type="button" class="pwd-toggle-btn" onclick="toggleField('pass2', this)">Show</button>
         </div>
-        <span id="matchFeedback" style="font-size:12px; display:block; margin-top:4px;"></span>
+        <span id="matchFeedback" style="font-size:12px; display:block; margin-top:5px;"></span>
       </div>
 
       <!-- TOTP SECTION -->
-      <div id="mfaEnrollSection" style="margin-top:20px; border-top:1px solid var(--slate-100); padding-top:16px;">
-        <label style="font-size:14px; font-weight:700;">Mobile Authenticator App Setup (TOTP)</label>
-        <p style="font-size:12.5px; color:var(--slate-600); margin:4px 0 10px 0;">
+      <div id="mfaEnrollSection" style="margin-top:24px; border-top:1px solid var(--border-subtle); padding-top:20px;">
+        <label class="form-label" style="font-size:13.5px; font-weight:700; color:var(--text-main);">
+          Mobile Authenticator App Setup (TOTP)
+        </label>
+        <p style="font-size:12.5px; color:var(--text-dim); margin:4px 0 14px 0;">
           Scan the QR code below with Google Authenticator, Authy, or 1Password.
         </p>
 
-        <div class="qr-box">
-          <img id="qrImage" src="" alt="TOTP QR" style="width:170px; height:170px; border-radius:4px; background:#fff; padding:4px; border:1px solid #cbd5e1;">
-          <div style="margin-top:10px; font-size:12px; color:var(--slate-700);">
-            Manual Key: <code id="secretKeyText" style="font-weight:700; background:#e2e8f0; padding:2px 6px; border-radius:4px;"></code>
+        <div style="text-align:center; padding:18px; background:#060a12; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); margin-bottom:18px;">
+          <img id="qrImage" src="" alt="TOTP QR" style="width:170px; height:170px; border-radius:6px; background:#fff; padding:6px;">
+          <div style="margin-top:12px; font-size:12px; color:var(--text-dim);">
+            Manual Key: <code id="secretKeyText" style="font-weight:700; color:var(--cyan-bright); padding:3px 8px;"></code>
           </div>
         </div>
 
         <div class="form-group">
-          <label>6-Digit Verification Code from Authenticator App <span class="req">*</span></label>
-          <input type="text" id="verifyCode" placeholder="e.g. 123456" maxlength="6" style="letter-spacing:2px; font-weight:700; text-align:center; font-size:16px;">
+          <label class="form-label">6-Digit Verification Code from Authenticator App <span class="req">*</span></label>
+          <input type="text" id="verifyCode" placeholder="e.g. 123456" maxlength="6" style="letter-spacing:3px; font-weight:700; text-align:center; font-size:17px;">
         </div>
       </div>
 
-      <button class="btn" id="btnSubmitSetup" onclick="submitOnboarding()">Verify & Activate Account</button>
+      <button class="btn btn-cyan" id="btnSubmitSetup" onclick="submitOnboarding()" style="width:100%; margin-top:10px;">
+        Verify & Activate Account →
+      </button>
     </div>
 
     <!-- STEP 2: RECOVERY CODES REVEAL (Shown ONLY AFTER SUCCESSFUL SUBMISSION) -->
-    <div id="successStep" class="card" style="display:none;">
-      <h2 class="card-title" style="color:var(--green-600);">✓ Account Activated Successfully!</h2>
-
-      <div class="notice notice-success">
-        <b>Password and Multi-Factor Authentication are now fully active.</b><br>
-        Below are your <b>8 Single-Use Emergency Recovery Codes</b>. If you ever lose access to your phone or authenticator app, each code can be used exactly once to log in.
+    <div id="successStep" class="panel-card" style="display:none;">
+      <div class="card-header-bar">
+        <div>
+          <h2 class="panel-title" style="color:var(--emerald-bright);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Account Activated Successfully!
+          </h2>
+          <p class="panel-subtitle">Permanent Password & Two-Factor Authentication are Live</p>
+        </div>
+        <span class="badge badge-hard">ACTIVATED</span>
       </div>
 
-      <label style="font-weight:700;">Save These 8 Emergency Recovery Codes Offline:</label>
-      <div class="codes-grid" id="recoveryCodesList"></div>
+      <div class="banner-box banner-success">
+        <div>
+          <b>Security Enrollment Complete.</b><br>
+          Below are your <b>8 Single-Use Emergency Recovery Codes</b>. If you ever lose access to your authenticator app, each code can be used exactly once to log in. Save them securely offline.
+        </div>
+      </div>
 
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button class="btn" style="background:var(--slate-700);" onclick="copyAllCodes()">Copy All Codes to Clipboard</button>
-        <button class="btn btn-green" id="btnContinue" onclick="proceedToDashboard()">Proceed to Operations Console →</button>
+      <label class="form-label" style="font-weight:700; color:var(--text-main);">
+        Emergency Recovery Codes (Save Immediately):
+      </label>
+      <div class="grid-2" id="recoveryCodesList" style="margin:14px 0 20px 0;"></div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="copyAllCodes()">
+          Copy All Codes to Clipboard
+        </button>
+        <button class="btn btn-emerald" id="btnContinue" style="flex:1;" onclick="proceedToDashboard()">
+          Proceed to Operations Console →
+        </button>
       </div>
     </div>
+  </main>
 
-  </div>
+  <footer class="app-footer">
+    ScatterID Security &bull; Mandatory MFA Enrollment &bull; Offline Recovery Infrastructure
+  </footer>
 
   <script>
     let tempToken = '';
@@ -287,10 +189,10 @@
       }
       if (p1 === p2) {
         fb.textContent = '✓ Passwords match';
-        fb.style.color = 'var(--green-600)';
+        fb.style.color = 'var(--emerald-bright)';
       } else {
         fb.textContent = '✗ Passwords do not match';
-        fb.style.color = 'var(--red-600)';
+        fb.style.color = 'var(--rose-bright)';
       }
     }
 
@@ -302,28 +204,26 @@
       errBox.style.display = 'none';
 
       if (!p1 || p1.length < 10) {
-        showErr('Permanent password must be at least 10 characters long.');
+        showError('New permanent password must be at least 10 characters.');
         return;
       }
       if (p1 !== p2) {
-        showErr('Passwords do not match. Please verify both fields.');
+        showError('Passwords do not match. Please verify your typing in both fields.');
         return;
       }
-      if (!code || code.length !== 6) {
-        showErr('Please enter the 6-digit code generated by your authenticator app.');
+      if (!code || !/^\d{6}$/.test(code)) {
+        showError('Please enter a valid 6-digit TOTP code from your authenticator app.');
         return;
       }
 
       const btn = document.getElementById('btnSubmitSetup');
       btn.disabled = true;
-      btn.textContent = 'Verifying & Saving Password...';
+      btn.textContent = 'Verifying Code & Activating...';
 
       try {
         const payload = {
           newPassword: p1,
-          totpCode: code,
-          totpSecret: onboardingData.mfaSetup ? onboardingData.mfaSetup.secret : undefined,
-          recoveryCodes: onboardingData.mfaSetup ? onboardingData.mfaSetup.recoveryCodes : undefined
+          totpCode: code
         };
 
         const res = await fetch('/api/auth/first-time-setup', {
@@ -334,59 +234,71 @@
           },
           body: JSON.stringify(payload)
         });
-        const data = await res.json();
 
+        const data = await res.json();
         if (!res.ok) {
-          showErr(data.message || data.error || 'Setup verification failed.');
+          showError(data.message || data.error || 'Setup verification failed. Check TOTP code.');
           btn.disabled = false;
-          btn.textContent = 'Verify & Activate Account';
+          btn.textContent = 'Verify & Activate Account →';
           return;
         }
 
-        // SUCCESS! Store operational token
+        // Setup Success!
         sessionStorage.setItem('scatterid_ops_token', data.token);
         sessionStorage.setItem('scatterid_ops_user', JSON.stringify(data.user));
         authenticatedUser = data.user;
 
-        // Populate recovery codes on the success screen
-        savedRecoveryCodes = (onboardingData.mfaSetup && onboardingData.mfaSetup.recoveryCodes) || [];
+        // Populate and reveal Step 2 (Recovery Codes)
+        savedRecoveryCodes = data.recoveryCodes || [];
         const grid = document.getElementById('recoveryCodesList');
         grid.innerHTML = '';
-        savedRecoveryCodes.forEach((c, i) => {
+        savedRecoveryCodes.forEach((c, idx) => {
           const div = document.createElement('div');
-          div.className = 'code-box';
-          div.textContent = `[${i + 1}] ${c}`;
+          div.style.background = '#060a12';
+          div.style.border = '1px solid var(--border-subtle)';
+          div.style.padding = '10px 14px';
+          div.style.textAlign = 'center';
+          div.style.fontFamily = 'var(--font-mono)';
+          div.style.fontSize = '13.5px';
+          div.style.fontWeight = '700';
+          div.style.borderRadius = '6px';
+          div.style.letterSpacing = '1px';
+          div.style.color = 'var(--cyan-bright)';
+          div.textContent = `[${idx + 1}] ${c}`;
           grid.appendChild(div);
         });
 
-        // Switch to Step 2: Recovery Codes Reveal
         document.getElementById('wizardStep').style.display = 'none';
         document.getElementById('successStep').style.display = 'block';
-
+        sessionStorage.removeItem('scatterid_temp_token');
+        sessionStorage.removeItem('scatterid_onboarding_data');
       } catch (err) {
-        showErr('Network error: ' + err.message);
+        showError('Network error during setup: ' + err.message);
         btn.disabled = false;
-        btn.textContent = 'Verify & Activate Account';
+        btn.textContent = 'Verify & Activate Account →';
       }
     }
 
-    function showErr(msg) {
+    function showError(msg) {
       const errBox = document.getElementById('wizardError');
       errBox.textContent = msg;
-      errBox.style.display = 'block';
+      errBox.style.display = 'flex';
     }
 
     function copyAllCodes() {
       if (savedRecoveryCodes.length === 0) return;
-      navigator.clipboard.writeText(savedRecoveryCodes.join('\n'));
-      alert('All 8 emergency recovery codes copied to clipboard! Save them in a secure password manager or offline vault.');
+      const text = savedRecoveryCodes.map((c, i) => `Code ${i + 1}: ${c}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        alert('All 8 emergency recovery codes copied to clipboard! Save them in a secure password vault.');
+      }).catch(() => {
+        alert('Could not copy automatically. Please select and copy the codes manually.');
+      });
     }
 
     function proceedToDashboard() {
-      const role = (authenticatedUser && authenticatedUser.role) || (onboardingData && onboardingData.role);
-      if (role === 'mod') {
+      if (authenticatedUser && authenticatedUser.role === 'mod') {
         window.location.href = '/mod.html';
-      } else if (role === 'root') {
+      } else if (authenticatedUser && authenticatedUser.role === 'root') {
         window.location.href = '/root.html';
       } else {
         window.location.href = '/test_harness.html';
