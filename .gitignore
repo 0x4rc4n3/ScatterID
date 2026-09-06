@@ -24,6 +24,8 @@ key_history.json
 
 # Databases & Local Volume Storage
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 data/*.db

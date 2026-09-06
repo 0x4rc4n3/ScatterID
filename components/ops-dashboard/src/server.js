@@ -2,11 +2,13 @@
 // Document ID: DEV-ARCH-08 / SEC-OPS-06
 
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import { getDb } from '../db/index.js';
 import { createRepositories } from '../db/models/index.js';
+import { migrateUp } from '../db/migrations/runner.js';
+import { seedInitialData } from '../db/seed.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createRequestsRouter } from './routes/requests.js';
 import { createKeysRouter } from './routes/keys.js';
@@ -24,6 +26,11 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
     contentSecurityPolicy: false // Allows inline scripts for plain test harnesses
   }));
   app.use(express.json({ limit: '100kb' }));
+
+  // Redirect root to test harness
+  app.get('/', (req, res) => {
+    res.redirect('/test_harness.html');
+  });
 
   // Serve zero-dependency bare-bones HTML test harness
   app.use(express.static(path.resolve(__dirname, '../public')));
@@ -59,10 +66,26 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
   return { app, db, repos };
 }
 
-export function startServer(port = process.env.PORT || 8080) {
-  const { app } = createApp();
+export async function startServer(port = process.env.PORT || 8080) {
+  const db = getDb();
+  migrateUp(db);
+  const repos = createRepositories(db);
+  await seedInitialData(db, repos);
+
+  const { app } = createApp({ db, repos });
   return app.listen(port, () => {
-    console.log(`[ScatterID Ops Dashboard] Listening on port ${port}`);
+    console.log(`=============================================================`);
+    console.log(`  ScatterID Ops Dashboard running at http://0.0.0.0:${port}`);
+    console.log(`  Test Harness available at http://localhost:${port}/test_harness.html`);
+    console.log(`=============================================================`);
+  });
+}
+
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectRun && process.env.NODE_ENV !== 'test') {
+  startServer().catch(err => {
+    console.error('Failed to start Ops Dashboard server:', err);
+    process.exit(1);
   });
 }
 
