@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScatterID Ops & Access — Test Harness</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; margin: 20px; background: #f8fafc; color: #0f172a; }
+    h1, h2, h3 { border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+    .panel { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    label { display: block; margin-top: 10px; font-weight: 600; font-size: 13px; }
+    input, select, textarea, button { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; font-family: inherit; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 4px; }
+    button { background: #0284c7; color: white; cursor: pointer; font-weight: 600; margin-top: 12px; border: none; }
+    button:hover { background: #0369a1; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    button.secondary { background: #64748b; }
+    pre { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 250px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-hard { background: #fef08a; color: #854d0e; }
+    .badge-soft { background: #bae6fd; color: #0369a1; }
+    .badge-exec { background: #bbf7d0; color: #15803d; }
+    .badge-root { background: #fed7aa; color: #9a3412; }
+    .badge-flag { background: #fecaca; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    th { background: #f1f5f9; }
+  </style>
+</head>
+<body>
+
+  <h1>ScatterID v2.1 Operations, Access & Disaster Recovery Test Harness</h1>
+  <p>Zero-dependency verification dashboard for Help Desk Clerks, Moderators, and Root Administrators.</p>
+
+  <div class="grid">
+
+    <!-- PANEL 1: AUTHENTICATION -->
+    <div class="panel">
+      <h2>1. Staff Authentication (Argon2id + TOTP)</h2>
+      <div id="authStatusBadge">Status: <b>Not Authenticated</b></div>
+      
+      <label>Username</label>
+      <input type="text" id="loginUsername" value="root_admin">
+      
+      <label>Password</label>
+      <input type="password" id="loginPassword" value="ScatterID@Master2026!">
+      
+      <label>6-Digit TOTP Code (Mod / Root)</label>
+      <input type="text" id="loginTotp" placeholder="e.g. 123456 (Leave blank if using recovery code)">
+      
+      <label>Single-Use Recovery Code (Emergency)</label>
+      <input type="text" id="loginRecovery" placeholder="e.g. XXXX-XXXX-XXXX">
+      
+      <button onclick="handleLogin()">Login / Switch Session</button>
+      <button class="secondary" onclick="handleLogout()">Clear Session</button>
+      
+      <pre id="authOutput">// Auth state will output here</pre>
+    </div>
+
+    <!-- PANEL 2: PHONE MIGRATION -->
+    <div class="panel">
+      <h2>2. Self-Service Phone Migration (/transfer)</h2>
+      <p style="font-size:12px; color:#64748b;">No SSH or server restart required to enroll a new mobile device.</p>
+
+      <label>Current Account Password</label>
+      <input type="password" id="transferPassword" placeholder="Confirm password">
+      <button onclick="handleTransferInit()">Step 1: Generate New Phone QR</button>
+
+      <div id="transferQrContainer" style="margin-top:10px; display:none; text-align:center;">
+        <img id="transferQrImg" src="" style="width:160px; height:160px; border:1px solid #cbd5e1; border-radius:4px;"><br>
+        <span id="transferSecretLabel" style="font-size:11px; color:#475569;"></span>
+      </div>
+
+      <label>New 6-Digit Code (from New Phone)</label>
+      <input type="text" id="transferNewCode" placeholder="6-digit code">
+      <button class="danger" onclick="handleTransferConfirm()">Step 2: Atomically Cut Over & Invalidate Old Phone</button>
+
+      <pre id="transferOutput">// Migration details & new recovery codes</pre>
+    </div>
+
+    <!-- PANEL 3: HELP DESK INTAKE -->
+    <div class="panel">
+      <h2>3. Help Desk Counter Intake (Clerk)</h2>
+      <label>Submission Channel</label>
+      <select id="intakeChannel" onchange="toggleIntakeChannelFields()">
+        <option value="hard">Hard Channel (Physical In-Person Inspection)</option>
+        <option value="soft">Soft Channel (Digital Scan / PDF Upload)</option>
+      </select>
+
+      <label>Claimant Full Name</label>
+      <input type="text" id="claimantName" value="Alice Hamilton">
+
+      <label>National ID / Passport No.</label>
+      <input type="text" id="claimantNatId" value="NAT-2026-998811">
+
+      <div id="hardChecklistFields" style="background:#fefce8; border:1px solid #fef08a; padding:8px; border-radius:4px; margin-top:8px;">
+        <b>Mandatory Physical Checkpoints:</b><br>
+        <label><input type="checkbox" id="chk1" checked> 1. Substrate & Material Integrity</label>
+        <label><input type="checkbox" id="chk2" checked> 2. Optical Security Features (Hologram/UV)</label>
+        <label><input type="checkbox" id="chk3" checked> 3. Biometric Likeness Face Match</label>
+        <label><input type="checkbox" id="chk4" checked> 4. Authority Embossed Seal & Serial</label>
+      </div>
+
+      <div id="softScanFields" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; padding:8px; border-radius:4px; margin-top:8px;">
+        <label>Document Scan SHA-256 Hash</label>
+        <input type="text" id="softEvidenceSha" placeholder="64-char hex SHA-256">
+      </div>
+
+      <button onclick="handleIssueSubmit()">Submit Issuance Request to Moderation Queue</button>
+      
+      <hr style="margin:16px 0; border:0; border-top:1px solid #cbd5e1;">
+      
+      <h3>Revocation Intake</h3>
+      <label>Credential Target ID</label>
+      <input type="text" id="revokeCredId" placeholder="UUID of credential to revoke">
+      <label>Revocation Reason</label>
+      <input type="text" id="revokeReason" value="Physical document reported stolen">
+      <button class="danger" onclick="handleRevokeSubmit()">Submit Revocation Request (Routes to Root)</button>
+
+      <pre id="intakeOutput">// Intake attribution & request ID</pre>
+    </div>
+
+    <!-- PANEL 4: MODERATOR QUEUE -->
+    <div class="panel">
+      <h2>4. Moderation Review Queue (Mod)</h2>
+      <button class="secondary" onclick="loadModPendingQueue()">Refresh Pending Requests</button>
+      <div id="modQueueContainer" style="margin-top:10px; max-height:220px; overflow-y:auto;">
+        <table id="modQueueTable">
+          <thead>
+            <tr><th>ID</th><th>Type</th><th>Channel</th><th>Claimant / Credential</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5">Click 'Refresh Pending Requests'</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <label>Moderator Justification Reason (Required for Flag / Reject)</label>
+      <input type="text" id="modReason" value="Physical inspection passed; genuine polycarbonate substrate verified">
+      
+      <pre id="modOutput">// Moderator decision response</pre>
+    </div>
+
+    <!-- PANEL 5: ROOT EXECUTION CONSOLE -->
+    <div class="panel">
+      <h2>5. Root Execution Console (Root)</h2>
+      <button class="secondary" onclick="loadRootQueues()">Refresh Root Queues</button>
+
+      <h3>Awaiting Root Accept (Soft Issue & Revocations)</h3>
+      <div style="max-height:160px; overflow-y:auto;">
+        <table id="rootAwaitingTable">
+          <thead><tr><th>ID</th><th>Type</th><th>Channel</th><th>Reason / Details</th><th>Execute</th></tr></thead>
+          <tbody><tr><td colspan="5">No requests</td></tr></tbody>
+        </table>
+      </div>
+
+      <h3>Flagged for Review</h3>
+      <div style="max-height:140px; overflow-y:auto;">
+        <table id="rootFlaggedTable">
+          <thead><tr><th>ID</th><th>Mod Reason</th><th>Decision</th></tr></thead>
+          <tbody><tr><td colspan="3">No flagged requests</td></tr></tbody>
+        </table>
+      </div>
+
+      <pre id="rootOutput">// Root execution result</pre>
+    </div>
+
+    <!-- PANEL 6: KEY MANAGEMENT -->
+    <div class="panel">
+      <h2>6. Dual-Key & PQC Management (Root)</h2>
+      
+      <label>Gateway Key to Rotate</label>
+      <select id="gwKeyName">
+        <option value="REVOKE_API_KEY">REVOKE_API_KEY</option>
+        <option value="VERIFICATION_API_KEY">VERIFICATION_API_KEY</option>
+      </select>
+      <label>Grace Window (Hours)</label>
+      <input type="number" id="gwGraceHours" value="24">
+      <button onclick="handleRotateGatewayKey()">Rotate Gateway Key (Zero Downtime)</button>
+
+      <hr style="margin:16px 0; border:0; border-top:1px solid #cbd5e1;">
+
+      <h3>Encrypted PQC Key Backup (.enc)</h3>
+      <label>Master Passphrase (min 12 chars)</label>
+      <input type="password" id="pqcPassphrase" value="MasterVaultKey2026!#Strong">
+      <button class="secondary" onclick="handleExportPqcBackup()">Export AES-256-GCM Envelope</button>
+
+      <pre id="keysOutput">// Key rotation output</pre>
+    </div>
+
+  </div>
+
+  <script>
+    let currentToken = '';
+    let currentRole = '';
+
+    function getHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      if (currentToken) h['Authorization'] = `Bearer ${currentToken}`;
+      return h;
+    }
+
+    function toggleIntakeChannelFields() {
+      const channel = document.getElementById('intakeChannel').value;
+      document.getElementById('hardChecklistFields').style.display = channel === 'hard' ? 'block' : 'none';
+      document.getElementById('softScanFields').style.display = channel === 'soft' ? 'block' : 'none';
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      const totp_code = document.getElementById('loginTotp').value.trim() || undefined;
+      const recovery_code = document.getElementById('loginRecovery').value.trim() || undefined;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, totp_code, recovery_code })
+        });
+        const data = await res.json();
+        document.getElementById('authOutput').textContent = JSON.stringify(data, null, 2);
+
+        if (res.ok && data.token) {
+          currentToken = data.token;
+          currentRole = data.user.role;
+          document.getElementById('authStatusBadge').innerHTML = `Status: <span class="badge badge-exec">Authenticated as ${data.user.username} (${currentRole})</span>`;
+        }
+      } catch (err) {
+        document.getElementById('authOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    function handleLogout() {
+      currentToken = '';
+      currentRole = '';
+      document.getElementById('authStatusBadge').innerHTML = 'Status: <b>Not Authenticated</b>';
+      document.getElementById('authOutput').textContent = '// Logged out';
+    }
+
+    let transferSecret = '';
+    async function handleTransferInit() {
+      const password = document.getElementById('transferPassword').value;
+      try {
+        const res = await fetch('/api/auth/mfa/transfer/init', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        document.getElementById('transferOutput').textContent = JSON.stringify(data, null, 2);
+        if (res.ok) {
+          transferSecret = data.newSecret;
+          document.getElementById('transferQrImg').src = data.qrCodeDataUrl;
+          document.getElementById('transferSecretLabel').textContent = `Base32: ${data.newSecret}`;
+          document.getElementById('transferQrContainer').style.display = 'block';
+        }
+      } catch (err) {
+        document.getElementById('transferOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function handleTransferConfirm() {
+      const password = document.getElementById('transferPassword').value;
+      const newTotpCode = document.getElementById('transferNewCode').value;
+      try {
+        const res = await fetch('/api/auth/mfa/transfer/confirm', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ password, newSecret: transferSecret, newTotpCode })
+        });
+        const data = await res.json();
+        document.getElementById('transferOutput').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('transferOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function handleIssueSubmit() {
+      const channel = document.getElementById('intakeChannel').value;
+      const name = document.getElementById('claimantName').value;
+      const natId = document.getElementById('claimantNatId').value;
+      const body = {
+        submission_channel: channel,
+        claimant_data: { fullName: name, nationalId: natId }
+      };
+
+      if (channel === 'hard') {
+        body.inspection_checklist = {
+          substrate_material_integrity: document.getElementById('chk1').checked,
+          optical_security_features: document.getElementById('chk2').checked,
+          biometric_face_match: document.getElementById('chk3').checked,
+          authority_seal_and_serial: document.getElementById('chk4').checked
+        };
+      } else {
+        body.evidence_sha256 = document.getElementById('softEvidenceSha').value || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+      }
+
+      try {
+        const res = await fetch('/api/requests/issue', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        document.getElementById('intakeOutput').textContent = JSON.stringify(data, null, 2);
+        loadModPendingQueue();
+      } catch (err) {
+        document.getElementById('intakeOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function handleRevokeSubmit() {
+      const credential_id = document.getElementById('revokeCredId').value;
+      const reason = document.getElementById('revokeReason').value;
+      try {
+        const res = await fetch('/api/requests/revoke', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ credential_id, reason, submission_channel: 'hard' })
+        });
+        const data = await res.json();
+        document.getElementById('intakeOutput').textContent = JSON.stringify(data, null, 2);
+        loadModPendingQueue();
+      } catch (err) {
+        document.getElementById('intakeOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function loadModPendingQueue() {
+      try {
+        const res = await fetch('/api/requests/pending', { headers: getHeaders() });
+        const data = await res.json();
+        const tbody = document.querySelector('#modQueueTable tbody');
+        tbody.innerHTML = '';
+
+        if (!data.requests || data.requests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">No pending requests</td></tr>';
+          return;
+        }
+
+        data.requests.forEach(r => {
+          const row = document.createElement('tr');
+          const channelBadge = r.submission_channel === 'hard' 
+            ? '<span class="badge badge-hard">HARD</span>' 
+            : '<span class="badge badge-soft">SOFT</span>';
+
+          const target = r.request_type === 'issuance' ? (JSON.parse(r.claimant_data || '{}').fullName || 'Claimant') : r.credential_id;
+
+          row.innerHTML = `
+            <td><code>${r.id.slice(0, 14)}...</code></td>
+            <td><b>${r.request_type}</b></td>
+            <td>${channelBadge}</td>
+            <td>${target}</td>
+            <td>
+              <button style="padding:4px 6px; margin:0;" onclick="handleModDecide('${r.id}', 'APPROVE')">Approve</button>
+              <button class="danger" style="padding:4px 6px; margin:0;" onclick="handleModDecide('${r.id}', 'REJECT')">Reject</button>
+              <button class="secondary" style="padding:4px 6px; margin:0;" onclick="handleModDecide('${r.id}', 'FLAG')">Flag</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleModDecide(reqId, action) {
+      const reason = document.getElementById('modReason').value;
+      try {
+        const res = await fetch(`/api/requests/${reqId}/decide`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ action, reason })
+        });
+        const data = await res.json();
+        document.getElementById('modOutput').textContent = JSON.stringify(data, null, 2);
+        loadModPendingQueue();
+        loadRootQueues();
+      } catch (err) {
+        document.getElementById('modOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function loadRootQueues() {
+      try {
+        // Awaiting Root
+        const awaitRes = await fetch('/api/requests/queue/awaiting-root', { headers: getHeaders() });
+        const awaitData = await awaitRes.json();
+        const awaitTbody = document.querySelector('#rootAwaitingTable tbody');
+        awaitTbody.innerHTML = '';
+
+        if (awaitData.requests && awaitData.requests.length > 0) {
+          awaitData.requests.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${r.id.slice(0, 14)}...</code></td>
+              <td><b>${r.request_type}</b></td>
+              <td><span class="badge badge-${r.submission_channel}">${r.submission_channel}</span></td>
+              <td>${r.reason || r.moderator_reason || 'Soft issue review pass'}</td>
+              <td>
+                <button style="padding:4px 6px; margin:0;" onclick="handleRootExecute('${r.id}', 'ACCEPT')">Accept & Execute</button>
+                <button class="danger" style="padding:4px 6px; margin:0;" onclick="handleRootExecute('${r.id}', 'REJECT')">Reject</button>
+              </td>
+            `;
+            awaitTbody.appendChild(tr);
+          });
+        } else {
+          awaitTbody.innerHTML = '<tr><td colspan="5">No requests awaiting root execution</td></tr>';
+        }
+
+        // Flagged
+        const flagRes = await fetch('/api/requests/queue/flagged', { headers: getHeaders() });
+        const flagData = await flagRes.json();
+        const flagTbody = document.querySelector('#rootFlaggedTable tbody');
+        flagTbody.innerHTML = '';
+
+        if (flagData.requests && flagData.requests.length > 0) {
+          flagData.requests.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${r.id.slice(0, 14)}...</code></td>
+              <td>${r.moderator_reason || 'Flagged'}</td>
+              <td>
+                <button style="padding:4px 6px; margin:0;" onclick="handleRootExecute('${r.id}', 'ACCEPT')">Accept</button>
+                <button class="danger" style="padding:4px 6px; margin:0;" onclick="handleRootExecute('${r.id}', 'REJECT')">Reject</button>
+              </td>
+            `;
+            flagTbody.appendChild(tr);
+          });
+        } else {
+          flagTbody.innerHTML = '<tr><td colspan="3">No flagged requests</td></tr>';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleRootExecute(reqId, action) {
+      try {
+        const res = await fetch(`/api/requests/${reqId}/root-execute`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ action, reason: 'Root authorization decision' })
+        });
+        const data = await res.json();
+        document.getElementById('rootOutput').textContent = JSON.stringify(data, null, 2);
+        loadRootQueues();
+      } catch (err) {
+        document.getElementById('rootOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function handleRotateGatewayKey() {
+      const key_name = document.getElementById('gwKeyName').value;
+      const grace_window_hours = document.getElementById('gwGraceHours').value;
+      try {
+        const res = await fetch('/api/keys/gateway/rotate', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ key_name, grace_window_hours })
+        });
+        const data = await res.json();
+        document.getElementById('keysOutput').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('keysOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function handleExportPqcBackup() {
+      const master_passphrase = document.getElementById('pqcPassphrase').value;
+      try {
+        const res = await fetch('/api/keys/pqc/export', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ master_passphrase })
+        });
+        const data = await res.json();
+        document.getElementById('keysOutput').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('keysOutput').textContent = 'Error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

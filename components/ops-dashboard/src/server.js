@@ -1,6 +1,8 @@
 // ScatterID Internal Operations Dashboard Backend Service
 // Document ID: DEV-ARCH-08 / SEC-OPS-06
 
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import { getDb } from '../db/index.js';
@@ -8,6 +10,9 @@ import { createRepositories } from '../db/models/index.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createRequestsRouter } from './routes/requests.js';
 import { createKeysRouter } from './routes/keys.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function createApp({ db: customDb = null, repos: customRepos = null } = {}) {
   const app = express();
@@ -19,6 +24,9 @@ export function createApp({ db: customDb = null, repos: customRepos = null } = {
     contentSecurityPolicy: false // Allows inline scripts for plain test harnesses
   }));
   app.use(express.json({ limit: '100kb' }));
+
+  // Serve zero-dependency bare-bones HTML test harness
+  app.use(express.static(path.resolve(__dirname, '../public')));
 
   // Health check endpoint
   app.get('/healthz', (req, res) => {
