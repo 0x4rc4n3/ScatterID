@@ -1,68 +1,111 @@
-# ScatterID — Ops & Access Documentation Overview
+# ScatterID — Ops & Access Documentation Suite (v2.1)
 
-This README is the index for the internal-dashboard / client-portal documentation set. Add it to
-the top of `docs/` (or equivalent) so anyone new to the project has one place to start.
+This documentation suite serves as the complete technical, operational, and architectural specification for the ScatterID Operations Dashboard, Help Desk Client Portal, Key Lifecycle Management, and Network Security Architecture.
 
-## What this covers
+---
 
-Two deployable components, each with a requirements doc and a UI/UX doc:
+## 1. Documentation Index
 
-| Component | Requirements & Access | UI/UX Design |
+The specification is organized into modular, purpose-built documents:
+
+| File | Category | Focus / Scope |
 |---|---|---|
-| Internal Ops Dashboard | `01-internal-dashboard-requirements-and-access.md` | `02-internal-dashboard-ui-ux-design.md` |
-| Client Portal & Help Desk | `03-client-portal-requirements-and-access.md` | `04-client-portal-ui-ux-design.md` |
+| [`start.md`](file:///home/kali/scatterid-ecosystem/new/start.md) | **Execution** | **Master Execution Blueprint & Auto-Start Guide for new chat (`do @new/start`)** |
+| [`01-internal-dashboard-requirements-and-access.md`](file:///home/kali/scatterid-ecosystem/new/01-internal-dashboard-requirements-and-access.md) | Ops Dashboard | Requirements, Mod/Root separation, Scenario B Tiered Risk, MFA, dual-key rotation |
+| [`02-internal-dashboard-ui-ux-design.md`](file:///home/kali/scatterid-ecosystem/new/02-internal-dashboard-ui-ux-design.md) | Ops Dashboard | Appsmith layout, auto-execution cues, MFA setup, backup & restore UI |
+| [`03-client-portal-requirements-and-access.md`](file:///home/kali/scatterid-ecosystem/new/03-client-portal-requirements-and-access.md) | Client Portal | Help Desk operational requirements, Counter VPN access, clerk audit attribution |
+| [`04-client-portal-ui-ux-design.md`](file:///home/kali/scatterid-ecosystem/new/04-client-portal-ui-ux-design.md) | Client Portal | Flowbite UI layout, physical inspection checklist, direct verification console |
+| [`05-README-documentation-overview.md`](file:///home/kali/scatterid-ecosystem/new/05-README-documentation-overview.md) | Overview | Master system overview, routing flow, and role matrix |
+| [`06-disaster-recovery-and-key-lifecycle.md`](file:///home/kali/scatterid-ecosystem/new/06-disaster-recovery-and-key-lifecycle.md) | Security & Ops | MFA device migration, recovery codes, break-glass CLI, dual-key rotation, PQC backups |
+| [`07-network-topology-and-segmentation.md`](file:///home/kali/scatterid-ecosystem/new/07-network-topology-and-segmentation.md) | Infrastructure | 3-zone network topology, iptables firewall micro-segmentation, WireGuard VPN configuration |
+| [`08-engineering-methodology-and-verification-architecture.md`](file:///home/kali/scatterid-ecosystem/new/08-engineering-methodology-and-verification-architecture.md) | Engineering & Dev | Atomic sub-component breakdown, defensive worst-case coding, zero-UI raw testing, offline/online verification architecture |
+| [`verification-channel-and-escalation-addendum.md`](file:///home/kali/scatterid-ecosystem/new/verification-channel-and-escalation-addendum.md) | Core Domain | Baseline Hard vs. Soft channel definitions and evidentiary standards |
 
-Plus one earlier addendum still in force, referenced by both:
+---
 
-- `verification-channel-and-escalation-addendum.md` — defines what Hard/Soft channel means
-  (physical document present vs. digital submission) and how the moderator's Approve/Reject/Flag
-  interacts with it. Both dashboard docs assume this addendum, don't re-derive the definitions.
+## 2. The System in One Paragraph
 
-## The system in one paragraph
+A credential request (issue or revoke) originates at the **Help Desk Portal**, operating over an encrypted, micro-segmented **Counter VPN (`10.20.0.0/24`)**. An authenticated clerk inspects claimant credentials, records the **Verification Channel** (Hard: physical in-person inspection; Soft: digital scan upload), and submits the request with an immutable **Audit Attribution Stamp** (`staff_user_id`, `station_id`, `channel`, `timestamp`). The request routes to the **Internal Ops Dashboard (`10.10.0.0/24`)** where a **Moderator (Mod)** performs review. Under **Scenario B: Tiered Risk**, if a Hard-Channel issuance request is explicitly approved by Mod, it **auto-executes directly on Hyperledger Fabric** with zero delay; if Soft-Channel, or if flagged, it routes to the **Root Administrator** for final approval. All Revocations and PQC Key Rotations strictly require Root authorization and execution. Network firewalls isolate the Counter VPN so clerks can never access the Internal Dashboard (`:8080`) or backend databases. Authentication is protected by Argon2id and TOTP MFA, with zero-downtime dual-key rotation, self-service phone migration, and an offline break-glass CLI (`tools/admin_cli.js`) to guarantee disaster recovery.
 
-A credential request (issue or revoke) starts at the **Client Portal**, in **Help Desk mode**
-(Issue Desk or Revoke Desk), where a clerk records the request along with which verification
-channel applied — **Hard** (the physical document was inspected) or **Soft** (a digital scan was
-submitted). That request lands in the **Internal Dashboard**'s Moderation Queue, where **Mod**
-reviews it and decides: Approve, Reject, or Flag. Approve and Flag both route to **Root**, who is
-the only role that can actually execute anything — Root's Accept is what triggers the real
-issue/revoke call. Reject, at either tier, just closes the request. Key rotation follows the same
-decide/execute split: Mod can only request a routine rotation, Root approves and executes it, and
-Root alone has a separate emergency-rotation path for urgent cases. The Client Portal also runs a
-second, unrelated mode — a public, no-login **Sandbox** for sales/technical evaluation — sharing
-the same codebase but never touching the real moderation queue.
+---
 
-## Roles at a glance
+## 3. Operational Routing Matrix (Scenario B: Tiered Risk)
 
-| Role | Lives on | Can execute anything irreversible? |
-|---|---|---|
-| Public visitor | Client Portal (Sandbox mode) | No — preset/simulated data only |
-| Help Desk clerk | Client Portal (Help Desk mode) | No — can only create requests or run a direct Verify |
-| Mod | Internal Dashboard | No — decides (Approve/Reject/Flag), never executes |
-| Root | Internal Dashboard | Yes — the only role that executes issue/revoke, key rotation, or emergency rotation |
+| Action Type | Verification Channel | Mod Action | System Execution Behavior |
+|---|---|---|---|
+| **Issuance** | **Hard Channel** (Physical) | **Approve** | ⚡ **AUTO-EXECUTES on Hyperledger Fabric immediately** (Stamps Mod ID + Clerk ID) |
+| **Issuance** | **Hard Channel** (Physical) | **Flag** | Routes to Root Queue as `FLAGGED` (Root decides execution) |
+| **Issuance** | **Soft Channel** (Digital Scan) | **Approve** | Routes to Root Queue as `AWAITING_ROOT_ACCEPT` (Root executes) |
+| **Issuance** | **Soft Channel** (Digital Scan) | **Flag** | Routes to Root Queue as `FLAGGED` (Root decides execution) |
+| **Revocation** | **Hard or Soft Channel** | **Approve** | 🔒 **Routes to Root Queue** (Never auto-executes; Root execution mandatory) |
+| **Any Request** | Hard or Soft | **Reject** | ⛔ Closed immediately as `REJECTED` (Logged in audit trail) |
+| **Key Rotation** | System Infrastructure | **Request** | 🔑 Routes to Root for verification and dual-key activation |
 
-## Network topology — deliberately not fixed
+---
 
-The Internal Dashboard is **never** internet-facing, in any configuration. The Client Portal
-**might** be an org's only internet-facing surface, might sit on the same internal network as the
-dashboard, or might not face the internet at all — this is an org-level decision, and both
-requirements docs are written to not assume one answer. If you're deploying for a new client, that
-network decision is the first thing to confirm with them, before touching either build guide.
+## 4. Roles & Privileges at a Glance
 
-## Where to look for what
+| Role | Operational Surface | Network Subnet | Authentication | Execution Capability |
+|---|---|---|---|---|
+| **Public Visitor** | Public Sandbox | Public | None | *Deferred / Disabled in initial rollout* |
+| **Help Desk Clerk** | Client Portal | Counter VPN (`10.20.0.0/24`) | Argon2id Password | Intake only (Issue, Revoke, Direct Verify); no moderation or queue visibility |
+| **Moderator (Mod)** | Internal Dashboard | Management LAN (`10.10.0.0/24`) | Argon2id + TOTP MFA | Approve/Reject/Flag; **Auto-executes Hard-Channel Issuance ONLY** |
+| **Root Administrator** | Internal Dashboard | Management LAN (`10.10.0.0/24`) | Argon2id + TOTP MFA | Full execution: Soft Issuance, all Revocations, PQC Key Rotation, User Management |
+| **Emergency Break-Glass** | Terminal CLI (`admin_cli.js`) | Host Local (`127.0.0.1` / SSH) | Direct Root Keys / Passphrase | Offline recovery, TOTP secret resets, SQLite integrity restore, direct PQC rotation |
 
-- **"What is X allowed to do?"** → the relevant Requirements & Access doc, §3 (Roles & Access).
-- **"What does the screen for X look like?"** → the relevant UI/UX doc.
-- **"What happens when a hard-channel document fails inspection?"** → the verification-channel
-  addendum, plus Internal Dashboard requirements doc §4.1/§5.
-- **"Can we skip the Help Desk clerk for this org?"** → Client Portal requirements doc §4.3
-  (`FRONT_DESK_ENABLED` / `HELP_DESK_SCOPE`).
-- **"How do I build the actual pages?"** → each requirements doc's Tech Stack / Repository
-  section (Appsmith for the dashboard, Flowbite for the portal); UI/UX docs give the detailed
-  layout to build against.
+---
 
-## Change history
+## 5. Network Zoning Summary
 
-- v1 (original): flat admin/view-only split on the dashboard; single-mode sandbox-only portal.
-- v2: introduced Mod/Root decide-vs-execute split, hard/soft channel model, and Help Desk
-  operational mode on the portal. This is the current version.
+```
+                      [ INTERNET / EXTERNAL ]
+                                 |
+                                 v
+                 [ Perimeter Firewall / WireGuard ]
+                                 |
+         +-----------------------+-----------------------+
+         |                                               |
+         v                                               v
+[ Counter VPN: 10.20.0.0/24 ]           [ Management LAN: 10.10.0.0/24 ]
+- Help Desk Clerks                      - Internal Ops Dashboard (:8080)
+- Client Portal UI (:3000)              - Appsmith Backend / Engine
+- Direct Verification Requests          - Mod & Root Operators
+         |                                               |
+         | (ALLOWED: :3000)                              | (ALLOWED: :8080, :5000, :7051)
+         | (BLOCKED: :8080, :5000, Fabric)               |
+         +-----------------------+-----------------------+
+                                 |
+                                 v
+             [ Core Secure Dataplane: 127.0.0.1 / Docker Bridge ]
+             - ScatterID Verification Gateway (:5000)
+             - Hyperledger Fabric Peer & Orderer (:7051, :7050)
+             - PQC Signer & Vault
+             - SQLite Database & Immutable Audit Log
+```
+
+---
+
+## 6. Disaster Recovery & Key Lifecycle Highlights
+
+1. **Self-Service MFA Phone Migration**: Admins can migrate TOTP to a new phone without SSH or database modification via verified re-enrollment with current password confirmation.
+2. **Offline Recovery Codes**: 8 single-use cryptographically random codes (SHA-256 hashed in database) for emergency authentication without an authenticator app.
+3. **Break-Glass CLI**: Host-level `tools/admin_cli.js` allows direct administrative recovery when the web container or network is offline.
+4. **Zero-Downtime Dual-Key Rotation**: Gateway API keys support primary + grace period keys, eliminating downtime during credential updates.
+5. **Advance Key Pre-Distribution (Primary Standard)**: Future PQC signing keys are pre-generated 3–6 months in advance and pre-staged on all offline verifier keyrings, guaranteeing zero unknown-key rejections upon rotation.
+6. **Cryptographic Delegation Endorsements (Disaster Fallback)**: If the pre-staged key pool is compromised, fresh emergency keys are certified by the outgoing key via delegation tokens, maintaining offline verifiability without firmware pushes.
+7. **Encrypted PQC Key Backups**: PQC key pairs exported as AES-256-GCM encrypted bundles (`.enc`) with scrypt KDF.
+
+---
+
+## 7. Change History
+
+- **v1.0**: Baseline implementation (flat admin/viewer dashboard, public demo sandbox).
+- **v2.0**: Introduction of Mod/Root dual-custody model, verification channel addendum (Hard/Soft), and operational Help Desk mode.
+- **v2.1 (Current)**:
+  - Adopted **Scenario B: Tiered Risk** (Hard-channel issue auto-executes upon Mod approval; Soft-channel issue and all revocations strictly require Root execution).
+  - Enforced **Network Micro-segmentation** (3-zone model separating Counter VPN `10.20.0.0/24` from Ops Dashboard `10.10.0.0/24`).
+  - Added **Comprehensive Disaster Recovery & Key Lifecycle** specification (`06-disaster-recovery-and-key-lifecycle.md`).
+  - Added **Dedicated Network Architecture** specification (`07-network-topology-and-segmentation.md`).
+  - Formalized **Clerk Audit Attribution** stamping.
+  - Deferred public sandbox mode to focus exclusively on hardened internal operations.
+
