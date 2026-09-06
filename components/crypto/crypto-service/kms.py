@@ -101,8 +101,18 @@ class KMS:
                 "Set VAULT_DEV_MODE=true to allow HTTP for local development only."
             )
             
-        if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
-            raise ValueError("CRITICAL: VAULT_TOKEN (or AppRole credentials) is not configured.")
+        if not is_dev_mode:
+            if not (self.vault_role_id and self.vault_secret_id):
+                raise ValueError(
+                    "CRITICAL: Ambient VAULT_TOKEN is forbidden in production. "
+                    "Production environments (VAULT_DEV_MODE=false) must authenticate using "
+                    "Vault AppRole (VAULT_ROLE_ID and VAULT_SECRET_ID)."
+                )
+            if self.vault_token:
+                print("KMS Warning: Ambient VAULT_TOKEN detected in production; strictly ignored in favor of AppRole credentials.")
+        else:
+            if not self.vault_token and not (self.vault_role_id and self.vault_secret_id):
+                raise ValueError("CRITICAL: VAULT_TOKEN or AppRole credentials (VAULT_ROLE_ID and VAULT_SECRET_ID) must be configured.")
             
         self.secret_path = os.environ.get("VAULT_SECRET_PATH", "scatterid/mldsa")
         self.signing_mode = (signing_mode or os.environ.get("VAULT_SIGNING_MODE", "kv")).lower()
@@ -137,6 +147,18 @@ class KMS:
             if pk:
                 return verify_signature(digest_bytes, signature_bytes, pk, algorithm)
             return False
+
+    def renew_token(self, increment_seconds: int = 3600) -> bool:
+        """Renew the active Vault client token lease if authenticated."""
+        with self.lock:
+            if not self.client or not self.client.is_authenticated():
+                return False
+            try:
+                self.client.auth.token.renew_self(increment=increment_seconds)
+                return True
+            except Exception as e:
+                print(f"KMS Warning: Token renewal failed: {e}")
+                return False
 
     def _load_disk_history(self):
         """Load persisted public key history from disk if present."""
