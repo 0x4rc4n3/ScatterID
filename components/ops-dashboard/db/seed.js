@@ -1,17 +1,9 @@
 // Database Seeder for Local Testing & Initial Boot
-// Creates default demo accounts (Root, Mod, Clerk), PQC Keys, and Gateway Keys
+// Provisions initial staff accounts with temporary One-Time Passwords (OTP)
+// Enforces mandatory first-time onboarding (New permanent password + TOTP scan)
 
 import crypto from 'node:crypto';
 import { hashPassword } from '../src/auth/passwords.js';
-import {
-  generateTotpSecret,
-  encryptTotpSecret,
-  generateTotpCode
-} from '../src/auth/totp.js';
-import {
-  generateRecoveryCodesBatch,
-  hashRecoveryCode
-} from '../src/auth/recoveryCodes.js';
 
 export async function seedInitialData(db, repos) {
   const existingRoot = repos.users.findByUsername('root_admin');
@@ -19,50 +11,48 @@ export async function seedInitialData(db, repos) {
     return false; // Already seeded
   }
 
-  console.log('[ScatterID Seed] Seeding initial demo staff accounts and cryptographic keys...');
+  console.log('[ScatterID Seed] Provisioning initial staff accounts with temporary One-Time Passwords (OTP)...');
 
-  const defaultPassword = 'ScatterID@Master2026!';
-  const passwordHash = await hashPassword(defaultPassword);
+  const rootTempOtp = 'TempPass-Root2026!';
+  const modTempOtp = 'TempPass-Mod2026!';
+  const clerkTempOtp = 'TempPass-Clerk2026!';
 
-  // 1. Root Admin
-  const rootTotpSecret = generateTotpSecret();
-  const rootEncSecret = encryptTotpSecret(rootTotpSecret);
+  const rootHash = await hashPassword(rootTempOtp);
+  const modHash = await hashPassword(modTempOtp);
+  const clerkHash = await hashPassword(clerkTempOtp);
+
+  // 1. Root Administrator (Requires first-time setup: permanent pass + TOTP QR)
   const rootUser = repos.users.createUser({
     id: crypto.randomUUID(),
     username: 'root_admin',
-    password_hash: passwordHash,
+    password_hash: rootHash,
     role: 'root',
-    totp_secret: rootEncSecret,
-    totp_enabled: 1
+    totp_secret: null,
+    totp_enabled: 0,
+    force_password_reset: 1
   });
 
-  const rootCodes = generateRecoveryCodesBatch(8);
-  repos.recoveryCodes.saveCodesForUser(rootUser.id, rootCodes.map(c => hashRecoveryCode(c)));
-
-  // 2. Moderator
-  const modTotpSecret = generateTotpSecret();
-  const modEncSecret = encryptTotpSecret(modTotpSecret);
+  // 2. Moderator (Requires first-time setup: permanent pass + TOTP QR)
   const modUser = repos.users.createUser({
     id: crypto.randomUUID(),
     username: 'mod_sarah',
-    password_hash: passwordHash,
+    password_hash: modHash,
     role: 'mod',
-    totp_secret: modEncSecret,
-    totp_enabled: 1
+    totp_secret: null,
+    totp_enabled: 0,
+    force_password_reset: 1
   });
 
-  const modCodes = generateRecoveryCodesBatch(8);
-  repos.recoveryCodes.saveCodesForUser(modUser.id, modCodes.map(c => hashRecoveryCode(c)));
-
-  // 3. Help Desk Clerk
+  // 3. Help Desk Clerk (Requires first-time setup: permanent pass)
   const clerkUser = repos.users.createUser({
     id: crypto.randomUUID(),
     username: 'clerk_john',
-    password_hash: passwordHash,
+    password_hash: clerkHash,
     role: 'clerk',
     station_id: 'STATION-DESK-01',
     totp_secret: null,
-    totp_enabled: 0
+    totp_enabled: 0,
+    force_password_reset: 1
   });
 
   // 4. Pre-staged PQC Keys
@@ -97,26 +87,23 @@ export async function seedInitialData(db, repos) {
   });
 
   console.log('=============================================================');
-  console.log('  ScatterID Local Demo Accounts Seeded Successfully');
+  console.log('  ScatterID Staff Accounts Provisioned (First-Time Onboarding)');
   console.log('=============================================================');
-  console.log(`  Password for all accounts: ${defaultPassword}`);
-  console.log('  -----------------------------------------------------------');
-  console.log('  1. Root Admin:');
+  console.log('  1. Root Administrator:');
   console.log('     Username: root_admin');
-  console.log(`     TOTP Secret: ${rootTotpSecret}`);
-  console.log(`     Current TOTP Code: ${generateTotpCode(rootTotpSecret)}`);
-  console.log(`     Sample Recovery Code: ${rootCodes[0]}`);
+  console.log(`     Temporary One-Time Password: ${rootTempOtp}`);
+  console.log('     Status: Must complete first-time setup (New Password + TOTP QR)');
   console.log('  -----------------------------------------------------------');
   console.log('  2. Moderator:');
   console.log('     Username: mod_sarah');
-  console.log(`     TOTP Secret: ${modTotpSecret}`);
-  console.log(`     Current TOTP Code: ${generateTotpCode(modTotpSecret)}`);
-  console.log(`     Sample Recovery Code: ${modCodes[0]}`);
+  console.log(`     Temporary One-Time Password: ${modTempOtp}`);
+  console.log('     Status: Must complete first-time setup (New Password + TOTP QR)');
   console.log('  -----------------------------------------------------------');
   console.log('  3. Help Desk Clerk:');
   console.log('     Username: clerk_john');
   console.log('     Station ID: STATION-DESK-01');
-  console.log('     MFA: Not required for clerk intake');
+  console.log(`     Temporary One-Time Password: ${clerkTempOtp}`);
+  console.log('     Status: Must complete first-time setup (New Password)');
   console.log('=============================================================');
 
   return true;

@@ -70,24 +70,39 @@ export function createAuthRouter({ db, repos }) {
         });
       }
 
-      // Step 2: Role-based MFA Check
-      // Mod and Root roles MUST have TOTP enforced
+      // Step 2: Role-based MFA Check & First-Time Setup
       const isMfaMandatoryRole = user.role === 'mod' || user.role === 'root';
 
-      if (isMfaMandatoryRole && !user.totp_enabled) {
-        // Must enroll in MFA before standard access is granted
+      if (user.force_password_reset || (isMfaMandatoryRole && !user.totp_enabled)) {
+        // Must complete onboarding/MFA setup before standard access is granted
         const tempToken = signToken({
           userId: user.id,
           username: user.username,
           role: user.role,
           stationId: user.station_id,
           mfaPending: true
-        }, 1800); // 30 minutes to complete enrollment
+        }, 1800); // 30 minutes to complete setup
+
+        const secret = generateTotpSecret();
+        const otpauthUri = getTotpUri(secret, user.username);
+        const qrCodeDataUrl = await generateQrDataUrl(otpauthUri);
+        const recoveryCodes = generateRecoveryCodesBatch(8);
+        const mfaSetup = {
+          secret,
+          otpauthUri,
+          qrCodeDataUrl,
+          recoveryCodes
+        };
 
         return res.status(200).json({
-          requireMfaEnrollment: true,
+          requireFirstTimeSetup: true,
+          requireMfaEnrollment: isMfaMandatoryRole || Boolean(user.force_password_reset),
+          forcePasswordReset: Boolean(user.force_password_reset),
           tempToken,
-          message: 'MFA enrollment is required for administrative roles'
+          username: user.username,
+          role: user.role,
+          mfaSetup,
+          message: 'First-time setup required. Configure your permanent password and MFA credentials.'
         });
       }
 
@@ -480,6 +495,102 @@ export function createAuthRouter({ db, repos }) {
       });
     } catch (err) {
       return res.status(500).json({ error: 'RESET_FAILED', message: err.message });
+    }
+  });
+
+  /**
+   * POST /api/auth/first-time-setup
+   * Completes account onboarding for newly provisioned users with temporary OTPs.
+   * Atomically updates permanent password, sets up TOTP MFA, and issues operational session token.
+   */
+  router.post('/first-time-setup', authenticate, async (req, res) => {
+    try {
+      const { newPassword, totpCode, totpSecret, recoveryCodes } = req.body || {};
+      const clientIp = getClientIp(req);
+      const user = repos.users.findById(req.user.userId);
+      if (!user) {
+        return res.status(404).json({ error: 'USER_NOT_FOUND' });
+      }
+
+      if (!newPassword || newPassword.length < 10) {
+        return res.status(400).json({
+          error: 'WEAK_PASSWORD',
+          message: 'Permanent password must be at least 10 characters long'
+        });
+      }
+
+      const isMfaMandatory = user.role === 'mod' || user.role === 'root';
+      const hasMfaInputs = Boolean(totpSecret && totpCode);
+      const shouldConfigureMfa = isMfaMandatory || hasMfaInputs;
+      let encryptedSecret = user.totp_secret;
+      let totpEnabled = user.totp_enabled;
+
+      if (shouldConfigureMfa) {
+        if (!totpSecret || !totpCode) {
+          return res.status(400).json({
+            error: 'MFA_VERIFICATION_REQUIRED',
+            message: 'Both TOTP secret and 6-digit verification code are required'
+          });
+        }
+        const isValid = verifyTotpCode(totpSecret, totpCode);
+        if (!isValid) {
+          return res.status(400).json({
+            error: 'INVALID_TOTP_CODE',
+            message: 'The 6-digit TOTP code is invalid or expired. Please check your authenticator app.'
+          });
+        }
+        encryptedSecret = encryptTotpSecret(totpSecret);
+        totpEnabled = 1;
+      }
+
+      const newPasswordHash = await hashPassword(newPassword);
+
+      const setupTx = db.transaction(() => {
+        repos.users.updatePassword(user.id, newPasswordHash, 0);
+        if (shouldConfigureMfa) {
+          repos.users.updateTotp(user.id, {
+            totp_secret: encryptedSecret,
+            totp_enabled: 1
+          });
+          if (Array.isArray(recoveryCodes) && recoveryCodes.length > 0) {
+            const hashes = recoveryCodes.map(hashRecoveryCode);
+            repos.recoveryCodes.saveCodesForUser(user.id, hashes);
+          }
+        }
+      });
+      setupTx();
+
+      repos.auditLog.record({
+        action: 'USER_FIRST_TIME_SETUP_COMPLETE',
+        status: 'SUCCESS',
+        actor_id: user.id,
+        username: user.username,
+        role: user.role,
+        client_ip: clientIp,
+        details: { mfaEnabled: Boolean(totpEnabled) }
+      });
+
+      const token = signToken({
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        stationId: user.station_id
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Account onboarding completed successfully.',
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          station_id: user.station_id,
+          totp_enabled: Boolean(totpEnabled)
+        }
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'SETUP_FAILED', message: err.message });
     }
   });
 

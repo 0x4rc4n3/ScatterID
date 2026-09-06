@@ -6,6 +6,7 @@
   <title>ScatterID v2.1 Operations & Access Dashboard</title>
   <style>
     :root {
+      --slate-950: #020617;
       --slate-900: #0f172a;
       --slate-800: #1e293b;
       --slate-700: #334155;
@@ -24,495 +25,585 @@
     }
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
       margin: 0;
       padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
       background: var(--slate-50);
       color: var(--slate-900);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     header {
       background: var(--slate-900);
       color: #fff;
-      padding: 16px 24px;
+      padding: 14px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 3px solid var(--primary);
       flex-wrap: wrap;
       gap: 12px;
-      border-bottom: 3px solid var(--primary);
     }
-    .header-title h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.5px; }
-    .header-title p { margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; }
-    .session-badge {
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.4px; }
+    .brand p { margin: 2px 0 0 0; font-size: 11.5px; color: #94a3b8; }
+    .nav-bar {
       background: var(--slate-800);
-      border: 1px solid var(--slate-700);
-      padding: 6px 14px;
-      border-radius: 6px;
+      border-bottom: 1px solid var(--slate-700);
+      padding: 0 24px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      color: #cbd5e1;
       font-size: 13px;
+      font-weight: 600;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -1px;
+      white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    .role-pill {
-      font-size: 11px;
-      font-weight: 700;
+    .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.03); }
+    .nav-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; background: rgba(255,255,255,0.05); }
+    .nav-btn.disabled { opacity: 0.45; cursor: not-allowed; }
+    .user-pill {
+      background: var(--slate-800);
+      border: 1px solid var(--slate-700);
+      padding: 5px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+    .role-tag {
       padding: 2px 8px;
       border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
     }
-    .role-none { background: var(--slate-700); color: #cbd5e1; }
-    .role-clerk { background: #bae6fd; color: #0369a1; }
-    .role-mod { background: #fef08a; color: #854d0e; }
     .role-root { background: #fbcfe8; color: #9d174d; }
-    .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
-    .panel {
+    .role-mod { background: #fef08a; color: #854d0e; }
+    .role-clerk { background: #bae6fd; color: #0369a1; }
+    .container {
+      max-width: 1150px;
+      margin: 24px auto;
+      padding: 0 20px;
+      width: 100%;
+      flex: 1;
+    }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .card {
       background: #fff;
       border: 1px solid var(--slate-200);
       border-radius: 8px;
-      padding: 18px;
+      padding: 24px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      position: relative;
+      margin-bottom: 20px;
     }
-    .panel.locked {
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      opacity: 0.85;
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 0;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--slate-100);
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .locked-overlay {
-      background: rgba(248, 250, 252, 0.94);
-      border: 1px dashed #ef4444;
-      border-radius: 6px;
-      padding: 16px;
-      text-align: center;
-      margin-top: 12px;
-      color: #991b1b;
-      font-size: 13px;
-    }
-    h2 { font-size: 16px; margin-top: 0; padding-bottom: 8px; border-bottom: 1px solid var(--slate-100); }
-    label { display: block; margin-top: 10px; font-weight: 600; font-size: 12.5px; color: var(--slate-700); }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 12.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
     input, select, textarea {
       width: 100%;
-      padding: 8px 10px;
-      margin-top: 4px;
-      font-family: inherit;
-      font-size: 13px;
+      padding: 9px 12px;
       border: 1px solid var(--slate-200);
-      border-radius: 4px;
-      background: #fff;
+      border-radius: 6px;
+      font-size: 13.5px;
+      font-family: inherit;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
     }
     button {
       background: var(--primary);
-      color: white;
-      cursor: pointer;
+      color: #fff;
       font-weight: 600;
-      font-size: 13px;
-      padding: 8px 14px;
-      margin-top: 10px;
+      font-size: 13.5px;
+      padding: 9px 18px;
+      border-radius: 6px;
       border: none;
-      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     button:hover { background: var(--primary-hover); }
     button.danger { background: var(--red-600); }
     button.danger:hover { background: #b91c1c; }
     button.secondary { background: var(--slate-600); }
     button.secondary:hover { background: var(--slate-700); }
-    button.small { padding: 4px 8px; font-size: 11px; margin-top: 0; }
+    button.small { padding: 5px 10px; font-size: 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-hard { background: #fef08a; color: #854d0e; }
+    .badge-soft { background: #bae6fd; color: #0369a1; }
+    .badge-exec { background: #bbf7d0; color: #166534; }
+    .badge-flag { background: #fee2e2; color: #991b1b; }
+    .badge-root { background: #fed7aa; color: #9a3412; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid var(--slate-200); padding: 8px 12px; text-align: left; }
+    th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
+    .empty-state {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--slate-600);
+      background: var(--slate-50);
+      border: 1px dashed var(--slate-200);
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+    .empty-state p { margin: 6px 0 0 0; font-size: 13px; }
+    .empty-state .icon { font-size: 28px; color: var(--green-600); margin-bottom: 4px; }
+    .notice-box {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .notice-info { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e3a8a; }
+    .notice-auto { background: var(--green-100); border-left: 4px solid var(--green-600); color: #14532d; }
+    .notice-lock { background: #fee2e2; border-left: 4px solid var(--red-600); color: #7f1d1d; }
     pre {
       background: var(--slate-900);
       color: #38bdf8;
-      padding: 10px;
-      border-radius: 4px;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: monospace;
       font-size: 12px;
-      overflow-x: auto;
       max-height: 200px;
+      overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-all;
     }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
-    .badge-hard { background: #fef08a; color: #854d0e; }
-    .badge-soft { background: #bae6fd; color: #0369a1; }
-    .badge-exec { background: #bbf7d0; color: #15803d; }
-    .badge-root { background: #fed7aa; color: #9a3412; }
-    .badge-flag { background: #fecaca; color: #991b1b; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-    th, td { border: 1px solid var(--slate-200); padding: 6px 8px; text-align: left; }
-    th { background: var(--slate-100); }
-    .info-card {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      color: #1e3a8a;
+    .codes-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .code-box {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 6px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="header-title">
-      <h1>ScatterID v2.1 Operations & Access Dashboard</h1>
-      <p>Role-Based Access Control (RBAC) & Scenario B Tiered Risk Engine</p>
+    <div class="brand">
+      <h1>ScatterID v2.1 Operations Console</h1>
+      <p>Management & Disaster Recovery Platform (Zone 2: Management LAN)</p>
     </div>
-    <div class="session-badge">
-      <span id="sessionText">Not Authenticated</span>
-      <span id="roleBadge" class="role-pill role-none">NO ROLE</span>
-      <button id="btnLogout" class="secondary small" style="display:none;" onclick="handleLogout()">Sign Out</button>
+    <div id="sessionContainer">
+      <div id="loggedOutPill" class="user-pill">
+        <span>Not Signed In</span>
+      </div>
+      <div id="loggedInPill" class="user-pill" style="display:none;">
+        <span id="userStaffName">Staff: -</span>
+        <span id="userRoleBadge" class="role-tag role-mod">-</span>
+        <button class="small secondary" onclick="doLogout()">Sign Out</button>
+      </div>
     </div>
   </header>
 
+  <!-- NAVIGATION TABS (Visible once authenticated) -->
+  <nav class="nav-bar" id="appNavBar" style="display:none;">
+    <button class="nav-btn active" id="navModQueue" onclick="showScreen('screen-mod-queue')">📋 Moderation Review Queue</button>
+    <button class="nav-btn" id="navRootConsole" onclick="showScreen('screen-root-console')">🛡️ Root Execution Console</button>
+    <button class="nav-btn" id="navPqcKeys" onclick="showScreen('screen-pqc-keys')">🔑 PQC Key Pool & Grace</button>
+    <button class="nav-btn" id="navAudit" onclick="showScreen('screen-audit')">📜 Audit Trail</button>
+    <button class="nav-btn" id="navTransfer" onclick="showScreen('screen-transfer')">📱 Self-Service Phone Migration</button>
+  </nav>
+
   <div class="container">
 
-    <!-- RBAC MATRIX OVERVIEW BANNER -->
-    <div id="rbacBanner" class="info-card">
-      <b>Role-Based Access Control (RBAC) Enforcement:</b><br>
-      Please sign in to unlock your assigned permissions.
-      <div style="margin-top: 6px; font-size: 12px; color: #334155;">
-        • <b>Clerk:</b> Intake only (Issue, Revoke, Track). Moderation & Root execution are forbidden.<br>
-        • <b>Moderator (Mod):</b> Review pending queue. Can auto-execute Hard Issuances; Soft & Revocations escalate.<br>
-        • <b>Root Administrator:</b> Full authorization. Executes Soft-channel issuances, all Revocations, and PQC keys.
-      </div>
-    </div>
+    <!-- SCREEN 1: AUTHENTICATION & FIRST-TIME ONBOARDING -->
+    <div id="screen-auth" class="screen active">
 
-    <div class="grid">
+      <!-- VIEW A: STANDARD LOGIN -->
+      <div id="viewLogin" class="card" style="max-width: 500px; margin: 30px auto;">
+        <h2 class="card-title">Staff Authentication (Argon2id + TOTP)</h2>
+        <p style="font-size:13px; color:var(--slate-600); margin-top:0;">
+          Sign in to access your administrative operations dashboard.
+        </p>
 
-      <!-- PANEL 1: AUTHENTICATION -->
-      <div class="panel" id="panelAuth">
-        <h2>1. Staff Authentication (Argon2id + TOTP)</h2>
-        <div id="authStatusText" style="font-size: 12.5px; color: var(--slate-600); margin-bottom: 8px;">
-          Enter your account credentials to begin your session.
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter username (e.g. root_admin, mod_sarah)">
         </div>
 
-        <label>Username</label>
-        <input type="text" id="loginUsername" placeholder="e.g. root_admin, mod_sarah, clerk_john">
-
-        <label>Password</label>
-        <input type="password" id="loginPassword" placeholder="Enter password">
-
-        <div id="mfaInputs">
-          <label>6-Digit TOTP Code (Moderator / Root)</label>
-          <input type="text" id="loginTotp" placeholder="Enter 6-digit TOTP from authenticator app">
-
-          <label>Single-Use Recovery Code (Emergency Alternative)</label>
-          <input type="text" id="loginRecovery" placeholder="e.g. XXXX-XXXX-XXXX">
+        <div class="form-group">
+          <label>Password / Temporary Pass</label>
+          <input type="password" id="loginPassword" placeholder="Enter account password or temporary OTP">
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <button onclick="handleLogin()" style="flex: 1;">Authenticate Session</button>
-          <button class="secondary" onclick="handleClearInputs()">Clear</button>
-        </div>
-
-        <pre id="authOutput">// Authentication response and session status</pre>
-      </div>
-
-      <!-- PANEL 2: PHONE MIGRATION -->
-      <div class="panel locked" id="panelMigration">
-        <h2>2. Self-Service Phone Migration (/transfer)</h2>
-        <p style="font-size:12px; color:#64748b;">Enrolls a new mobile phone without SSH or server restart.</p>
-
-        <div id="migrationLock" class="locked-overlay">
-          🔒 <b>Authentication Required:</b> Sign in as Moderator or Root to use MFA phone migration.
-        </div>
-
-        <div id="migrationContent" style="display:none;">
-          <label>Confirm Current Password</label>
-          <input type="password" id="transferPassword" placeholder="Confirm your password">
-          <button onclick="handleTransferInit()">Step 1: Generate New Phone QR</button>
-
-          <div id="transferQrContainer" style="margin-top:10px; display:none; text-align:center;">
-            <img id="transferQrImg" src="" style="width:140px; height:140px; border:1px solid #cbd5e1; border-radius:4px;"><br>
-            <span id="transferSecretLabel" style="font-size:11px; color:#475569;"></span>
+        <div id="mfaDailyInputs" style="display:none;">
+          <div class="form-group">
+            <label>6-Digit Authenticator Code (TOTP)</label>
+            <input type="text" id="loginTotp" placeholder="e.g. 123456">
           </div>
-
-          <label style="margin-top:12px;">New 6-Digit Code (from New Phone)</label>
-          <input type="text" id="transferNewCode" placeholder="Enter 6 digits generated by new device">
-          <button class="danger" onclick="handleTransferConfirm()">Step 2: Atomically Cut Over & Invalidate Old Phone</button>
-
-          <pre id="transferOutput">// Migration details</pre>
+          <div class="form-group">
+            <label>Or Emergency Recovery Code</label>
+            <input type="text" id="loginRecovery" placeholder="e.g. XXXX-XXXX-XXXX">
+          </div>
         </div>
+
+        <button onclick="doLogin()" style="width:100%; margin-top:6px;">Authenticate & Continue</button>
+
+        <div class="notice-box notice-info" style="margin-top:20px; margin-bottom:0; font-size:12px;">
+          <div>
+            <b>Standard Operating Procedure:</b><br>
+            Help Desk Counter Intake is strictly operated by Clerks at port 5000. Administrators use this console exclusively for queue decisions and key lifecycle management.
+          </div>
+        </div>
+
+        <pre id="authOutput" style="display:none;"></pre>
       </div>
 
-      <!-- PANEL 3: HELP DESK INTAKE -->
-      <div class="panel locked" id="panelIntake">
-        <h2>3. Help Desk Counter Intake (Clerk)</h2>
-        <p style="font-size:12px; color:#64748b;">Submits new requests into the moderation workflow.</p>
-
-        <div id="intakeLock" class="locked-overlay">
-          🔒 <b>Authentication Required:</b> Sign in to submit intake requests.
-        </div>
-
-        <div id="intakeContent" style="display:none;">
-          <label>Submission Channel</label>
-          <select id="intakeChannel" onchange="toggleIntakeChannelFields()">
-            <option value="hard">Hard Channel (Physical In-Person Inspection)</option>
-            <option value="soft">Soft Channel (Digital Scan / PDF Upload)</option>
-          </select>
-
-          <label>Claimant Full Name</label>
-          <input type="text" id="claimantName" placeholder="Enter claimant legal name">
-
-          <label>National ID / Document Serial</label>
-          <input type="text" id="claimantNatId" placeholder="Enter document serial or national ID">
-
-          <div id="hardChecklistFields" style="background:#fefce8; border:1px solid #fef08a; padding:8px; border-radius:4px; margin-top:8px;">
-            <b>Mandatory Physical Checkpoints:</b><br>
-            <label><input type="checkbox" id="chk1"> 1. Substrate & Material Integrity</label>
-            <label><input type="checkbox" id="chk2"> 2. Optical Security Features (Hologram/UV)</label>
-            <label><input type="checkbox" id="chk3"> 3. Biometric Likeness Face Match</label>
-            <label><input type="checkbox" id="chk4"> 4. Authority Embossed Seal & Serial</label>
-          </div>
-
-          <div id="softScanFields" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; padding:8px; border-radius:4px; margin-top:8px;">
-            <label>Document Scan SHA-256 Hash</label>
-            <input type="text" id="softEvidenceSha" placeholder="Paste 64-character hex SHA-256 hash">
-          </div>
-
-          <button onclick="handleIssueSubmit()">Submit Issuance Request</button>
-
-          <hr style="margin:16px 0; border:0; border-top:1px solid #cbd5e1;">
-
-          <h3 style="font-size:14px; margin:0 0 8px 0;">Revocation Intake</h3>
-          <label>Credential Target ID (UUID)</label>
-          <input type="text" id="revokeCredId" placeholder="Enter UUID of credential to revoke">
-          <label>Revocation Reason</label>
-          <input type="text" id="revokeReason" placeholder="Enter revocation reason">
-          <button class="danger" onclick="handleRevokeSubmit()">Submit Revocation (Routes to Root)</button>
-
-          <pre id="intakeOutput">// Intake submission receipt</pre>
-        </div>
-      </div>
-
-      <!-- PANEL 4: MODERATOR REVIEW QUEUE -->
-      <div class="panel locked" id="panelModQueue">
-        <h2>4. Moderation Review Queue (Mod)</h2>
-        <p style="font-size:12px; color:#64748b;">Review, approve, flag, or reject incoming requests.</p>
-
-        <div id="modQueueLock" class="locked-overlay">
-          🔒 <b>Moderator or Root Privilege Required:</b> Clerks cannot access this queue (HTTP 403 Forbidden).
-        </div>
-
-        <div id="modQueueContent" style="display:none;">
-          <button class="secondary" onclick="loadModPendingQueue()">Refresh Pending Requests</button>
-          <div id="modQueueContainer" style="margin-top:10px; max-height:220px; overflow-y:auto;">
-            <table id="modQueueTable">
-              <thead>
-                <tr><th>ID</th><th>Type</th><th>Channel</th><th>Claimant / Credential</th><th>Action</th></tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="5" style="text-align:center; color:#64748b;">No pending requests loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <label>Moderator Justification Reason (Required for Flag / Reject)</label>
-          <input type="text" id="modReason" placeholder="Enter explanation for decision">
-
-          <pre id="modActionOutput">// Decision & Scenario B routing output</pre>
-        </div>
-      </div>
-
-      <!-- PANEL 5: ROOT EXECUTION CONSOLE -->
-      <div class="panel locked" id="panelRoot">
-        <h2>5. Root Execution Console (Root)</h2>
-        <p style="font-size:12px; color:#64748b;">Final authorization for Soft-channel issues, all Revocations, and Key Rotations.</p>
-
-        <div id="rootLock" class="locked-overlay">
-          🔒 <b>Root Administrator Privilege Required:</b> Neither Clerks nor Moderators can execute from this console.
-        </div>
-
-        <div id="rootContent" style="display:none;">
-          <button class="secondary" onclick="loadRootQueues()">Refresh Root Queues</button>
-
-          <h3 style="font-size:13px; margin:10px 0 4px 0;">Awaiting Root Authorization Queue</h3>
-          <div style="max-height:160px; overflow-y:auto;">
-            <table id="rootAwaitingTable">
-              <thead><tr><th>ID</th><th>Type</th><th>Channel</th><th>Evidence / Reason</th><th>Action</th></tr></thead>
-              <tbody><tr><td colspan="5" style="text-align:center; color:#64748b;">No records.</td></tr></tbody>
-            </table>
-          </div>
-
-          <h3 style="font-size:13px; margin:14px 0 4px 0;">Moderator-Flagged Queue (Investigate)</h3>
-          <div style="max-height:160px; overflow-y:auto;">
-            <table id="rootFlaggedTable">
-              <thead><tr><th>ID</th><th>Channel</th><th>Mod Reason</th><th>Action</th></tr></thead>
-              <tbody><tr><td colspan="4" style="text-align:center; color:#64748b;">No flagged records.</td></tr></tbody>
-            </table>
-          </div>
-
-          <pre id="rootActionOutput">// Execution output</pre>
-        </div>
-      </div>
-
-      <!-- PANEL 6: AUDIT LOG -->
-      <div class="panel locked" id="panelAudit">
-        <h2>6. Immutable Audit Log Stream</h2>
-        <p style="font-size:12px; color:#64748b;">Tamper-evident log with clerk, mod, and root attribution stamps.</p>
-
-        <div id="auditLock" class="locked-overlay">
-          🔒 <b>Authentication Required:</b> Sign in to view audit logs.
-        </div>
-
-        <div id="auditContent" style="display:none;">
-          <button class="secondary" onclick="loadAuditLogs()">Refresh Audit Trail</button>
-          <div style="margin-top:10px; max-height:220px; overflow-y:auto;">
-            <table id="auditTable">
-              <thead><tr><th>Timestamp</th><th>Action</th><th>Status</th><th>Actor</th><th>Details</th></tr></thead>
-              <tbody><tr><td colspan="5" style="text-align:center; color:#64748b;">No logs loaded.</td></tr></tbody>
-            </table>
+      <!-- VIEW B: FIRST-TIME ACCOUNT ONBOARDING / SETUP WIZARD -->
+      <div id="viewOnboarding" class="card" style="max-width: 600px; margin: 20px auto; display:none;">
+        <h2 class="card-title">First-Time Account Setup & MFA Enrollment</h2>
+        <div class="notice-box notice-auto">
+          <div>
+            <b>First-Time Authentication Detected:</b><br>
+            Your account was provisioned with a temporary password. Please set your new permanent password and enroll your mobile authenticator app.
           </div>
         </div>
+
+        <div class="form-group">
+          <label>1. Create New Permanent Password (Min 10 characters)</label>
+          <input type="password" id="newPermanentPass" placeholder="Enter your permanent password">
+        </div>
+
+        <div id="onboardingMfaSection">
+          <label>2. Mobile Authenticator App Setup (Google Authenticator, Authy, FreeOTP)</label>
+          <p style="font-size:12px; color:var(--slate-600); margin:0 0 10px 0;">
+            Scan the QR code with your mobile app, or copy the manual entry secret below.
+          </p>
+
+          <div style="text-align:center; padding:12px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:6px;">
+            <img id="onboardingQrImg" src="" style="width:160px; height:160px; border-radius:4px;"><br>
+            <span id="onboardingSecretTxt" style="font-family:monospace; font-size:12px; color:var(--slate-700); font-weight:700;"></span>
+          </div>
+
+          <div class="form-group" style="margin-top:14px;">
+            <label>Verify 6-Digit TOTP Code from Mobile Phone</label>
+            <input type="text" id="onboardingTotpCode" placeholder="Enter 6 digits generated on your phone">
+          </div>
+
+          <div class="form-group">
+            <label>3. Single-Use Emergency Recovery Codes (Save Offline!)</label>
+            <p style="font-size:12px; color:var(--slate-600); margin:0 0 6px 0;">
+              If your phone is lost, these codes allow one-time emergency access.
+            </p>
+            <div class="codes-grid" id="onboardingCodesGrid"></div>
+          </div>
+        </div>
+
+        <button onclick="doCompleteFirstTimeSetup()" style="width:100%; margin-top:10px;">
+          Complete Setup & Enter Dashboard
+        </button>
+
+        <pre id="onboardingOutput" style="display:none;"></pre>
       </div>
 
     </div>
+
+    <!-- SCREEN 2: MODERATOR REVIEW QUEUE -->
+    <div id="screen-mod-queue" class="screen">
+      <div class="card">
+        <div class="card-title">
+          <span>Moderation Review Queue</span>
+          <button class="secondary small" onclick="loadModQueue()">Refresh Queue</button>
+        </div>
+
+        <div class="notice-box notice-auto">
+          <span style="font-size:18px;">⚡</span>
+          <div>
+            <b>Scenario B Auto-Execution Rule:</b><br>
+            • <b>Hard Channel:</b> Verified in-person physical inspections. When you approve, it <b>auto-executes immediately on Fabric</b>.<br>
+            • <b>Soft Channel:</b> Digital scan uploads. When you approve, it <b>escalates to the Root queue</b> for final authorization.
+          </div>
+        </div>
+
+        <div id="modQueueContainer">
+          <table id="modQueueTable">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Claimant / Target</th>
+                <th>Clerk & Station</th>
+                <th>Review Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="modEmptyState" class="empty-state" style="display:none;">
+            <div class="icon">✓</div>
+            <b>All Clear!</b>
+            <p>No requests are currently awaiting moderator review.</p>
+          </div>
+        </div>
+
+        <div id="modDecisionDrawer" style="display:none; margin-top:20px; padding:16px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">
+          <h3 id="modDrawerTitle" style="margin-top:0; font-size:14px;">Review Request</h3>
+          <div id="modDrawerDetails" style="font-size:12.5px; margin-bottom:12px; line-height:1.6;"></div>
+
+          <label>Justification Reason (Mandatory for Flag / Reject; Optional for Approve)</label>
+          <input type="text" id="modReasonInput" placeholder="Enter justification note">
+
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button onclick="submitModDecision('APPROVE')">Approve Request</button>
+            <button class="danger" onclick="submitModDecision('REJECT')">Reject Request</button>
+            <button class="secondary" onclick="submitModDecision('FLAG')">Flag for Root Review</button>
+            <button class="secondary" style="margin-left:auto;" onclick="closeModDrawer()">Cancel</button>
+          </div>
+        </div>
+
+        <pre id="modActionOutput" style="display:none; margin-top:16px;"></pre>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: ROOT EXECUTIVE CONSOLE -->
+    <div id="screen-root-console" class="screen">
+      <div class="card">
+        <div class="card-title">
+          <span>Root Execution Console</span>
+          <button class="secondary small" onclick="loadRootQueues()">Refresh Root Queues</button>
+        </div>
+
+        <div id="rootLockNotice" class="notice-box notice-lock" style="display:none;">
+          <span>🔒</span>
+          <div>
+            <b>403 Forbidden: Root Privilege Required</b><br>
+            Moderators cannot execute from this console. Soft-channel authorizations and revocations strictly require Root authority.
+          </div>
+        </div>
+
+        <div id="rootContentArea">
+          <div class="notice-box notice-info">
+            <div>
+              <b>Separation of Duties (SOP):</b><br>
+              In accordance with ScatterID security invariants, <b>revocations never auto-execute</b>. All revocations and Soft-channel requests require explicit Root cryptographic authorization.
+            </div>
+          </div>
+
+          <h3 style="font-size:14px; margin:16px 0 6px 0;">Queue 1: Escalated Requests Awaiting Root Execution</h3>
+          <table id="rootAwaitingTable">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Evidence / Reason</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="rootAwaitingEmpty" class="empty-state" style="display:none;">
+            <div class="icon">✓</div>
+            <b>Root Queue Clear!</b>
+            <p>No escalated requests are awaiting root execution.</p>
+          </div>
+
+          <h3 style="font-size:14px; margin:24px 0 6px 0;">Queue 2: Moderator-Flagged Requests (Investigation)</h3>
+          <table id="rootFlaggedTable">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Channel</th>
+                <th>Moderator Reason</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="rootFlaggedEmpty" class="empty-state" style="display:none;">
+            <div class="icon">✓</div>
+            <b>No Flagged Requests</b>
+            <p>No requests have been flagged for security investigation.</p>
+          </div>
+
+          <pre id="rootActionOutput" style="display:none; margin-top:16px;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: PQC KEY POOL & GRACE -->
+    <div id="screen-pqc-keys" class="screen">
+      <div class="card">
+        <div class="card-title">
+          <span>Post-Quantum Cryptographic Key Lifecycle (ML-DSA-87)</span>
+          <button class="secondary small" onclick="loadPqcKeys()">Refresh Keys</button>
+        </div>
+
+        <div class="notice-box notice-info">
+          <div>
+            <b>Advance Pre-Distribution Standard:</b><br>
+            Future ML-DSA-87 signing keys are pre-staged in advance. When an active key is rotated, offline verifiers already recognize the promoted key with zero firmware updates.
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div style="background:var(--slate-50); border:1px solid var(--slate-200); padding:16px; border-radius:6px;">
+            <h4 style="margin:0 0 10px 0;">Active Signing Key</h4>
+            <div id="activeKeyBox" style="font-size:13px; color:var(--slate-700);">Loading...</div>
+          </div>
+          <div style="background:var(--slate-50); border:1px solid var(--slate-200); padding:16px; border-radius:6px;">
+            <h4 style="margin:0 0 10px 0;">Dual-Key Grace Window Status</h4>
+            <div id="gatewayGraceBox" style="font-size:13px; color:var(--slate-700);">Loading...</div>
+          </div>
+        </div>
+
+        <h3 style="font-size:14px; margin:20px 0 6px 0;">Pre-Staged Key Pool</h3>
+        <table id="pqcPoolTable">
+          <thead>
+            <tr>
+              <th>Key ID</th>
+              <th>Algorithm</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <pre id="pqcActionOutput" style="display:none; margin-top:16px;"></pre>
+      </div>
+    </div>
+
+    <!-- SCREEN 5: AUDIT TRAIL -->
+    <div id="screen-audit" class="screen">
+      <div class="card">
+        <div class="card-title">
+          <span>Security & Operational Audit Trail</span>
+          <button class="secondary small" onclick="loadAuditTrail()">Refresh Logs</button>
+        </div>
+        <p style="font-size:13px; color:var(--slate-600); margin-top:0;">
+          Tamper-evident SQLite audit log stamped with clerk ID, station terminal, client IP, and UTC timestamps.
+        </p>
+
+        <table id="auditLogTable">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Status</th>
+              <th>Actor</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SCREEN 6: PHONE MIGRATION -->
+    <div id="screen-transfer" class="screen">
+      <div class="card" style="max-width:600px; margin:0 auto;">
+        <h2 class="card-title">Self-Service Phone Migration</h2>
+        <p style="font-size:13px; color:var(--slate-600); margin-top:0;">
+          Enrolls a new mobile phone without requiring host SSH or server restarts.
+        </p>
+
+        <div class="form-group">
+          <label>Confirm Your Current Account Password</label>
+          <input type="password" id="transferPassConfirm" placeholder="Enter password to confirm identity">
+          <button onclick="initPhoneTransfer()" style="margin-top:8px;">Generate New Phone Enrollment QR</button>
+        </div>
+
+        <div id="transferQrArea" style="display:none; text-align:center; padding:16px; background:var(--slate-50); border:1px solid var(--slate-200); border-radius:6px; margin:16px 0;">
+          <img id="transferQrImage" src="" style="width:160px; height:160px; border-radius:4px;"><br>
+          <span id="transferSecretTxt" style="font-family:monospace; font-size:12px; font-weight:700; color:var(--slate-700);"></span>
+        </div>
+
+        <div class="form-group">
+          <label>New 6-Digit Code (from New Phone)</label>
+          <input type="text" id="transferVerifyCode" placeholder="Enter 6 digits generated by new device">
+          <button class="danger" onclick="confirmPhoneTransfer()" style="margin-top:8px;">
+            Atomically Cut Over & Invalidate Old Phone
+          </button>
+        </div>
+
+        <pre id="transferOutput" style="display:none;"></pre>
+      </div>
+    </div>
+
   </div>
 
   <script>
     let activeToken = '';
     let currentUser = null;
+    let pendingOnboardingData = null;
+    let activeSelectedModRequestId = null;
 
-    function updateRbacUi(user) {
-      const sessionText = document.getElementById('sessionText');
-      const roleBadge = document.getElementById('roleBadge');
-      const btnLogout = document.getElementById('btnLogout');
-      const rbacBanner = document.getElementById('rbacBanner');
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-      if (!user) {
-        sessionText.textContent = 'Not Authenticated';
-        roleBadge.textContent = 'NO ROLE';
-        roleBadge.className = 'role-pill role-none';
-        btnLogout.style.display = 'none';
+      const targetScreen = document.getElementById(screenId);
+      if (targetScreen) targetScreen.classList.add('active');
 
-        // Lock all operational panels
-        ['panelMigration', 'panelIntake', 'panelModQueue', 'panelRoot', 'panelAudit'].forEach(pId => {
-          document.getElementById(pId).classList.add('locked');
-        });
-        document.getElementById('migrationLock').style.display = 'block';
-        document.getElementById('migrationContent').style.display = 'none';
-        document.getElementById('intakeLock').style.display = 'block';
-        document.getElementById('intakeContent').style.display = 'none';
-        document.getElementById('modQueueLock').style.display = 'block';
-        document.getElementById('modQueueContent').style.display = 'none';
-        document.getElementById('rootLock').style.display = 'block';
-        document.getElementById('rootContent').style.display = 'none';
-        document.getElementById('auditLock').style.display = 'block';
-        document.getElementById('auditContent').style.display = 'none';
+      const matchingBtn = document.querySelector(`.nav-btn[onclick*="${screenId}"]`);
+      if (matchingBtn) matchingBtn.classList.add('active');
 
-        rbacBanner.className = 'info-card';
-        rbacBanner.innerHTML = `<b>Role-Based Access Control (RBAC) Enforcement:</b><br>Please sign in to unlock your assigned permissions.`;
-        return;
-      }
-
-      // User is authenticated
-      sessionText.textContent = `Staff: ${user.username}`;
-      roleBadge.textContent = user.role.toUpperCase();
-      roleBadge.className = `role-pill role-${user.role}`;
-      btnLogout.style.display = 'inline-block';
-
-      // Always unlock Intake & Audit for staff
-      document.getElementById('panelIntake').classList.remove('locked');
-      document.getElementById('intakeLock').style.display = 'none';
-      document.getElementById('intakeContent').style.display = 'block';
-
-      document.getElementById('panelAudit').classList.remove('locked');
-      document.getElementById('auditLock').style.display = 'none';
-      document.getElementById('auditContent').style.display = 'block';
-      loadAuditLogs();
-
-      if (user.role === 'clerk') {
-        rbacBanner.className = 'info-card';
-        rbacBanner.style.background = '#fef2f2';
-        rbacBanner.style.borderColor = '#fca5a5';
-        rbacBanner.style.color = '#991b1b';
-        rbacBanner.innerHTML = `
-          <b>RBAC Active: CLERK ROLE</b><br>
-          ✅ <b>Permitted:</b> Help Desk Intake (Panel 3).<br>
-          ⛔ <b>Forbidden:</b> Moderation Queue (Panel 4) and Root Console (Panel 5) are strictly locked by server RBAC.
-        `;
-
-        document.getElementById('panelModQueue').classList.add('locked');
-        document.getElementById('modQueueLock').style.display = 'block';
-        document.getElementById('modQueueLock').innerHTML = '⛔ <b>HTTP 403 FORBIDDEN:</b> Your role is CLERK. Clerks cannot access the Moderation Review Queue.';
-        document.getElementById('modQueueContent').style.display = 'none';
-
-        document.getElementById('panelRoot').classList.add('locked');
-        document.getElementById('rootLock').style.display = 'block';
-        document.getElementById('rootLock').innerHTML = '⛔ <b>HTTP 403 FORBIDDEN:</b> Root Administrator privileges required.';
-        document.getElementById('rootContent').style.display = 'none';
-
-        document.getElementById('panelMigration').classList.add('locked');
-        document.getElementById('migrationLock').style.display = 'block';
-        document.getElementById('migrationContent').style.display = 'none';
-      } else if (user.role === 'mod') {
-        rbacBanner.className = 'info-card';
-        rbacBanner.style.background = '#fefce8';
-        rbacBanner.style.borderColor = '#fef08a';
-        rbacBanner.style.color = '#854d0e';
-        rbacBanner.innerHTML = `
-          <b>RBAC Active: MODERATOR ROLE</b><br>
-          ✅ <b>Permitted:</b> Review incoming requests in Panel 4. Hard-channel approvals auto-execute on Fabric.<br>
-          🔒 <b>Restricted:</b> Soft-channel requests and all revocations strictly escalate to Root (Panel 5 is locked).
-        `;
-
-        // Unlock Mod Queue
-        document.getElementById('panelModQueue').classList.remove('locked');
-        document.getElementById('modQueueLock').style.display = 'none';
-        document.getElementById('modQueueContent').style.display = 'block';
-        loadModPendingQueue();
-
-        // Unlock Migration
-        document.getElementById('panelMigration').classList.remove('locked');
-        document.getElementById('migrationLock').style.display = 'none';
-        document.getElementById('migrationContent').style.display = 'block';
-
-        // Lock Root Console
-        document.getElementById('panelRoot').classList.add('locked');
-        document.getElementById('rootLock').style.display = 'block';
-        document.getElementById('rootLock').innerHTML = '🔒 <b>ROOT PRIVILEGE REQUIRED:</b> Moderators cannot authorize escalated requests or execute revocations.';
-        document.getElementById('rootContent').style.display = 'none';
-      } else if (user.role === 'root') {
-        rbacBanner.className = 'info-card';
-        rbacBanner.style.background = '#fdf2f8';
-        rbacBanner.style.borderColor = '#fbcfe8';
-        rbacBanner.style.color = '#831843';
-        rbacBanner.innerHTML = `
-          <b>RBAC Active: ROOT ADMINISTRATOR ROLE</b><br>
-          👑 <b>Full Privilege:</b> All panels unlocked. Authorized to execute escalated Soft issuances, all Revocations, and manage PQC keys.
-        `;
-
-        // Unlock Mod Queue
-        document.getElementById('panelModQueue').classList.remove('locked');
-        document.getElementById('modQueueLock').style.display = 'none';
-        document.getElementById('modQueueContent').style.display = 'block';
-        loadModPendingQueue();
-
-        // Unlock Root Console
-        document.getElementById('panelRoot').classList.remove('locked');
-        document.getElementById('rootLock').style.display = 'none';
-        document.getElementById('rootContent').style.display = 'block';
-        loadRootQueues();
-
-        // Unlock Migration
-        document.getElementById('panelMigration').classList.remove('locked');
-        document.getElementById('migrationLock').style.display = 'none';
-        document.getElementById('migrationContent').style.display = 'block';
-      }
+      // Auto-load screen data
+      if (screenId === 'screen-mod-queue') loadModQueue();
+      if (screenId === 'screen-root-console') loadRootQueues();
+      if (screenId === 'screen-pqc-keys') loadPqcKeys();
+      if (screenId === 'screen-audit') loadAuditTrail();
     }
 
-    async function handleLogin() {
+    async function doLogin() {
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value.trim();
       const totp_code = document.getElementById('loginTotp').value.trim();
       const recovery_code = document.getElementById('loginRecovery').value.trim();
 
+      if (!username || !password) {
+        alert('Please enter username and password.');
+        return;
+      }
+
       const out = document.getElementById('authOutput');
-      out.textContent = 'Authenticating...';
+      out.style.display = 'block';
+      out.textContent = 'Authenticating with server...';
 
       try {
         const res = await fetch('/api/auth/login', {
@@ -525,138 +616,153 @@
 
         if (!res.ok) {
           if (data.mfaRequired) {
-            alert('MFA is required for this role. Enter your 6-digit TOTP code or an Emergency Recovery Code.');
+            document.getElementById('mfaDailyInputs').style.display = 'block';
+            alert('MFA Required: Enter your 6-digit TOTP code or emergency recovery code.');
           } else {
-            alert('Login failed: ' + (data.message || data.error));
+            alert('Authentication failed: ' + (data.message || data.error));
           }
           return;
         }
 
-        activeToken = data.token;
-        currentUser = data.user;
-        updateRbacUi(currentUser);
+        // Case 1: First-time onboarding setup required
+        if (data.requireFirstTimeSetup) {
+          pendingOnboardingData = data;
+          document.getElementById('viewLogin').style.display = 'none';
+          document.getElementById('viewOnboarding').style.display = 'block';
+
+          if (data.mfaSetup) {
+            document.getElementById('onboardingQrImg').src = data.mfaSetup.qrCodeDataUrl;
+            document.getElementById('onboardingSecretTxt').textContent = 'Base32 Secret: ' + data.mfaSetup.secret;
+
+            const grid = document.getElementById('onboardingCodesGrid');
+            grid.innerHTML = '';
+            (data.mfaSetup.recoveryCodes || []).forEach(code => {
+              const b = document.createElement('div');
+              b.className = 'code-box';
+              b.textContent = code;
+              grid.appendChild(b);
+            });
+          } else {
+            document.getElementById('onboardingMfaSection').style.display = 'none';
+          }
+          return;
+        }
+
+        // Case 2: Standard operational login
+        establishSession(data.token, data.user);
       } catch (err) {
         out.textContent = 'Login Error: ' + err.message;
       }
     }
 
-    function handleLogout() {
-      activeToken = '';
-      currentUser = null;
-      document.getElementById('authOutput').textContent = '// Session cleared';
-      updateRbacUi(null);
+    async function doCompleteFirstTimeSetup() {
+      if (!pendingOnboardingData) return;
+
+      const newPassword = document.getElementById('newPermanentPass').value.trim();
+      if (!newPassword || newPassword.length < 10) {
+        alert('Please create a permanent password of at least 10 characters.');
+        return;
+      }
+
+      const isMfaRole = pendingOnboardingData.role === 'mod' || pendingOnboardingData.role === 'root';
+      let totpCode = '';
+      let totpSecret = '';
+      let recoveryCodes = [];
+
+      if (isMfaRole) {
+        totpCode = document.getElementById('onboardingTotpCode').value.trim();
+        if (!totpCode || totpCode.length !== 6) {
+          alert('Please enter the 6-digit verification code from your mobile authenticator app.');
+          return;
+        }
+        totpSecret = pendingOnboardingData.mfaSetup.secret;
+        recoveryCodes = pendingOnboardingData.mfaSetup.recoveryCodes;
+      }
+
+      const out = document.getElementById('onboardingOutput');
+      out.style.display = 'block';
+      out.textContent = 'Finalizing first-time onboarding...';
+
+      try {
+        const res = await fetch('/api/auth/first-time-setup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${pendingOnboardingData.tempToken}`
+          },
+          body: JSON.stringify({ newPassword, totpCode, totpSecret, recoveryCodes })
+        });
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+
+        if (!res.ok) {
+          alert('Setup failed: ' + (data.message || data.error));
+          return;
+        }
+
+        alert('Account setup complete! Entering operations dashboard.');
+        document.getElementById('viewOnboarding').style.display = 'none';
+        establishSession(data.token, data.user);
+      } catch (err) {
+        out.textContent = 'Setup Error: ' + err.message;
+      }
     }
 
-    function handleClearInputs() {
-      document.getElementById('loginUsername').value = '';
+    function establishSession(token, user) {
+      activeToken = token;
+      currentUser = user;
+
+      // Update header
+      document.getElementById('loggedOutPill').style.display = 'none';
+      document.getElementById('loggedInPill').style.display = 'inline-flex';
+      document.getElementById('userStaffName').textContent = `Staff: ${user.username}`;
+      const badge = document.getElementById('userRoleBadge');
+      badge.textContent = user.role.toUpperCase();
+      badge.className = `role-tag role-${user.role}`;
+
+      // Navigation & RBAC
+      document.getElementById('appNavBar').style.display = 'flex';
+
+      if (user.role === 'clerk') {
+        alert('Notice: Clerk role logged in. Under SEC-NET-07, clerks intake requests at the Help Desk Portal (port 5000). Queue actions will be denied on this dashboard.');
+        document.getElementById('navRootConsole').classList.add('disabled');
+        document.getElementById('navPqcKeys').classList.add('disabled');
+        showScreen('screen-mod-queue');
+      } else if (user.role === 'mod') {
+        document.getElementById('navRootConsole').classList.add('disabled');
+        document.getElementById('navPqcKeys').classList.add('disabled');
+        showScreen('screen-mod-queue');
+      } else if (user.role === 'root') {
+        document.getElementById('navRootConsole').classList.remove('disabled');
+        document.getElementById('navPqcKeys').classList.remove('disabled');
+        showScreen('screen-mod-queue');
+      }
+    }
+
+    function doLogout() {
+      activeToken = '';
+      currentUser = null;
+      pendingOnboardingData = null;
+
+      document.getElementById('loggedOutPill').style.display = 'inline-flex';
+      document.getElementById('loggedInPill').style.display = 'none';
+      document.getElementById('appNavBar').style.display = 'none';
+      document.getElementById('viewLogin').style.display = 'block';
+      document.getElementById('viewOnboarding').style.display = 'none';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginTotp').value = '';
       document.getElementById('loginRecovery').value = '';
+      document.getElementById('mfaDailyInputs').style.display = 'none';
+      document.getElementById('authOutput').style.display = 'none';
+
+      showScreen('screen-auth');
     }
 
-    function toggleIntakeChannelFields() {
-      const channel = document.getElementById('intakeChannel').value;
-      document.getElementById('hardChecklistFields').style.display = channel === 'hard' ? 'block' : 'none';
-      document.getElementById('softScanFields').style.display = channel === 'soft' ? 'block' : 'none';
-    }
-
-    async function handleIssueSubmit() {
-      const channel = document.getElementById('intakeChannel').value;
-      const fullName = document.getElementById('claimantName').value.trim();
-      const docSerial = document.getElementById('claimantNatId').value.trim();
-
-      if (!fullName || !docSerial) {
-        alert('Please fill in claimant name and document serial.');
-        return;
-      }
-
-      const payload = {
-        submission_channel: channel,
-        claimant_data: { fullName, documentNumber: docSerial }
-      };
-
-      if (channel === 'hard') {
-        const c1 = document.getElementById('chk1').checked;
-        const c2 = document.getElementById('chk2').checked;
-        const c3 = document.getElementById('chk3').checked;
-        const c4 = document.getElementById('chk4').checked;
-        if (!c1 || !c2 || !c3 || !c4) {
-          alert('All 4 physical inspection checkpoints must be checked for Hard Channel.');
-          return;
-        }
-        payload.inspection_checklist = {
-          substrate_material_integrity: c1,
-          optical_security_features: c2,
-          biometric_face_match: c3,
-          authority_seal_and_serial: c4
-        };
-        payload.inspection_checklist_verified = 1;
-      } else {
-        const hash = document.getElementById('softEvidenceSha').value.trim();
-        if (!hash || hash.length !== 64) {
-          alert('Soft Channel requires a 64-character SHA-256 evidence hash.');
-          return;
-        }
-        payload.evidence_sha256 = hash;
-      }
-
-      const out = document.getElementById('intakeOutput');
-      out.textContent = 'Submitting...';
-
-      try {
-        const res = await fetch('/api/requests/issue', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${activeToken}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        out.textContent = JSON.stringify(data, null, 2);
-        if (res.ok) {
-          if (currentUser && currentUser.role !== 'clerk') loadModPendingQueue();
-          loadAuditLogs();
-        }
-      } catch (err) {
-        out.textContent = 'Error: ' + err.message;
-      }
-    }
-
-    async function handleRevokeSubmit() {
-      const credId = document.getElementById('revokeCredId').value.trim();
-      const reason = document.getElementById('revokeReason').value.trim();
-      if (!credId) {
-        alert('Enter a credential ID to revoke.');
-        return;
-      }
-
-      const out = document.getElementById('intakeOutput');
-      out.textContent = 'Submitting revocation...';
-
-      try {
-        const res = await fetch('/api/requests/revoke', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${activeToken}`
-          },
-          body: JSON.stringify({ credential_id: credId, reason })
-        });
-        const data = await res.json();
-        out.textContent = JSON.stringify(data, null, 2);
-        if (res.ok) {
-          if (currentUser && currentUser.role !== 'clerk') loadModPendingQueue();
-          loadAuditLogs();
-        }
-      } catch (err) {
-        out.textContent = 'Error: ' + err.message;
-      }
-    }
-
-    async function loadModPendingQueue() {
+    async function loadModQueue() {
       const tbody = document.querySelector('#modQueueTable tbody');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading pending queue...</td></tr>';
+      const emptyState = document.getElementById('modEmptyState');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading queue...</td></tr>';
+      emptyState.style.display = 'none';
 
       try {
         const res = await fetch('/api/requests/queue/pending', {
@@ -665,45 +771,83 @@
         const data = await res.json();
 
         if (!res.ok) {
-          tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444;">Error: ${data.message || data.error}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Access Denied: ${data.message || data.error}</td></tr>`;
           return;
         }
 
-        const requests = data.requests || [];
-        if (requests.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">No pending requests in queue.</td></tr>';
+        const list = data.requests || [];
+        if (list.length === 0) {
+          tbody.innerHTML = '';
+          emptyState.style.display = 'block';
           return;
         }
 
         tbody.innerHTML = '';
-        requests.forEach(r => {
+        list.forEach(r => {
           const tr = document.createElement('tr');
-          const channelClass = r.submission_channel === 'hard' ? 'badge-hard' : 'badge-soft';
+          const chanClass = r.submission_channel === 'hard' ? 'badge-hard' : 'badge-soft';
+          let claimantSummary = 'N/A';
+          if (r.claimant_data) {
+            try {
+              const c = JSON.parse(r.claimant_data);
+              claimantSummary = `${c.fullName || c.firstName || 'Claimant'} (${c.documentNumber || c.credentialType || ''})`;
+            } catch (e) {
+              claimantSummary = r.claimant_data;
+            }
+          } else if (r.credential_id) {
+            claimantSummary = `Revoke: ${r.credential_id}`;
+          }
+
           tr.innerHTML = `
-            <td><code>${r.id.slice(0, 16)}...</code></td>
+            <td><code>${r.id.slice(0, 18)}...</code></td>
             <td><b>${r.request_type.toUpperCase()}</b></td>
-            <td><span class="badge ${channelClass}">${r.submission_channel.toUpperCase()}</span></td>
-            <td>${r.claimant_data || r.credential_id || 'N/A'}</td>
+            <td><span class="badge ${chanClass}">${r.submission_channel.toUpperCase()}</span></td>
+            <td>${claimantSummary}</td>
+            <td>${r.clerk_username || 'Counter'} <span style="font-size:11px; color:#64748b;">(${r.station_id || 'STATION-01'})</span></td>
             <td>
-              <button class="small" onclick="handleModDecision('${r.id}', 'APPROVE')">Approve</button>
-              <button class="small danger" onclick="handleModDecision('${r.id}', 'REJECT')">Reject</button>
-              <button class="small secondary" onclick="handleModDecision('${r.id}', 'FLAG')">Flag</button>
+              <button class="small" onclick="openModDrawer('${r.id}', '${r.request_type}', '${r.submission_channel}')">Review & Decide</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444;">Failed to load queue: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red-600);">Error: ${err.message}</td></tr>`;
       }
     }
 
-    async function handleModDecision(id, action) {
-      const reason = document.getElementById('modReason').value.trim();
+    function openModDrawer(id, type, channel) {
+      activeSelectedModRequestId = id;
+      document.getElementById('modDrawerTitle').textContent = `Review Request: ${id} (${type.toUpperCase()} — ${channel.toUpperCase()} CHANNEL)`;
+      document.getElementById('modDrawerDetails').innerHTML = `
+        <b>Policy Behavior Notice:</b><br>
+        ${channel === 'hard' && type === 'issuance' 
+          ? '<span style="color:var(--green-600); font-weight:700;">⚡ HARD CHANNEL: Approval auto-executes immediately on Fabric ledger.</span>' 
+          : '<span style="color:var(--amber-600); font-weight:700;">🔒 Approval strictly escalates to Root Executive queue.</span>'}
+      `;
+      document.getElementById('modReasonInput').value = '';
+      document.getElementById('modDecisionDrawer').style.display = 'block';
+    }
+
+    function closeModDrawer() {
+      activeSelectedModRequestId = null;
+      document.getElementById('modDecisionDrawer').style.display = 'none';
+    }
+
+    async function submitModDecision(action) {
+      if (!activeSelectedModRequestId) return;
+      const reason = document.getElementById('modReasonInput').value.trim();
+
+      if ((action === 'FLAG' || action === 'REJECT') && !reason) {
+        alert(`A justification reason is mandatory when performing a ${action} action.`);
+        return;
+      }
+
       const out = document.getElementById('modActionOutput');
-      out.textContent = `Submitting ${action} on ${id}...`;
+      out.style.display = 'block';
+      out.textContent = `Submitting ${action}...`;
 
       try {
-        const res = await fetch(`/api/requests/${encodeURIComponent(id)}/decide`, {
+        const res = await fetch(`/api/requests/${encodeURIComponent(activeSelectedModRequestId)}/decide`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -713,17 +857,26 @@
         });
         const data = await res.json();
         out.textContent = JSON.stringify(data, null, 2);
-        loadModPendingQueue();
-        if (currentUser && currentUser.role === 'root') loadRootQueues();
-        loadAuditLogs();
+        closeModDrawer();
+        loadModQueue();
       } catch (err) {
-        out.textContent = 'Error: ' + err.message;
+        out.textContent = 'Decision Error: ' + err.message;
       }
     }
 
     async function loadRootQueues() {
+      if (!currentUser || currentUser.role !== 'root') {
+        document.getElementById('rootLockNotice').style.display = 'flex';
+        document.getElementById('rootContentArea').style.display = 'none';
+        return;
+      }
+      document.getElementById('rootLockNotice').style.display = 'none';
+      document.getElementById('rootContentArea').style.display = 'block';
+
       const awaitingTbody = document.querySelector('#rootAwaitingTable tbody');
       const flaggedTbody = document.querySelector('#rootFlaggedTable tbody');
+      const awaitingEmpty = document.getElementById('rootAwaitingEmpty');
+      const flaggedEmpty = document.getElementById('rootFlaggedEmpty');
 
       try {
         const [awaitingRes, flaggedRes] = await Promise.all([
@@ -733,56 +886,61 @@
         const awaitingData = await awaitingRes.json();
         const flaggedData = await flaggedRes.json();
 
-        // Awaiting Root
-        const awaiting = awaitingData.requests || [];
-        if (awaiting.length === 0) {
-          awaitingTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">No requests awaiting root execution.</td></tr>';
-        } else {
+        // 1. Awaiting Root Queue
+        const awaitingList = awaitingData.requests || [];
+        if (awaitingList.length === 0) {
           awaitingTbody.innerHTML = '';
-          awaiting.forEach(r => {
+          awaitingEmpty.style.display = 'block';
+        } else {
+          awaitingEmpty.style.display = 'none';
+          awaitingTbody.innerHTML = '';
+          awaitingList.forEach(r => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td><code>${r.id.slice(0, 16)}...</code></td>
+              <td><code>${r.id.slice(0, 18)}...</code></td>
               <td><b>${r.request_type.toUpperCase()}</b></td>
               <td><span class="badge badge-soft">${r.submission_channel.toUpperCase()}</span></td>
-              <td>${r.reason || r.evidence_sha256 || 'N/A'}</td>
+              <td>${r.reason || r.evidence_sha256 || 'Awaiting Root'}</td>
               <td>
-                <button class="small" onclick="handleRootExecute('${r.id}', 'ACCEPT')">⚡ Execute & Anchor</button>
-                <button class="small danger" onclick="handleRootExecute('${r.id}', 'REJECT')">Reject</button>
+                <button class="small" onclick="submitRootAction('${r.id}', 'ACCEPT')">⚡ Authorize & Anchor</button>
+                <button class="small danger" onclick="submitRootAction('${r.id}', 'REJECT')">Reject</button>
               </td>
             `;
             awaitingTbody.appendChild(tr);
           });
         }
 
-        // Flagged
-        const flagged = flaggedData.requests || [];
-        if (flagged.length === 0) {
-          flaggedTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No flagged requests.</td></tr>';
-        } else {
+        // 2. Flagged Queue
+        const flaggedList = flaggedData.requests || [];
+        if (flaggedList.length === 0) {
           flaggedTbody.innerHTML = '';
-          flagged.forEach(r => {
+          flaggedEmpty.style.display = 'block';
+        } else {
+          flaggedEmpty.style.display = 'none';
+          flaggedTbody.innerHTML = '';
+          flaggedList.forEach(r => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td><code>${r.id.slice(0, 16)}...</code></td>
+              <td><code>${r.id.slice(0, 18)}...</code></td>
               <td><span class="badge badge-flag">${r.submission_channel.toUpperCase()}</span></td>
-              <td>${r.moderator_reason || 'No reason provided'}</td>
+              <td>${r.moderator_reason || 'Flagged by Moderator'}</td>
               <td>
-                <button class="small" onclick="handleRootExecute('${r.id}', 'ACCEPT')">Overrule & Execute</button>
-                <button class="small danger" onclick="handleRootExecute('${r.id}', 'REJECT')">Uphold Reject</button>
+                <button class="small" onclick="submitRootAction('${r.id}', 'ACCEPT')">Overrule & Execute</button>
+                <button class="small danger" onclick="submitRootAction('${r.id}', 'REJECT')">Uphold Reject</button>
               </td>
             `;
             flaggedTbody.appendChild(tr);
           });
         }
       } catch (err) {
-        awaitingTbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444;">Error loading root queues: ${err.message}</td></tr>`;
+        awaitingTbody.innerHTML = `<tr><td colspan="5" style="color:var(--red-600);">Error: ${err.message}</td></tr>`;
       }
     }
 
-    async function handleRootExecute(id, action) {
+    async function submitRootAction(id, action) {
       const out = document.getElementById('rootActionOutput');
-      out.textContent = `Executing Root action ${action} on ${id}...`;
+      out.style.display = 'block';
+      out.textContent = `Root executing ${action} on ${id}...`;
 
       try {
         const res = await fetch(`/api/requests/${encodeURIComponent(id)}/root-execute`, {
@@ -796,15 +954,90 @@
         const data = await res.json();
         out.textContent = JSON.stringify(data, null, 2);
         loadRootQueues();
-        loadAuditLogs();
       } catch (err) {
-        out.textContent = 'Error: ' + err.message;
+        out.textContent = 'Root Execution Error: ' + err.message;
       }
     }
 
-    async function loadAuditLogs() {
-      const tbody = document.querySelector('#auditTable tbody');
-      if (!activeToken) return;
+    async function loadPqcKeys() {
+      try {
+        const [poolRes, gwRes] = await Promise.all([
+          fetch('/api/keys/pqc/pool', { headers: { 'Authorization': `Bearer ${activeToken}` } }),
+          fetch('/api/keys/gateway/status', { headers: { 'Authorization': `Bearer ${activeToken}` } })
+        ]);
+        const poolData = await poolRes.json();
+        const gwData = await gwRes.json();
+
+        // Active key
+        const activeKey = poolData.activeKey;
+        if (activeKey) {
+          document.getElementById('activeKeyBox').innerHTML = `
+            <b>Key ID:</b> ${activeKey.key_id}<br>
+            <b>Algorithm:</b> ${activeKey.algorithm}<br>
+            <b>Activated:</b> ${activeKey.active_from || 'Active'}
+          `;
+        } else {
+          document.getElementById('activeKeyBox').textContent = 'No active PQC key configured.';
+        }
+
+        // Gateway Grace
+        document.getElementById('gatewayGraceBox').innerHTML = `
+          <b>Status:</b> ${gwData.status || 'Active'}<br>
+          <b>Grace Window:</b> 48 Hours<br>
+          <b>Dual-Key Overlap:</b> Enabled (Zero verification downtime)
+        `;
+
+        // Pre-staged pool
+        const tbody = document.querySelector('#pqcPoolTable tbody');
+        const preStaged = poolData.preStagedKeys || [];
+        if (preStaged.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No pre-staged keys available in pool.</td></tr>';
+        } else {
+          tbody.innerHTML = '';
+          preStaged.forEach(k => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${k.key_id}</code></td>
+              <td>${k.algorithm}</td>
+              <td><span class="badge badge-soft">${k.status}</span></td>
+              <td>
+                <button class="small" onclick="rotatePqcKey('${k.key_id}')">Promote to Active</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (err) {
+        console.error('PQC load error:', err);
+      }
+    }
+
+    async function rotatePqcKey(keyId) {
+      if (!confirm(`Rotate PQC active key to '${keyId}'?`)) return;
+      const out = document.getElementById('pqcActionOutput');
+      out.style.display = 'block';
+      out.textContent = 'Rotating PQC active key...';
+
+      try {
+        const res = await fetch('/api/keys/pqc/rotate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeToken}`
+          },
+          body: JSON.stringify({ target_key_id: keyId, reason: 'Manual operator zero-downtime rotation' })
+        });
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+        loadPqcKeys();
+      } catch (err) {
+        out.textContent = 'Rotation Error: ' + err.message;
+      }
+    }
+
+    async function loadAuditTrail() {
+      const tbody = document.querySelector('#auditLogTable tbody');
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading audit trail...</td></tr>';
 
       try {
         const res = await fetch('/api/requests/audit-log', {
@@ -814,35 +1047,37 @@
         const logs = data.logs || [];
 
         if (logs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">No audit entries.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">No audit records found.</td></tr>';
           return;
         }
 
         tbody.innerHTML = '';
-        logs.slice(0, 20).forEach(l => {
+        logs.slice(0, 30).forEach(l => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="white-space:nowrap;">${l.timestamp.slice(11, 19)}</td>
             <td><b>${l.action}</b></td>
             <td><span class="badge ${l.status === 'DENIED' ? 'badge-flag' : 'badge-exec'}">${l.status}</span></td>
             <td>${l.username || l.actor_id || 'system'}</td>
-            <td><span style="color:#64748b; font-size:11px;">${JSON.stringify(l.details || {})}</span></td>
+            <td><span style="color:#64748b; font-size:11.5px;">${JSON.stringify(l.details || {})}</span></td>
           `;
           tbody.appendChild(tr);
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444;">Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red-600);">Error: ${err.message}</td></tr>`;
       }
     }
 
-    async function handleTransferInit() {
-      const pass = document.getElementById('transferPassword').value.trim();
-      if (!pass) {
-        alert('Confirm your account password to initiate phone transfer.');
+    async function initPhoneTransfer() {
+      const currentPassword = document.getElementById('transferPassConfirm').value.trim();
+      if (!currentPassword) {
+        alert('Please confirm your account password.');
         return;
       }
+
       const out = document.getElementById('transferOutput');
-      out.textContent = 'Generating new phone enrollment QR...';
+      out.style.display = 'block';
+      out.textContent = 'Requesting transfer authorization...';
 
       try {
         const res = await fetch('/api/auth/mfa/transfer/init', {
@@ -851,29 +1086,31 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${activeToken}`
           },
-          body: JSON.stringify({ currentPassword: pass })
+          body: JSON.stringify({ currentPassword })
         });
         const data = await res.json();
         out.textContent = JSON.stringify(data, null, 2);
 
         if (res.ok && data.qrCodeDataUrl) {
-          document.getElementById('transferQrImg').src = data.qrCodeDataUrl;
-          document.getElementById('transferSecretLabel').textContent = 'Base32 Secret: ' + data.newSecret;
-          document.getElementById('transferQrContainer').style.display = 'block';
+          document.getElementById('transferQrImage').src = data.qrCodeDataUrl;
+          document.getElementById('transferSecretTxt').textContent = 'Base32: ' + data.newSecret;
+          document.getElementById('transferQrArea').style.display = 'block';
         }
       } catch (err) {
-        out.textContent = 'Error: ' + err.message;
+        out.textContent = 'Transfer Error: ' + err.message;
       }
     }
 
-    async function handleTransferConfirm() {
-      const code = document.getElementById('transferNewCode').value.trim();
-      if (!code) {
+    async function confirmPhoneTransfer() {
+      const newCode = document.getElementById('transferVerifyCode').value.trim();
+      if (!newCode || newCode.length !== 6) {
         alert('Enter the 6-digit code from your new phone.');
         return;
       }
+
       const out = document.getElementById('transferOutput');
-      out.textContent = 'Confirming phone migration...';
+      out.style.display = 'block';
+      out.textContent = 'Confirming transfer and cutting over device...';
 
       try {
         const res = await fetch('/api/auth/mfa/transfer/confirm', {
@@ -882,21 +1119,17 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${activeToken}`
           },
-          body: JSON.stringify({ newCode: code })
+          body: JSON.stringify({ newCode })
         });
         const data = await res.json();
         out.textContent = JSON.stringify(data, null, 2);
         if (res.ok) {
-          alert('Phone migration successful! Save your new recovery codes printed in the output.');
-          loadAuditLogs();
+          alert('Device transfer confirmed! Save your fresh recovery codes displayed below.');
         }
       } catch (err) {
-        out.textContent = 'Error: ' + err.message;
+        out.textContent = 'Confirmation Error: ' + err.message;
       }
     }
-
-    // Initialize in locked logged-out state
-    updateRbacUi(null);
   </script>
 </body>
 </html>
