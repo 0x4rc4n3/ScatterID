@@ -7,18 +7,7 @@
     const token = sessionStorage.getItem('scatterid_ops_token');
     const userRaw = sessionStorage.getItem('scatterid_ops_user');
     if (token && userRaw) {
-      try {
-        const u = JSON.parse(userRaw);
-        if (u.role === 'mod') {
-          window.location.replace('/mod.html');
-        } else if (u.role === 'root') {
-          window.location.replace('/root.html');
-        } else {
-          window.location.replace('/test_harness.html');
-        }
-      } catch(e) {
-        window.location.replace('/login.html');
-      }
+      window.location.replace('/dashboard.html');
     } else {
       window.location.replace('/login.html');
     }

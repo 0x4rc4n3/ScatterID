@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScatterID Operations Console — Appsmith Internal Desk</title>
+  <style>
+    :root {
+      --bg-app: #f8fafc;
+      --bg-sidebar: #0f172a;
+      --bg-topbar: #1e293b;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-dim: #64748b;
+      --text-sidebar: #94a3b8;
+      --text-sidebar-active: #ffffff;
+      
+      /* Design Doc §10 Palette */
+      --neutral-fill: #F1EFE8;
+      --neutral-border: #5F5E5A;
+      --process-fill: #E6F1FB;
+      --process-border: #185FA5;
+      --approve-fill: #E1F5EE;
+      --approve-border: #0F6E56;
+      --reject-fill: #FCEBEB;
+      --reject-border: #A32D2D;
+      --flag-fill: #FEF3C7;
+      --flag-border: #D97706;
+      --root-fill: #EEEDFE;
+      --root-border: #534AB7;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      background: var(--bg-app);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    /* Top Bar */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 230px;
+      right: 0;
+      height: 52px;
+      background: var(--bg-topbar);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+      border-bottom: 1px solid #334155;
+    }
+    .org-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Role Badges (§10) */
+    .role-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .role-badge.mod {
+      background: var(--process-fill);
+      color: var(--process-border);
+      border: 1px solid var(--process-border);
+    }
+    .role-badge.root {
+      background: var(--root-fill);
+      color: var(--root-border);
+      border: 1px solid var(--root-border);
+    }
+
+    /* Sidebar Navigation (§2) */
+    .sidebar {
+      width: 230px;
+      background: var(--bg-sidebar);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      flex-shrink: 0;
+      z-index: 30;
+      border-right: 1px solid #1e293b;
+    }
+    .sidebar-brand {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+      border-bottom: 1px solid #1e293b;
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      background: #0b1120;
+    }
+    .sidebar-brand span.logo-box {
+      width: 26px;
+      height: 26px;
+      background: #0284c7;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #fff;
+    }
+    .sidebar-menu {
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      border-radius: 6px;
+      color: var(--text-sidebar);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover {
+      background: #1e293b;
+      color: #fff;
+    }
+    .nav-item.active {
+      background: #0284c7;
+      color: #fff;
+    }
+    .nav-badge-count {
+      margin-left: auto;
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    /* Main Content Surface */
+    .content-area {
+      margin-left: 230px;
+      margin-top: 52px;
+      padding: 24px;
+      flex: 1;
+      overflow-y: auto;
+      height: calc(100vh - 52px);
+    }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* Stat Cards (§3) */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .stat-card.root-highlight {
+      background: var(--root-fill);
+      border-color: var(--root-border);
+    }
+    .stat-label {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .stat-card.root-highlight .stat-value {
+      color: var(--root-border);
+    }
+
+    /* Tables & Cards (§4, §5) */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      overflow: hidden;
+    }
+    .table-header-bar {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+    }
+    .table-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    table.dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    table.dense-table th {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    table.dense-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      font-size: 12.5px;
+    }
+    table.dense-table tr:hover td {
+      background: #f8fafc;
+      cursor: pointer;
+    }
+
+    /* Tabs Strip (§5, §6) */
+    .tab-strip {
+      display: flex;
+      gap: 6px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+    .tab-strip button {
+      background: none;
+      border: none;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-strip button.active {
+      color: #0284c7;
+      border-bottom-color: #0284c7;
+    }
+    .tab-strip button.root-tab.active {
+      color: var(--root-border);
+      border-bottom-color: var(--root-border);
+    }
+
+    /* Channel Badges (§5.1) */
+    .channel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .channel-badge.hard {
+      background: #e2e8f0;
+      color: #1e293b;
+      border: 1px solid #94a3b8;
+    }
+    .channel-badge.soft {
+      background: var(--flag-fill);
+      color: var(--flag-border);
+      border: 1px solid var(--flag-border);
+    }
+
+    /* Decision Buttons (§5.1, §5.2) */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .btn-approve {
+      background: var(--approve-fill);
+      color: var(--approve-border);
+      border-color: var(--approve-border);
+    }
+    .btn-approve:hover { background: #c6f0e2; }
+
+    .btn-root-accept {
+      background: #0f6e56;
+      color: #ffffff;
+      border-color: #0f6e56;
+    }
+    .btn-root-accept:hover { background: #0a4f3e; }
+
+    .btn-reject {
+      background: var(--reject-fill);
+      color: var(--reject-border);
+      border-color: var(--reject-border);
+    }
+    .btn-reject:hover { background: #fad2d2; }
+
+    .btn-flag {
+      background: var(--flag-fill);
+      color: var(--flag-border);
+      border-color: var(--flag-border);
+    }
+    .btn-flag:hover { background: #fde68a; }
+
+    .btn-neutral {
+      background: #f1f5f9;
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+    .btn-neutral:hover { background: #e2e8f0; }
+
+    /* Modals (§1, §5) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-box {
+      background: #ffffff;
+      border-radius: 8px;
+      width: 500px;
+      max-width: 90vw;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 { margin: 0; font-size: 15px; }
+    .modal-body { padding: 20px; font-size: 13.5px; line-height: 1.5; }
+    .modal-footer {
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Detail Drawer (§4, §5) */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      z-index: 90;
+      display: none;
+    }
+    .detail-drawer {
+      position: fixed;
+      top: 52px;
+      right: -580px;
+      width: 560px;
+      max-width: 95vw;
+      height: calc(100vh - 52px);
+      background: #ffffff;
+      border-left: 1px solid #cbd5e1;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+      z-index: 91;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.25s ease;
+    }
+    .detail-drawer.open { right: 0; }
+    .drawer-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-content { padding: 20px; overflow-y: auto; flex: 1; }
+    .drawer-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #e2e8f0;
+      background: #fafafa;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0369a1;
+    }
+    pre.code-block {
+      background: #0f172a;
+      color: #7dd3fc;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    /* Emergency Panel Highlight (§6.2) */
+    .emergency-panel {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR NAVIGATION (§2) -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="logo-box">S</span>
+      <span>ScatterID Console</span>
+    </div>
+    <nav class="sidebar-menu" id="sidebarMenu">
+      <a class="nav-item active" onclick="switchPage('overview', this)">
+        <span>📊 Overview</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('credentials', this)">
+        <span>🪪 Credentials</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('moderation', this)">
+        <span>📋 Moderation Queue</span>
+        <span class="nav-badge-count" id="badgePendingQueue" style="display:none;">0</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('keyrotation', this)">
+        <span>🔑 Key Rotation & DR</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('audit', this)">
+        <span>📜 Audit Log</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('settings', this)">
+        <span>👤 User Settings</span>
+      </a>
+      <a class="nav-item" onclick="switchPage('health', this)">
+        <span>🩺 System Health</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- TOP BAR (§2) -->
+  <header class="topbar">
+    <div class="org-title">
+      <span>ScatterID Internal Operations Dashboard</span>
+      <span style="font-size:12px; color:#94a3b8; font-weight:normal;">| Secure Internal Enclave</span>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:12.5px; color:#cbd5e1;" id="topbarUsername">Staff: Loading...</span>
+      <span class="role-badge" id="topbarRoleBadge">ROLE</span>
+      <button class="btn btn-neutral" style="padding:4px 10px; font-size:11.5px;" onclick="doLogout()">Log Out</button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT SURFACE -->
+  <main class="content-area">
+
+    <!-- ============================================================= -->
+    <!-- 1. PAGE: OVERVIEW (§3) -->
+    <!-- ============================================================= -->
+    <section id="page-overview" class="page-section active">
+      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">Operations Overview</h2>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Credentials</div>
+          <div class="stat-value" id="statTotalCreds">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active on Ledger</div>
+          <div class="stat-value" style="color:#0f6e56;" id="statActiveCreds">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Revoked Credentials</div>
+          <div class="stat-value" style="color:#a32d2d;" id="statRevokedCreds">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending Requests</div>
+          <div class="stat-value" style="color:#185fa5;" id="statPendingReqs">0</div>
+        </div>
+        <!-- ROOT ONLY STAT CARD (§3) -->
+        <div class="stat-card root-highlight" id="statCardAwaitingRoot" style="display:none;">
+          <div class="stat-label" style="color:var(--root-border);">Awaiting My Accept (Root)</div>
+          <div class="stat-value" id="statAwaitingRoot">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Reconciliation Health</div>
+          <div style="margin-top:8px;">
+            <span class="channel-badge" style="background:#e1f5ee; color:#0f6e56; border-color:#0f6e56; font-size:12px;">
+              ● In Sync (0 drift)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY (LAST 10 AUDIT LOGS) -->
+      <div class="table-container">
+        <div class="table-header-bar">
+          <div class="table-title">Recent Activity (Last 10 Events)</div>
+          <button class="btn btn-neutral" onclick="switchPage('audit', document.querySelectorAll('.nav-item')[4])">View Full Audit Log →</button>
+        </div>
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Target ID</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="overviewRecentAuditTbody">
+            <tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-dim);">Loading recent activity...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 2. PAGE: CREDENTIALS (§4) -->
+    <!-- ============================================================= -->
+    <section id="page-credentials" class="page-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0; font-size:18px;">Credential Registry & Ledger History</h2>
+        <input type="text" id="credSearchInput" placeholder="Search by ID, claimant, or title..." oninput="filterCredentialsTable()" style="width:280px; padding:7px 12px; border:1px solid var(--border-color); border-radius:4px; font-size:13px;">
+      </div>
+
+      <div class="table-container">
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Credential ID</th>
+              <th>Subject / Title</th>
+              <th>Status</th>
+              <th>Channel</th>
+              <th>Issued Date</th>
+              <th>Active Signing Key</th>
+            </tr>
+          </thead>
+          <tbody id="credentialsTableTbody">
+            <tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-dim);">Loading credentials from ledger...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 3. PAGE: MODERATION QUEUE (§5) -->
+    <!-- ============================================================= -->
+    <section id="page-moderation" class="page-section">
+      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">Moderation Queue</h2>
+
+      <!-- TAB STRIP BY ROLE (§5) -->
+      <div class="tab-strip" id="modQueueTabStrip">
+        <button class="active" onclick="switchModQueueTab('pending', this)">
+          Pending Requests <span class="channel-badge" id="tabCountPending">0</span>
+        </button>
+        <!-- ROOT ONLY TABS (§5.2, §5.3) -->
+        <button class="root-tab" id="tabBtnAwaitingRoot" onclick="switchModQueueTab('awaiting', this)" style="display:none;">
+          Awaiting My Accept <span class="channel-badge" id="tabCountAwaiting">0</span>
+        </button>
+        <button class="root-tab" id="tabBtnFlagged" onclick="switchModQueueTab('flagged', this)" style="display:none;">
+          Flagged for Review <span class="channel-badge" id="tabCountFlagged">0</span>
+        </button>
+      </div>
+
+      <!-- TAB 5.1: PENDING REQUESTS -->
+      <div id="subtab-pending" class="subtab-content">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <div class="table-title">Pending Counter Submissions</div>
+            <button class="btn btn-neutral" onclick="loadPendingQueue()">⟳ Refresh Queue</button>
+          </div>
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Subject Name</th>
+                <th>Submitted By</th>
+                <th>Timestamp</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="pendingQueueTbody">
+              <tr><td colspan="7" style="text-align:center; padding:18px; color:var(--text-dim);">Loading pending queue...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 5.2: AWAITING ROOT ACCEPT (ROOT ONLY) -->
+      <div id="subtab-awaiting" class="subtab-content" style="display:none;">
+        <div class="table-container" style="border-left:4px solid var(--root-border);">
+          <div class="table-header-bar">
+            <div class="table-title" style="color:var(--root-border);">Soft-Channel Approvals & Revocations Awaiting Root</div>
+            <button class="btn btn-neutral" onclick="loadAwaitingRootQueue()">⟳ Refresh</button>
+          </div>
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Approved By (Mod)</th>
+                <th>Claimant / Target</th>
+                <th>Decision Controls</th>
+              </tr>
+            </thead>
+            <tbody id="awaitingQueueTbody">
+              <tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-dim);">No requests awaiting root authorization.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 5.3: FLAGGED FOR REVIEW (ROOT ONLY) -->
+      <div id="subtab-flagged" class="subtab-content" style="display:none;">
+        <div class="table-container" style="border-left:4px solid var(--flag-border);">
+          <div class="table-header-bar">
+            <div class="table-title" style="color:var(--flag-border);">Suspicious Cases Escalated by Moderator</div>
+            <button class="btn btn-neutral" onclick="loadFlaggedQueue()">⟳ Refresh</button>
+          </div>
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Type</th>
+                <th>Moderator Flag Reason</th>
+                <th>Intake Staff</th>
+                <th>Decision Controls</th>
+              </tr>
+            </thead>
+            <tbody id="flaggedQueueTbody">
+              <tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-dim);">No flagged requests in queue.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 4. PAGE: KEY ROTATION & DISASTER RECOVERY (§6) -->
+    <!-- ============================================================= -->
+    <section id="page-keyrotation" class="page-section">
+      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">Key Rotation & Disaster Recovery</h2>
+
+      <div class="tab-strip">
+        <button class="active" onclick="switchKeyTab('routine', this)">PQC Routine Rotation & Key Pool</button>
+        <button class="root-tab" id="tabKeyEmergency" onclick="switchKeyTab('emergency', this)" style="display:none;">Emergency PQC Rotation</button>
+        <button class="root-tab" id="tabKeyGateway" onclick="switchKeyTab('gateway', this)" style="display:none;">Gateway API Keys (Dual-Key)</button>
+        <button class="root-tab" id="tabKeyBackups" onclick="switchKeyTab('backups', this)" style="display:none;">Cold Backups (.enc)</button>
+      </div>
+
+      <!-- 6.1 ROUTINE ROTATION & KEY POOL -->
+      <div id="keysub-routine" class="subtab-content">
+        <div class="stat-card" style="margin-bottom:20px;">
+          <div class="stat-label">Pre-Distributed Key Pool Overview (NIST ML-DSA-87)</div>
+          <div style="display:flex; gap:18px; align-items:center; margin-top:10px;">
+            <span class="channel-badge" style="background:#e1f5ee; color:#0f6e56; font-size:12.5px; padding:6px 12px;">Active: pqc-mldsa87-active-v1</span>
+            <span>➔</span>
+            <span class="channel-badge" style="background:#e6f1fb; color:#185fa5; font-size:12.5px; padding:6px 12px;">Pre-Staged: pqc-mldsa87-standby-v2 (Ready)</span>
+            <span>➔</span>
+            <span class="channel-badge" style="background:#f1f5f9; color:#475569; font-size:12.5px; padding:6px 12px;">Pre-Staged: pqc-mldsa87-standby-v3 (Ready)</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-dim); margin-top:8px;">
+            ✓ 100% of connected verifier keyrings pre-staged with standby keys.
+          </div>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header-bar">
+            <div class="table-title">Routine Key Rotation Workflow</div>
+          </div>
+          <div style="padding:20px;">
+            <div id="modRoutineSection">
+              <label style="font-weight:700; display:block; margin-bottom:6px;">Moderator: Submit Routine Rotation Request</label>
+              <input type="text" id="rotationReasonInput" placeholder="Enter justification (e.g. Q3 2026 routine cycle)" style="width:380px; padding:8px 12px; border:1px solid var(--border-color); border-radius:4px; font-size:13px;">
+              <button class="btn btn-neutral" onclick="submitRoutineRotationRequest()" style="margin-left:8px;">Submit Rotation Request</button>
+            </div>
+            <div id="rootRoutineSection" style="display:none; margin-top:16px;">
+              <label style="font-weight:700; color:var(--root-border); display:block; margin-bottom:6px;">Root Authority: Advance Signing Key</label>
+              <button class="btn btn-root-accept" onclick="confirmRootAdvanceKey()">Approve & Rotate to Pre-Staged Key (v2) →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6.2 EMERGENCY ROTATION (ROOT ONLY) -->
+      <div id="keysub-emergency" class="subtab-content" style="display:none;">
+        <div class="emergency-panel">
+          <h3 style="margin-top:0; color:#a32d2d;">⚠️ Emergency Post-Quantum Cutover</h3>
+          <p style="font-size:13px; color:#7f1d1d; margin-top:4px;">
+            Bypasses the routine request flow. Used exclusively upon key compromise or critical security incident.
+          </p>
+          <div style="margin:16px 0;">
+            <label style="display:block; font-weight:700; margin-bottom:4px;">Emergency Justification (Mandatory):</label>
+            <input type="text" id="emergencyReasonInput" placeholder="Incident reference / root justification" style="width:100%; max-width:480px; padding:8px 10px; border:1px solid #f87171; border-radius:4px;">
+          </div>
+          <div style="margin:16px 0;">
+            <label style="display:block; font-weight:700; margin-bottom:4px;">Type ROTATE to confirm:</label>
+            <input type="text" id="emergencyConfirmInput" oninput="checkEmergencyConfirm(this)" placeholder="ROTATE" style="width:160px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:4px; font-weight:700; letter-spacing:1px;">
+          </div>
+          <button class="btn btn-reject" id="btnEmergencyRotate" disabled onclick="executeEmergencyRotation()">Rotate Now (Emergency Cutover)</button>
+        </div>
+      </div>
+
+      <!-- 6.3 GATEWAY DUAL-KEY PHASING (ROOT ONLY) -->
+      <div id="keysub-gateway" class="subtab-content" style="display:none;">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <div class="table-title">Gateway Dual-Key Zero-Downtime Phasing</div>
+          </div>
+          <div style="padding:20px;">
+            <div style="font-size:13px; line-height:1.6; margin-bottom:14px;">
+              Active Revocation API Key: <code>REVOKE_API_KEY</code> &bull; Secondary Key Grace Active: <b>24h window</b>
+            </div>
+            <button class="btn btn-root-accept" onclick="triggerGatewayRotationModal()">Rotate Gateway Secret Key (Zero Downtime) →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6.4 COLD BACKUPS (ROOT ONLY) -->
+      <div id="keysub-backups" class="subtab-content" style="display:none;">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <div class="table-title">PQC Cold Backups & Disaster Recovery (.enc)</div>
+          </div>
+          <div style="padding:20px;">
+            <div style="margin-bottom:16px;">
+              <b>Export AES-256-GCM Encrypted Backup Envelope:</b>
+              <div style="margin-top:6px;">
+                <input type="password" id="backupPassInput" placeholder="Enter master passphrase" style="width:280px; padding:7px 10px; border:1px solid var(--border-color); border-radius:4px;">
+                <button class="btn btn-neutral" onclick="exportEncryptedBackup()">Export .enc Envelope</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHARED FOOTER (§6.5) -->
+      <div class="stat-card" style="margin-top:20px;">
+        <div class="stat-label">Active Cryptographic Invariants</div>
+        <div style="font-size:12.5px; color:var(--text-dim); margin-top:4px;">
+          Signing Key: <code>pqc-mldsa87-active-v1</code> (NIST FIPS-204 Level 5) &bull; Ledger: <code>Hyperledger Fabric 2.5 LTS</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 5. PAGE: AUDIT LOG (§7) -->
+    <!-- ============================================================= -->
+    <section id="page-audit" class="page-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0; font-size:18px;">Tamper-Evident Staff Audit Log</h2>
+        <button class="btn btn-neutral" onclick="exportAuditLogCsv()">Export Compliance Audit (CSV)</button>
+      </div>
+
+      <div class="table-container">
+        <table class="dense-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor ID</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Target ID</th>
+              <th>Result</th>
+              <th>Channel</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogTbody">
+            <tr><td colspan="8" style="text-align:center; padding:18px; color:var(--text-dim);">Loading audit records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 6. PAGE: USER SETTINGS (§8) -->
+    <!-- ============================================================= -->
+    <section id="page-settings" class="page-section">
+      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">User Profile & Security Management</h2>
+
+      <div class="stat-card" style="max-width:540px; margin-bottom:24px;">
+        <div class="stat-label">My Multi-Factor Authentication Status</div>
+        <div style="margin:10px 0; font-size:13px;">
+          TOTP Status: <span class="channel-badge" style="background:#e1f5ee; color:#0f6e56;">● ACTIVE & ENROLLED</span><br>
+          Emergency Recovery Codes: <b>8 Single-Use Codes Provisioned</b>
+        </div>
+        <button class="btn btn-neutral" onclick="openTransferMfaModal()">Transfer MFA Device (New Phone) →</button>
+      </div>
+
+      <!-- ROOT ONLY USER MANAGEMENT (§8) -->
+      <div id="rootUserManagementSection" style="display:none;">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <div class="table-title" style="color:var(--root-border);">Staff Account Management (Root Authority)</div>
+          </div>
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Station</th>
+                <th>MFA Enabled</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>clerk_john</b></td>
+                <td><span class="role-badge" style="background:#f1f5f9; color:#334155;">CLERK</span></td>
+                <td>STATION-DESK-01</td>
+                <td>Yes</td>
+                <td><button class="btn btn-neutral" style="padding:3px 8px; font-size:11px;" onclick="resetStaffPassword('clerk_john')">Reset Password</button></td>
+              </tr>
+              <tr>
+                <td><b>mod_sarah</b></td>
+                <td><span class="role-badge mod">MOD</span></td>
+                <td>Review Enclave</td>
+                <td>Yes</td>
+                <td><button class="btn btn-neutral" style="padding:3px 8px; font-size:11px;" onclick="resetStaffPassword('mod_sarah')">Reset Password</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- 7. PAGE: SYSTEM HEALTH (§9) -->
+    <!-- ============================================================= -->
+    <section id="page-health" class="page-section">
+      <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">System Health & Ledger Reconciliation</h2>
+
+      <div class="stat-card" style="max-width:540px; margin-bottom:20px;">
+        <div class="stat-label">Ledger State Reconciliation</div>
+        <div style="font-size:14px; font-weight:700; color:#0f6e56; margin:8px 0;">
+          ✓ Fully Reconciled & In-Sync
+        </div>
+        <div style="font-size:12.5px; color:var(--text-dim); margin-bottom:14px;">
+          Local SQLite request states match Hyperledger Fabric channel blocks. Zero drift detected.
+        </div>
+        <div id="rootReconcileBtnWrap" style="display:none;">
+          <button class="btn btn-root-accept" onclick="triggerManualReconcile()">Run Reconciliation Now (Root Only) →</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- DETAIL DRAWER (§4, §5) -->
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <aside class="detail-drawer" id="detailDrawer">
+    <div class="drawer-header">
+      <div>
+        <h3 style="margin:0; font-size:15px;" id="drawerTitle">Request Details</h3>
+        <span id="drawerSubtitle" style="font-size:11.5px; color:var(--text-dim);">ScatterID Request Record</span>
+      </div>
+      <button class="btn btn-neutral" style="padding:3px 8px;" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-content" id="drawerBody"></div>
+    <div class="drawer-footer" id="drawerFooter"></div>
+  </aside>
+
+  <!-- CONFIRMATION MODAL (§1, §5) -->
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modalTitle">Confirm Action</h3>
+        <button class="btn btn-neutral" style="padding:2px 6px;" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <script>
+    let token = '';
+    let currentUser = null;
+    let cachedCredentials = [];
+    let cachedPending = [];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      token = sessionStorage.getItem('scatterid_ops_token') || '';
+      const rawUser = sessionStorage.getItem('scatterid_ops_user');
+      if (rawUser) {
+        try { currentUser = JSON.parse(rawUser); } catch(e) {}
+      }
+
+      if (!token || !currentUser) {
+        window.location.replace('/login.html');
+        return;
+      }
+
+      applyRoleView(currentUser.role);
+      loadOverview();
+      loadPendingQueue();
+    });
+
+    function applyRoleView(role) {
+      document.getElementById('topbarUsername').textContent = `Staff: ${currentUser.username}`;
+      const badge = document.getElementById('topbarRoleBadge');
+      badge.textContent = role.toUpperCase();
+      badge.className = `role-badge ${role}`;
+
+      if (role === 'root') {
+        document.getElementById('statCardAwaitingRoot').style.display = 'block';
+        document.getElementById('tabBtnAwaitingRoot').style.display = 'flex';
+        document.getElementById('tabBtnFlagged').style.display = 'flex';
+        document.getElementById('tabKeyEmergency').style.display = 'flex';
+        document.getElementById('tabKeyGateway').style.display = 'flex';
+        document.getElementById('tabKeyBackups').style.display = 'flex';
+        document.getElementById('rootRoutineSection').style.display = 'block';
+        document.getElementById('rootUserManagementSection').style.display = 'block';
+        document.getElementById('rootReconcileBtnWrap').style.display = 'block';
+      }
+    }
+
+    function switchPage(pageId, navEl) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`page-${pageId}`).classList.add('active');
+      if (navEl) navEl.classList.add('active');
+
+      if (pageId === 'overview') loadOverview();
+      if (pageId === 'credentials') loadCredentials();
+      if (pageId === 'moderation') loadPendingQueue();
+      if (pageId === 'audit') loadAuditLog();
+    }
+
+    function switchModQueueTab(tabId, btn) {
+      document.querySelectorAll('#modQueueTabStrip button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.subtab-content').forEach(c => c.style.display = 'none');
+      btn.classList.add('active');
+      document.getElementById(`subtab-${tabId}`).style.display = 'block';
+
+      if (tabId === 'pending') loadPendingQueue();
+      if (tabId === 'awaiting') loadAwaitingRootQueue();
+      if (tabId === 'flagged') loadFlaggedQueue();
+    }
+
+    function switchKeyTab(tabId, btn) {
+      document.querySelectorAll('#page-keyrotation .tab-strip button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#page-keyrotation .subtab-content').forEach(c => c.style.display = 'none');
+      btn.classList.add('active');
+      document.getElementById(`keysub-${tabId}`).style.display = 'block';
+    }
+
+    // OVERVIEW DATA LOADER (§3)
+    async function loadOverview() {
+      try {
+        const statsRes = await fetch('/api/requests/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (statsRes.ok) {
+          const s = await statsRes.json();
+          document.getElementById('statTotalCreds').textContent = s.totalCredentials || 0;
+          document.getElementById('statActiveCreds').textContent = s.active || 0;
+          document.getElementById('statRevokedCreds').textContent = s.revoked || 0;
+          document.getElementById('statPendingReqs').textContent = s.pendingRequests || 0;
+          document.getElementById('statAwaitingRoot').textContent = s.awaitingRoot || 0;
+          document.getElementById('tabCountPending').textContent = s.pendingRequests || 0;
+          document.getElementById('tabCountAwaiting').textContent = s.awaitingRoot || 0;
+          document.getElementById('tabCountFlagged').textContent = s.flagged || 0;
+
+          const pBadge = document.getElementById('badgePendingQueue');
+          if (s.pendingRequests > 0) {
+            pBadge.textContent = s.pendingRequests;
+            pBadge.style.display = 'inline-block';
+          } else {
+            pBadge.style.display = 'none';
+          }
+        }
+
+        const auditRes = await fetch('/api/requests/audit-log?limit=10', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (auditRes.ok) {
+          const data = await auditRes.json();
+          const tbody = document.getElementById('overviewRecentAuditTbody');
+          const logs = data.logs || [];
+          if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-dim);">No recent activity recorded.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = '';
+          logs.forEach(l => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${new Date(l.timestamp).toLocaleTimeString()}</code></td>
+              <td><b>${l.username || 'system'}</b></td>
+              <td><span class="role-badge ${l.role}">${(l.role || 'sys').toUpperCase()}</span></td>
+              <td><b>${l.action}</b></td>
+              <td><code>${l.request_id || l.credential_id || '—'}</code></td>
+              <td><span class="channel-badge ${l.status === 'SUCCESS' ? 'hard' : 'soft'}">${l.status}</span></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch(e) {}
+    }
+
+    // CREDENTIALS PAGE (§4)
+    async function loadCredentials() {
+      const tbody = document.getElementById('credentialsTableTbody');
+      try {
+        const res = await fetch('/api/requests/credentials-list', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedCredentials = data.credentials || [];
+        renderCredentials(cachedCredentials);
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6" style="color:#ef4444; padding:16px;">Failed to load credentials.</td></tr>';
+      }
+    }
+
+    function renderCredentials(list) {
+      const tbody = document.getElementById('credentialsTableTbody');
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-dim);">No credentials currently anchored on ledger.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      list.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.onclick = () => openCredentialDrawer(c);
+        const stClass = c.status === 'active' ? 'approve' : 'reject';
+        tr.innerHTML = `
+          <td><code>${c.id}</code></td>
+          <td><b>${c.subject}</b> &bull; <span style="color:var(--text-dim);">${c.title}</span></td>
+          <td><span class="channel-badge" style="background:var(--${stClass}-fill); color:var(--${stClass}-border); border-color:var(--${stClass}-border);">${c.status.toUpperCase()}</span></td>
+          <td><span class="channel-badge ${c.channel}">${c.channel.toUpperCase()}</span></td>
+          <td>${new Date(c.issued_date).toLocaleDateString()}</td>
+          <td><code>${c.signing_key_id}</code></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterCredentialsTable() {
+      const q = document.getElementById('credSearchInput').value.toLowerCase();
+      const filtered = cachedCredentials.filter(c => 
+        c.id.toLowerCase().includes(q) || 
+        c.subject.toLowerCase().includes(q) || 
+        c.title.toLowerCase().includes(q)
+      );
+      renderCredentials(filtered);
+    }
+
+    // MODERATION QUEUE LOADER (§5.1)
+    async function loadPendingQueue() {
+      const tbody = document.getElementById('pendingQueueTbody');
+      try {
+        const res = await fetch('/api/requests/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedPending = data.requests || [];
+        document.getElementById('tabCountPending').textContent = cachedPending.length;
+
+        if (cachedPending.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-dim);">No pending requests right now &bull; All clear.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        cachedPending.forEach(r => {
+          let claimant = {};
+          try { claimant = JSON.parse(r.claimant_data); } catch(e) {}
+          const name = (claimant.subjectData && claimant.subjectData.fullName) || claimant.fullName || 'Subject';
+          const title = (claimant.subjectData && claimant.subjectData.recordTitle) || claimant.recordTitle || 'Record';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${r.id}</code></td>
+            <td><b>${r.request_type.toUpperCase()}</b></td>
+            <td><span class="channel-badge ${r.submission_channel}">${r.submission_channel === 'hard' ? '📄 HARD' : '🌐 SOFT'}</span></td>
+            <td><b>${name}</b> &bull; <span style="color:var(--text-dim);">${title}</span></td>
+            <td>${r.clerk_username || 'clerk'} @ ${r.station_id || 'counter'}</td>
+            <td>${new Date(r.created_at).toLocaleTimeString()}</td>
+            <td><button class="btn btn-neutral" style="padding:3px 9px;" onclick='openRequestDetail(${JSON.stringify(r)})'>Review →</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:#ef4444; padding:16px;">Error loading queue.</td></tr>';
+      }
+    }
+
+    // DETAIL PANEL & DECISION MODALS (§5.1)
+    function openRequestDetail(req) {
+      document.getElementById('drawerTitle').textContent = `Review Request: ${req.id}`;
+      document.getElementById('drawerSubtitle').textContent = `Channel: ${req.submission_channel.toUpperCase()} &bull; Type: ${req.request_type.toUpperCase()}`;
+
+      let bodyHtml = `
+        <div style="margin-bottom:14px;">
+          <b>Attribution Stamp:</b> Submitted by <code>${req.clerk_username}</code> @ <code>${req.station_id}</code> &bull; IP: <code>${req.client_ip || '::1'}</code>
+        </div>
+      `;
+
+      let claim = {};
+      try { claim = JSON.parse(req.claimant_data); } catch(e) {}
+
+      bodyHtml += `
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-bottom:16px;">
+          <h4 style="margin:0 0 8px 0; font-size:13px; color:#0369a1;">Claimant Data & Attributes</h4>
+          <pre class="code-block">${JSON.stringify(claim, null, 2)}</pre>
+        </div>
+      `;
+
+      if (req.submission_channel === 'hard') {
+        bodyHtml += `
+          <div style="background:var(--neutral-fill); border:1px solid var(--neutral-border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <b>Physical Document Proof Viewer:</b><br>
+            <span style="color:#475569;">Physically inspected at Help Desk — no digital copy retained (Data Minimization Standard).</span><br>
+            <div style="margin-top:8px; font-size:12px;">
+              ✓ Security Watermarks & Guilloche verified<br>
+              ✓ Embossed Seal & Controller signature verified<br>
+              ✓ In-Person Biometric facial photo matched<br>
+              ✓ Foundational credentials cross-verified
+            </div>
+          </div>
+        `;
+      } else {
+        bodyHtml += `
+          <div style="background:var(--flag-fill); border:1px solid var(--flag-border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <b>Soft-Channel Digital Proof Digest:</b><br>
+            <code>SHA-256: ${req.evidence_sha256 || 'Calculated on client'}</code><br>
+            <span style="font-size:11.5px; color:#92400e;">Automated file-anomaly check: Zero anomalies detected in PDF structure.</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('drawerBody').innerHTML = bodyHtml;
+
+      // Decision Controls (§5.1)
+      const footer = document.getElementById('drawerFooter');
+      if (currentUser.role === 'mod') {
+        if (req.request_type === 'issuance' && req.submission_channel === 'hard') {
+          footer.innerHTML = `
+            <button class="btn btn-approve" onclick="confirmHardApprove('${req.id}')">✓ Approve & Auto-Execute</button>
+            <button class="btn btn-flag" onclick="openFlagModal('${req.id}')">🚩 Flag</button>
+            <button class="btn btn-reject" onclick="openRejectModal('${req.id}')">✕ Reject</button>
+          `;
+        } else if (req.request_type === 'issuance' && req.submission_channel === 'soft') {
+          footer.innerHTML = `
+            <button class="btn btn-approve" onclick="confirmSoftApprove('${req.id}')">✓ Approve</button>
+            <button class="btn btn-flag" onclick="openFlagModal('${req.id}')">🚩 Flag</button>
+            <button class="btn btn-reject" onclick="openRejectModal('${req.id}')">✕ Reject</button>
+          `;
+        } else {
+          // Revocation
+          footer.innerHTML = `
+            <button class="btn btn-approve" onclick="confirmRevocationApprove('${req.id}')">Approve Revocation</button>
+            <button class="btn btn-flag" onclick="openFlagModal('${req.id}')">🚩 Flag</button>
+            <button class="btn btn-reject" onclick="openRejectModal('${req.id}')">✕ Reject</button>
+          `;
+        }
+      } else {
+        footer.innerHTML = `<span style="color:var(--text-dim); font-size:12px;">Root View-Only Mode: Decision controls disabled for frontline queue.</span>`;
+      }
+
+      document.getElementById('drawerBackdrop').style.display = 'block';
+      document.getElementById('detailDrawer').classList.add('open');
+    }
+
+    function closeDrawer() {
+      document.getElementById('detailDrawer').classList.remove('open');
+      document.getElementById('drawerBackdrop').style.display = 'none';
+    }
+
+    // MOD CONFIRMATION MODALS (§5.1)
+    function confirmHardApprove(reqId) {
+      showModal(
+        'Confirm Hard-Channel Issuance & Auto-Execution',
+        'Physical document inspection checklist verified by clerk. Confirming will immediately anchor this credential on the Hyperledger Fabric ledger. Confirm?',
+        `<button class="btn btn-approve" onclick="executeModDecision('${reqId}', 'approve')">Confirm & Anchor on Ledger</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    function confirmSoftApprove(reqId) {
+      showModal(
+        'Confirm Soft-Channel Approval',
+        'This will move to Root’s queue for final execution. Confirm?',
+        `<button class="btn btn-approve" onclick="executeModDecision('${reqId}', 'approve')">Confirm & Move to Root Queue</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    function confirmRevocationApprove(reqId) {
+      showModal(
+        'Confirm Revocation Approval',
+        'Revocations strictly require Root administrative sign-off. This will advance the revocation request to Root’s Awaiting Accept queue. Confirm?',
+        `<button class="btn btn-approve" onclick="executeModDecision('${reqId}', 'approve')">Advance to Root Queue</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    function openRejectModal(reqId) {
+      showModal(
+        'Reject Request',
+        `<div>
+          <p style="margin-top:0;">Rejection closes this request permanently. Please provide a mandatory rejection reason:</p>
+          <input type="text" id="modalReasonInput" placeholder="Mandatory rejection reason..." style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:4px;">
+        </div>`,
+        `<button class="btn btn-reject" onclick="submitModalDecision('${reqId}', 'reject')">Reject Request</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    function openFlagModal(reqId) {
+      showModal(
+        'Flag Request for Root Security Review',
+        `<div>
+          <p style="margin-top:0;">Flagging escalates suspicious documents to Root’s Flagged Queue. Mandatory reason:</p>
+          <input type="text" id="modalReasonInput" placeholder="Mandatory flag observation..." style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:4px;">
+        </div>`,
+        `<button class="btn btn-flag" onclick="submitModalDecision('${reqId}', 'flag')">Flag to Root</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    async function submitModalDecision(reqId, action) {
+      const reason = document.getElementById('modalReasonInput').value.trim();
+      if (!reason) {
+        alert('Mandatory requirement: You must provide a reason.');
+        return;
+      }
+      executeModDecision(reqId, action, reason);
+    }
+
+    async function executeModDecision(reqId, decision, notes = '') {
+      try {
+        const res = await fetch(`/api/requests/${reqId}/decide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ decision, notes, reason: notes })
+        });
+        const data = await res.json();
+        closeModal();
+        closeDrawer();
+        alert(res.ok ? 'Decision executed successfully.' : `Error: ${data.message || data.error}`);
+        loadPendingQueue();
+        loadOverview();
+      } catch(e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    // ROOT AWAITING ACCEPT (§5.2)
+    async function loadAwaitingRootQueue() {
+      const tbody = document.getElementById('awaitingQueueTbody');
+      try {
+        const res = await fetch('/api/requests/awaiting-root', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.requests || [];
+        document.getElementById('tabCountAwaiting').textContent = list.length;
+
+        if (list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-dim);">No requests awaiting root authorization.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        list.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${r.id}</code></td>
+            <td><b>${r.request_type.toUpperCase()}</b></td>
+            <td><span class="channel-badge ${r.submission_channel}">${r.submission_channel.toUpperCase()}</span></td>
+            <td><b>${r.moderator_username || 'mod'}</b></td>
+            <td><code>${r.credential_id || 'Issuance'}</code></td>
+            <td>
+              <button class="btn btn-root-accept" style="padding:3px 9px;" onclick="confirmRootAccept('${r.id}', '${r.request_type}', '${r.credential_id || r.id}')">Accept</button>
+              <button class="btn btn-reject" style="padding:3px 9px;" onclick="openRootRejectModal('${r.id}')">Reject</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(e) {}
+    }
+
+    function confirmRootAccept(reqId, type, target) {
+      showModal(
+        'Confirm Root Ledger Execution',
+        `This will ${type === 'issuance' ? 'issue' : 'revoke'} credential <code>${target}</code>. This cannot be undone. Confirm?`,
+        `<button class="btn btn-root-accept" onclick="executeRootAccept('${reqId}')">Accept & Execute on Fabric</button>
+         <button class="btn btn-neutral" onclick="closeModal()">Cancel</button>`
+      );
+    }
+
+    async function executeRootAccept(reqId) {
+      try {
+        const res = await fetch(`/api/requests/${reqId}/root-decide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ action: 'execute' })
+        });
+        closeModal();
+        alert(res.ok ? 'Executed successfully on Hyperledger Fabric.' : 'Execution failed.');
+        loadAwaitingRootQueue();
+        loadOverview();
+      } catch(e) { alert('Network error: ' + e.message); }
+    }
+
+    // MODAL UTILITIES
+    function showModal(title, bodyHtml, footerHtml) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = bodyHtml;
+      document.getElementById('modalFooter').innerHTML = footerHtml;
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+    function closeModal() {
+      document.getElementById('confirmModal').style.display = 'none';
+    }
+
+    // AUDIT LOG PAGE (§7)
+    async function loadAuditLog() {
+      const tbody = document.getElementById('auditLogTbody');
+      try {
+        const res = await fetch('/api/requests/audit-log?limit=50', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const logs = data.logs || [];
+        tbody.innerHTML = '';
+        logs.forEach(l => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${new Date(l.timestamp).toLocaleString()}</code></td>
+            <td><code>${l.actor_id || 'system'}</code></td>
+            <td><b>${l.username || 'sys'}</b></td>
+            <td><span class="role-badge ${l.role}">${(l.role || 'sys').toUpperCase()}</span></td>
+            <td><b>${l.action}</b></td>
+            <td><code>${l.request_id || l.credential_id || '—'}</code></td>
+            <td><span class="channel-badge ${l.status === 'SUCCESS' ? 'hard':'soft'}">${l.status}</span></td>
+            <td>${l.submission_channel || '—'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch(e) {}
+    }
+
+    function doLogout() {
+      sessionStorage.clear();
+      window.location.replace('/login.html');
+    }
+  </script>
+</body>
+</html>

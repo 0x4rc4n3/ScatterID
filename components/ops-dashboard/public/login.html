@@ -159,14 +159,7 @@
         // Case B: Full login success
         sessionStorage.setItem('scatterid_ops_token', data.token);
         sessionStorage.setItem('scatterid_ops_user', JSON.stringify(data.user));
-
-        if (data.user.role === 'mod') {
-          window.location.href = '/mod.html';
-        } else if (data.user.role === 'root') {
-          window.location.href = '/root.html';
-        } else {
-          window.location.href = '/test_harness.html';
-        }
+        window.location.href = '/dashboard.html';
       } catch (err) {
         showError('Could not reach backend server: ' + err.message);
         btn.disabled = false;

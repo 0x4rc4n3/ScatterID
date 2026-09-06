@@ -296,13 +296,7 @@
     }
 
     function proceedToDashboard() {
-      if (authenticatedUser && authenticatedUser.role === 'mod') {
-        window.location.href = '/mod.html';
-      } else if (authenticatedUser && authenticatedUser.role === 'root') {
-        window.location.href = '/root.html';
-      } else {
-        window.location.href = '/test_harness.html';
-      }
+      window.location.href = '/dashboard.html';
     }
   </script>
 </body>
