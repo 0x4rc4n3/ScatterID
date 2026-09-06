@@ -4,9 +4,11 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import { authenticate, requireRole, getClientIp } from '../auth/middleware.js';
+import { createLedgerExecutor } from '../ledger/executor.js';
 
-export function createRequestsRouter({ db, repos }) {
+export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor = null }) {
   const router = express.Router();
+  const ledgerExecutor = customExecutor || createLedgerExecutor({ db });
 
   /**
    * Helper to generate unique request ID
@@ -299,6 +301,387 @@ export function createRequestsRouter({ db, repos }) {
     });
   });
 
+  /**
+   * POST /api/requests/:id/decide
+   * Moderator decision on a pending request (FR-11, FR-11B).
+   * Scenario B Tiered Risk Rules:
+   * - Hard-Channel Issue + Approve -> AUTO-EXECUTES on Fabric ledger.
+   * - Soft-Channel Issue + Approve -> Escalates to AWAITING_ROOT_ACCEPT.
+   * - Revocation (Hard or Soft) + Approve -> Escalates to AWAITING_ROOT_ACCEPT (never auto-executes).
+   * - Reject -> Closes immediately as REJECTED.
+   * - Flag -> Escalates to FLAGGED with mandatory reason.
+   */
+  router.post('/:id/decide', authenticate, requireRole(['mod']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body || {};
+      const clientIp = getClientIp(req);
+      const modId = req.user.userId;
+      const modUsername = req.user.username;
+
+      const validActions = ['APPROVE', 'REJECT', 'FLAG'];
+      if (!action || !validActions.includes(action.toUpperCase())) {
+        return res.status(400).json({
+          error: 'INVALID_ACTION',
+          message: `action must be one of: ${validActions.join(', ')}`
+        });
+      }
+
+      const normalizedAction = action.toUpperCase();
+
+      // Reject and Flag mandatorily require a stated reason
+      if ((normalizedAction === 'REJECT' || normalizedAction === 'FLAG') && (!reason || reason.trim().length < 3)) {
+        return res.status(400).json({
+          error: 'REASON_REQUIRED',
+          message: `A mandatory reason is required when moderator selects ${normalizedAction}`
+        });
+      }
+
+      const request = repos.requests.getById(id);
+      if (!request) {
+        return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+      }
+
+      if (request.status !== 'PENDING') {
+        return res.status(409).json({
+          error: 'REQUEST_ALREADY_DECIDED',
+          message: `Request is currently in status '${request.status}' and cannot be decided by moderator`
+        });
+      }
+
+      const now = new Date().toISOString();
+
+      // Case 1: Moderator Rejects Request
+      if (normalizedAction === 'REJECT') {
+        repos.requests.updateModDecision(id, {
+          status: 'REJECTED',
+          moderator_id: modId,
+          moderator_username: modUsername,
+          moderator_action: 'REJECT',
+          moderator_reason: reason
+        });
+
+        repos.auditLog.record({
+          action: 'MOD_REQUEST_REJECTED',
+          status: 'SUCCESS',
+          actor_id: modId,
+          username: modUsername,
+          role: 'mod',
+          client_ip: clientIp,
+          request_id: id,
+          submission_channel: request.submission_channel,
+          credential_id: request.credential_id,
+          details: { reason }
+        });
+
+        return res.status(200).json({
+          success: true,
+          status: 'REJECTED',
+          executed: false,
+          moderator_action: 'REJECT',
+          reason
+        });
+      }
+
+      // Case 2: Moderator Flags Request for Escalation
+      if (normalizedAction === 'FLAG') {
+        repos.requests.updateModDecision(id, {
+          status: 'FLAGGED',
+          moderator_id: modId,
+          moderator_username: modUsername,
+          moderator_action: 'FLAG',
+          moderator_reason: reason
+        });
+
+        repos.auditLog.record({
+          action: 'MOD_REQUEST_FLAGGED',
+          status: 'ALERT',
+          actor_id: modId,
+          username: modUsername,
+          role: 'mod',
+          client_ip: clientIp,
+          request_id: id,
+          submission_channel: request.submission_channel,
+          credential_id: request.credential_id,
+          details: { reason }
+        });
+
+        return res.status(200).json({
+          success: true,
+          status: 'FLAGGED',
+          executed: false,
+          moderator_action: 'FLAG',
+          reason
+        });
+      }
+
+      // Case 3: Moderator Approves Request -> Scenario B Policy
+      if (normalizedAction === 'APPROVE') {
+        // Subcase 3A: Hard-Channel Issuance -> AUTO-EXECUTES
+        if (request.request_type === 'issuance' && request.submission_channel === 'hard') {
+          const execResult = await ledgerExecutor.executeIssuance(request);
+
+          repos.requests.updateModDecision(id, {
+            status: 'EXECUTED',
+            moderator_id: modId,
+            moderator_username: modUsername,
+            moderator_action: 'APPROVE',
+            moderator_reason: reason || 'Hard-channel physical inspection verified; auto-executed by policy',
+            execution_tx_id: execResult.txId
+          });
+
+          repos.auditLog.record({
+            action: 'MOD_APPROVED_AUTO_EXECUTED',
+            status: 'SUCCESS',
+            actor_id: modId,
+            username: modUsername,
+            role: 'mod',
+            client_ip: clientIp,
+            request_id: id,
+            submission_channel: 'hard',
+            details: {
+              execution_tx_id: execResult.txId,
+              policy: 'SCENARIO_B_HARD_CHANNEL_AUTO_EXECUTE',
+              note: reason || null
+            }
+          });
+
+          return res.status(200).json({
+            success: true,
+            status: 'EXECUTED',
+            executed: true,
+            execution_tx_id: execResult.txId,
+            moderator_action: 'APPROVE',
+            routing_tier: 'AUTO_EXECUTED'
+          });
+        }
+
+        // Subcase 3B: Soft-Channel Issuance -> Escalates to Root
+        if (request.request_type === 'issuance' && request.submission_channel === 'soft') {
+          repos.requests.updateModDecision(id, {
+            status: 'AWAITING_ROOT_ACCEPT',
+            moderator_id: modId,
+            moderator_username: modUsername,
+            moderator_action: 'APPROVE',
+            moderator_reason: reason || 'Soft scan approved by moderator; escalated for Root authorization'
+          });
+
+          repos.auditLog.record({
+            action: 'MOD_APPROVED_ESCALATED_ROOT',
+            status: 'PENDING',
+            actor_id: modId,
+            username: modUsername,
+            role: 'mod',
+            client_ip: clientIp,
+            request_id: id,
+            submission_channel: 'soft',
+            details: {
+              policy: 'SCENARIO_B_SOFT_CHANNEL_ROOT_GATE',
+              note: reason || null
+            }
+          });
+
+          return res.status(200).json({
+            success: true,
+            status: 'AWAITING_ROOT_ACCEPT',
+            executed: false,
+            moderator_action: 'APPROVE',
+            routing_tier: 'AWAITING_ROOT_ACCEPT'
+          });
+        }
+
+        // Subcase 3C: Revocation (Hard or Soft) -> Strictly Escalates to Root
+        if (request.request_type === 'revocation') {
+          repos.requests.updateModDecision(id, {
+            status: 'AWAITING_ROOT_ACCEPT',
+            moderator_id: modId,
+            moderator_username: modUsername,
+            moderator_action: 'APPROVE',
+            moderator_reason: reason || 'Revocation reviewed by moderator; strictly escalated to Root'
+          });
+
+          repos.auditLog.record({
+            action: 'MOD_APPROVED_REVOCATION_ESCALATED_ROOT',
+            status: 'PENDING',
+            actor_id: modId,
+            username: modUsername,
+            role: 'mod',
+            client_ip: clientIp,
+            request_id: id,
+            submission_channel: request.submission_channel,
+            credential_id: request.credential_id,
+            details: {
+              policy: 'SCENARIO_B_REVOCATION_ROOT_GATE_STRICT',
+              note: reason || null
+            }
+          });
+
+          return res.status(200).json({
+            success: true,
+            status: 'AWAITING_ROOT_ACCEPT',
+            executed: false,
+            moderator_action: 'APPROVE',
+            routing_tier: 'AWAITING_ROOT_ACCEPT'
+          });
+        }
+
+        // Subcase 3D: Routine Key Rotation
+        repos.requests.updateModDecision(id, {
+          status: 'AWAITING_ROOT_ACCEPT',
+          moderator_id: modId,
+          moderator_username: modUsername,
+          moderator_action: 'APPROVE',
+          moderator_reason: reason || 'Routine rotation requested'
+        });
+
+        return res.status(200).json({
+          success: true,
+          status: 'AWAITING_ROOT_ACCEPT',
+          executed: false,
+          routing_tier: 'AWAITING_ROOT_ACCEPT'
+        });
+      }
+    } catch (err) {
+      console.error('Moderator decision error:', err);
+      return res.status(500).json({ error: 'DECISION_FAILED', message: err.message });
+    }
+  });
+
+  /**
+   * GET /api/requests/queue/awaiting-root
+   * Root queue for Soft-Channel Issue & Revocation requests (FR-12).
+   */
+  router.get('/queue/awaiting-root', authenticate, requireRole(['root']), (req, res) => {
+    const list = repos.requests.getAwaitingRoot();
+    return res.status(200).json({
+      count: list.length,
+      requests: list
+    });
+  });
+
+  /**
+   * GET /api/requests/queue/flagged
+   * Root queue for Moderator-flagged requests (FR-13).
+   */
+  router.get('/queue/flagged', authenticate, requireRole(['root']), (req, res) => {
+    const list = repos.requests.getFlaggedForRoot();
+    return res.status(200).json({
+      count: list.length,
+      requests: list
+    });
+  });
+
+  /**
+   * POST /api/requests/:id/root-execute
+   * Root execution on Awaiting Accept or Flagged queues (FR-14, FR-15).
+   * Executes the irreversible ledger call against verification-api / Fabric.
+   */
+  router.post('/:id/root-execute', authenticate, requireRole(['root']), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body || {};
+      const clientIp = getClientIp(req);
+      const rootId = req.user.userId;
+      const rootUsername = req.user.username;
+
+      const validActions = ['ACCEPT', 'REJECT'];
+      if (!action || !validActions.includes(action.toUpperCase())) {
+        return res.status(400).json({
+          error: 'INVALID_ACTION',
+          message: 'Root action must be either "ACCEPT" or "REJECT"'
+        });
+      }
+
+      const normalizedAction = action.toUpperCase();
+
+      const request = repos.requests.getById(id);
+      if (!request) {
+        return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+      }
+
+      if (!['AWAITING_ROOT_ACCEPT', 'FLAGGED'].includes(request.status)) {
+        return res.status(409).json({
+          error: 'INVALID_STATE_FOR_ROOT',
+          message: `Request is in status '${request.status}' and cannot be root-executed`
+        });
+      }
+
+      if (normalizedAction === 'REJECT') {
+        repos.requests.updateRootDecision(id, {
+          status: 'REJECTED',
+          root_id: rootId,
+          root_username: rootUsername,
+          root_action: 'REJECT'
+        });
+
+        repos.auditLog.record({
+          action: 'ROOT_REQUEST_REJECTED',
+          status: 'SUCCESS',
+          actor_id: rootId,
+          username: rootUsername,
+          role: 'root',
+          client_ip: clientIp,
+          request_id: id,
+          submission_channel: request.submission_channel,
+          credential_id: request.credential_id,
+          details: { reason: reason || 'Rejected by Root administrator' }
+        });
+
+        return res.status(200).json({
+          success: true,
+          status: 'REJECTED',
+          executed: false,
+          root_action: 'REJECT'
+        });
+      }
+
+      // Root Accepts -> Irreversible Execution on Hyperledger Fabric
+      let execResult;
+      if (request.request_type === 'issuance') {
+        execResult = await ledgerExecutor.executeIssuance(request);
+      } else if (request.request_type === 'revocation') {
+        execResult = await ledgerExecutor.executeRevocation(request);
+      } else {
+        execResult = { txId: `tx_key_rotation_${Date.now()}` };
+      }
+
+      repos.requests.updateRootDecision(id, {
+        status: 'EXECUTED',
+        root_id: rootId,
+        root_username: rootUsername,
+        root_action: 'ACCEPT',
+        execution_tx_id: execResult.txId
+      });
+
+      repos.auditLog.record({
+        action: 'ROOT_REQUEST_EXECUTED',
+        status: 'SUCCESS',
+        actor_id: rootId,
+        username: rootUsername,
+        role: 'root',
+        client_ip: clientIp,
+        request_id: id,
+        submission_channel: request.submission_channel,
+        credential_id: request.credential_id,
+        details: {
+          request_type: request.request_type,
+          execution_tx_id: execResult.txId,
+          reason: reason || null
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        status: 'EXECUTED',
+        executed: true,
+        execution_tx_id: execResult.txId,
+        root_action: 'ACCEPT'
+      });
+    } catch (err) {
+      console.error('Root execution error:', err);
+      return res.status(500).json({ error: 'ROOT_EXECUTION_FAILED', message: err.message });
+    }
+  });
   /**
    * GET /api/requests/pending
    * Frontline queue for Moderators (act) and Root (view) - FR-10.
