@@ -50,11 +50,18 @@ def enforce_api_key():
     
     token = auth_header.split(" ")[1]
     if not hmac.compare_digest(token, API_KEY):
-        return jsonify({"error": "Unauthorized: Invalid API Key", "code": "UNAUTHORIZED"}), 401
+        prev_key = os.environ.get("CRYPTO_SERVICE_API_KEY_PREVIOUS")
+        if not (prev_key and hmac.compare_digest(token, prev_key)):
+            return jsonify({"error": "Unauthorized: Invalid API Key", "code": "UNAUTHORIZED"}), 401
 
 @app.route("/healthz", methods=["GET"])
 def healthz():
-    return jsonify({"status": "ok", "service": "crypto-service"}), 200
+    previous_key = os.environ.get("CRYPTO_SERVICE_API_KEY_PREVIOUS")
+    return jsonify({
+        "status": "ok",
+        "service": "crypto-service",
+        "dualKeyGraceActive": bool(previous_key)
+    }), 200
 
 @app.route("/sign_hash", methods=["POST"])
 def sign_hash_route():
