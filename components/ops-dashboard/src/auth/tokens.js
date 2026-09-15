@@ -44,6 +44,7 @@ export function signToken(payload, expiresInSeconds = 28800) {
   const now = Math.floor(Date.now() / 1000);
   const fullPayload = {
     ...payload,
+    token_version: payload.token_version !== undefined ? payload.token_version : (payload.tokenVersion !== undefined ? payload.tokenVersion : 1),
     iat: now,
     exp: now + expiresInSeconds
   };

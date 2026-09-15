@@ -6,8 +6,9 @@ import { authenticate, requireRole, getClientIp } from '../auth/middleware.js';
 import { createGatewayManager } from '../keys/gatewayManager.js';
 import { createPqcPoolManager } from '../keys/pqcPoolManager.js';
 import { exportEncryptedEnvelope, restoreEncryptedEnvelope } from '../keys/backupEnvelope.js';
+import { defaultGatewayRateLimiter } from '../auth/rateLimiter.js';
 
-export function createKeysRouter({ db, repos }) {
+export function createKeysRouter({ db, repos, gatewayRateLimiter = defaultGatewayRateLimiter }) {
   const router = express.Router();
   const gatewayManager = createGatewayManager({ repos, db });
   const pqcManager = createPqcPoolManager({ repos, db });
@@ -65,10 +66,68 @@ export function createKeysRouter({ db, repos }) {
     }
   });
 
-  // 3. Gateway Key Validate (Internal or Gateway middleware)
+  // 3. Gateway Key Validate (Protected by IP Rate Limiting & Oracle Attempt Capping - §2 Critical Finding 2)
   router.post('/gateway/validate', (req, res) => {
+    const clientIp = getClientIp(req);
+
+    // Defense in Depth: Enforce per-IP rate limiting and exponential backoff
+    const ipCheck = gatewayRateLimiter.isIpRateLimited(clientIp);
+    if (ipCheck.limited) {
+      res.set('Retry-After', String(ipCheck.retryAfterSec));
+      return res.status(429).json({
+        error: 'TOO_MANY_REQUESTS',
+        message: `Too many failed gateway key validation attempts from this source. Exponential backoff enforced. Retry in ${ipCheck.retryAfterSec} seconds.`,
+        retryAfter: ipCheck.retryAfterSec,
+        valid: false
+      });
+    }
+
     const { key_name, token } = req.body || {};
+    if (!key_name || !token) {
+      const fail = gatewayRateLimiter.recordFailure(clientIp);
+      return res.status(400).json({
+        error: 'MISSING_FIELDS',
+        message: 'Both key_name and token are required for validation',
+        valid: false
+      });
+    }
+
     const check = gatewayManager.validateKey(key_name, token);
+
+    if (!check.valid) {
+      const fail = gatewayRateLimiter.recordFailure(clientIp);
+
+      // Trigger immutable audit alerting on repeated guessing / suspected oracle attack
+      if (fail.attempts >= 3) {
+        repos.auditLog.record({
+          action: 'GATEWAY_KEY_ORACLE_ALERT',
+          status: 'ALERT',
+          client_ip: clientIp,
+          details: {
+            key_name,
+            failed_attempts: fail.attempts,
+            locked: fail.locked,
+            retryAfterSec: fail.retryAfterSec,
+            warning: 'Repeated invalid gateway key submissions detected from source IP'
+          }
+        });
+      }
+
+      if (fail.locked) {
+        res.set('Retry-After', String(fail.retryAfterSec));
+        return res.status(429).json({
+          error: 'TOO_MANY_REQUESTS',
+          message: `Too many failed key validation attempts. Source IP locked for ${fail.retryAfterSec} seconds.`,
+          retryAfter: fail.retryAfterSec,
+          valid: false
+        });
+      }
+
+      return res.status(200).json({ valid: false, reason: check.reason || 'INVALID_KEY' });
+    }
+
+    // Valid key presented: reset failed attempt counter for this IP
+    gatewayRateLimiter.recordSuccess(clientIp);
     return res.status(200).json(check);
   });
 
@@ -306,6 +365,47 @@ export function createKeysRouter({ db, repos }) {
       });
     } catch (err) {
       return res.status(500).json({ error: 'RESTORE_FAILED', message: err.message });
+    }
+  });
+
+  // 11. Routine Rotation Request Submission (Mod & Root - FR-10)
+  router.post('/pqc/rotate/request', authenticate, requireRole(['mod', 'root']), (req, res) => {
+    try {
+      const { reason } = req.body || {};
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ error: 'REASON_REQUIRED', message: 'Rotation justification is required' });
+      }
+
+      const reqId = `req_rot_${Date.now().toString().slice(-8)}`;
+      repos.requests.createRequest({
+        id: reqId,
+        request_type: 'key_rotation',
+        submission_channel: 'routine_internal',
+        clerk_id: req.user.userId,
+        clerk_username: req.user.username,
+        station_id: req.user.stationId || 'Review-Enclave',
+        claimant_data: { reason: reason.trim(), requestedBy: req.user.username, target: 'ML-DSA-87 Routine Rotation' },
+        evidence_sha256: null,
+        status: 'AWAITING_ROOT_ACCEPT'
+      });
+
+      repos.auditLog.record({
+        action: 'PQC_ROTATION_REQUESTED',
+        status: 'SUCCESS',
+        actor_id: req.user.userId,
+        username: req.user.username,
+        role: req.user.role,
+        client_ip: getClientIp(req),
+        details: { requestId: reqId, reason: reason.trim() }
+      });
+
+      return res.status(201).json({
+        success: true,
+        requestId: reqId,
+        message: `Routine rotation request ${reqId} submitted and queued for Root Administrator approval.`
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'ROTATION_REQUEST_FAILED', message: err.message });
     }
   });
 

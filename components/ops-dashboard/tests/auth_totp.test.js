@@ -351,10 +351,20 @@ describe('Phase 2: Authentication & TOTP MFA Engine', () => {
       .send({ targetUserId: 'root_rbac_01', newPassword: 'HackedPassword2026!' });
     assert.equal(modResetRoot.status, 403);
 
-    // Clerk attempts to reset Mod password -> FORBIDDEN (403)
-    const clerkResetMod = await request
+    // Verify old clerk token was invalidated by mod's password reset
+    const oldTokenAttempt = await request
       .post('/api/auth/reset-password')
       .set('Authorization', `Bearer ${clerkToken}`)
+      .send({ targetUserId: 'mod_rbac_01', newPassword: 'HackedPassword2026!' });
+    assert.equal(oldTokenAttempt.status, 401);
+    assert.equal(oldTokenAttempt.body.error, 'REVOKED_TOKEN');
+
+    // Clerk with fresh active token attempts to reset Mod password -> FORBIDDEN (403)
+    const freshClerk = repos.users.findById('clk_rbac_01');
+    const freshClerkToken = signToken({ userId: 'clk_rbac_01', username: 'clk_rbac', role: 'clerk', token_version: freshClerk.token_version });
+    const clerkResetMod = await request
+      .post('/api/auth/reset-password')
+      .set('Authorization', `Bearer ${freshClerkToken}`)
       .send({ targetUserId: 'mod_rbac_01', newPassword: 'HackedPassword2026!' });
     assert.equal(clerkResetMod.status, 403);
 

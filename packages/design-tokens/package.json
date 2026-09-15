@@ -1,0 +1,15 @@
+{
+  "name": "@scatterid/design-tokens",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./tokens.ts",
+  "module": "./tokens.ts",
+  "types": "./tokens.ts",
+  "exports": {
+    ".": {
+      "import": "./tokens.ts",
+      "types": "./tokens.ts",
+      "default": "./tokens.ts"
+    }
+  }
+}

@@ -143,7 +143,7 @@ class KMS:
         with self.lock:
             if self._isolated_boundary:
                 return self._isolated_boundary.verify(digest_bytes, signature_bytes)
-            pk = public_key or (self.public_key_history[-1] if self.public_key_history else None)
+            pk = public_key or (self.public_key_history[-1]['public_key'] if self.public_key_history else None)
             if pk:
                 return verify_signature(digest_bytes, signature_bytes, pk, algorithm)
             return False
@@ -161,28 +161,58 @@ class KMS:
                 return False
 
     def _load_disk_history(self):
-        """Load persisted public key history from disk if present."""
+        """Load persisted public key history from disk if present.
+
+        Supports two on-disk formats:
+          Old format: ["deadbeef...", ...]           — plain hex strings (treated as 'rotated_routine')
+          New format: [{"public_key": "...", "rotation_reason": "rotated_routine", "rotated_at": "..."}, ...]
+        """
         if os.path.exists(HISTORY_FILE):
             try:
                 with open(HISTORY_FILE, 'r') as f:
-                    hex_keys = json.load(f)
-                    for k in hex_keys:
-                        pk_bytes = bytes.fromhex(k)
-                        if pk_bytes not in self.public_key_history:
-                            self.public_key_history.append(pk_bytes)
+                    raw_list = json.load(f)
+                    for item in raw_list:
+                        if isinstance(item, str):
+                            # Backward-compatible: old plain hex format → assume routine rotation
+                            pk_bytes = bytes.fromhex(item)
+                            entry = {
+                                'public_key': pk_bytes,
+                                'rotation_reason': 'rotated_routine',
+                                'rotated_at': None,
+                            }
+                        elif isinstance(item, dict) and 'public_key' in item:
+                            pk_bytes = bytes.fromhex(item['public_key'])
+                            entry = {
+                                'public_key': pk_bytes,
+                                'rotation_reason': item.get('rotation_reason', 'rotated_routine'),
+                                'rotated_at': item.get('rotated_at'),
+                            }
+                        else:
+                            continue
+
+                        # Deduplicate by public key bytes
+                        if not any(e['public_key'] == pk_bytes for e in self.public_key_history):
+                            self.public_key_history.append(entry)
             except Exception as e:
                 print(f"KMS Warning: Error reading key history file: {e}")
 
     def _save_disk_history(self):
-        """Persist public key history to disk atomically."""
+        """Persist public key history to disk atomically in structured format."""
         try:
-            hex_keys = [k.hex() for k in self.public_key_history]
+            serializable = [
+                {
+                    'public_key': e['public_key'].hex(),
+                    'rotation_reason': e.get('rotation_reason', 'rotated_routine'),
+                    'rotated_at': e.get('rotated_at'),
+                }
+                for e in self.public_key_history
+            ]
             tmp_file = f"{HISTORY_FILE}.tmp"
             flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
             mode = 0o600  # Owner read-write only
             fd = os.open(tmp_file, flags, mode)
             with os.fdopen(fd, 'w') as f:
-                json.dump(hex_keys, f)
+                json.dump(serializable, f)
             os.replace(tmp_file, HISTORY_FILE)
         except Exception as e:
             print(f"KMS Warning: Error saving key history file: {e}")
@@ -223,8 +253,13 @@ class KMS:
                     v_data = ver_res.get("data", {}).get("data", {})
                     if "public_key" in v_data:
                         pk = bytes.fromhex(v_data["public_key"])
-                        if pk not in self.public_key_history:
-                            self.public_key_history.append(pk)
+                        # Check by public key bytes for deduplication
+                        if not any(e['public_key'] == pk for e in self.public_key_history):
+                            self.public_key_history.append({
+                                'public_key': pk,
+                                'rotation_reason': 'rotated_routine',
+                                'rotated_at': None,
+                            })
                     # Defense-in-depth: remove historical private keys from memory immediately
                     if "private_key" in v_data:
                         del v_data["private_key"]
@@ -276,8 +311,12 @@ class KMS:
                 # Clean up the payload keys
                 payload["private_key"] = ""
                 
-                if public_key not in self.public_key_history:
-                    self.public_key_history.append(public_key)
+                if public_key not in [e['public_key'] for e in self.public_key_history]:
+                    self.public_key_history.append({
+                        'public_key': public_key,
+                        'rotation_reason': 'rotated_routine',
+                        'rotated_at': None,
+                    })
                     self._save_disk_history()
 
                 if self.is_transit_mode():
@@ -312,8 +351,13 @@ class KMS:
                 # Clean up the payload keys
                 payload["private_key"] = ""
                 
-                if public_key not in self.public_key_history:
-                    self.public_key_history.append(public_key)
+                import datetime as _dt
+                if public_key not in [e['public_key'] for e in self.public_key_history]:
+                    self.public_key_history.append({
+                        'public_key': public_key,
+                        'rotation_reason': 'rotated_routine',
+                        'rotated_at': _dt.datetime.utcnow().isoformat() + 'Z',
+                    })
                     self._save_disk_history()
                 self._sync_vault_history()
 
@@ -328,3 +372,37 @@ class KMS:
                 return public_key, private_key
             except Exception as e:
                 raise RuntimeError(f"KMS Error: Key rotation operation failed in Vault: {e}")
+
+    def mark_key_compromised(self, public_key_hex: str) -> bool:
+        """Mark a historical key as compromised by its public key hex.
+
+        SECURITY: Any signature verification request for a key marked as
+        'rotated_compromised' MUST be rejected by the verify_hash route,
+        regardless of whether the signature itself is mathematically valid.
+        A valid-looking signature from a compromised key is not trustworthy.
+
+        Returns True if the key was found and marked, False if not found.
+        """
+        pk_bytes = bytes.fromhex(public_key_hex)
+        with self.lock:
+            for entry in self.public_key_history:
+                if entry['public_key'] == pk_bytes:
+                    entry['rotation_reason'] = 'rotated_compromised'
+                    import datetime as _dt
+                    entry['rotated_at'] = _dt.datetime.utcnow().isoformat() + 'Z'
+                    self._save_disk_history()
+                    return True
+        return False
+
+    def is_key_compromised(self, public_key_hex: str) -> bool:
+        """Check if a given public key (by hex) is marked as compromised in history.
+
+        Call this before accepting a signature as valid. If True, the signature
+        must be rejected even if it is mathematically correct.
+        """
+        pk_bytes = bytes.fromhex(public_key_hex)
+        with self.lock:
+            for entry in self.public_key_history:
+                if entry['public_key'] == pk_bytes:
+                    return entry.get('rotation_reason') == 'rotated_compromised'
+        return False

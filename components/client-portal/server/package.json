@@ -1,0 +1,27 @@
+{
+  "name": "scatterid-client-portal-server",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ScatterID Counter-VPN Thin Proxy Gateway & Clerk Auth Service",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "tsx --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "supertest": "^7.0.0",
+    "@types/supertest": "^6.0.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}

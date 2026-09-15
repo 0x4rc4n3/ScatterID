@@ -96,4 +96,29 @@ describe('Phase 8: Network Micro-Segmentation & Firewall Rules', () => {
     assert.match(output, /All network isolation policy checks passed successfully/);
     assert.doesNotMatch(output, /FAIL/);
   });
+
+  test('5. docker-compose.yml implements 3-zone microsegmentation networks natively', () => {
+    const composePath = path.join(REPO_ROOT, 'docker-compose.yml');
+    assert.ok(fs.existsSync(composePath), 'docker-compose.yml must exist at repo root');
+
+    const content = fs.readFileSync(composePath, 'utf8');
+
+    // Subnets configuration
+    assert.match(content, /10\.20\.0\.0\/24/, 'Zone 1 Counter network subnet 10.20.0.0/24 must be defined');
+    assert.match(content, /10\.10\.0\.0\/24/, 'Zone 2 Management network subnet 10.10.0.0/24 must be defined');
+    assert.match(content, /10\.30\.0\.0\/24/, 'Zone 3 Core Dataplane network subnet 10.30.0.0/24 must be defined');
+
+    // Network definitions
+    assert.match(content, /zone1_counter_net:/, 'zone1_counter_net must be defined');
+    assert.match(content, /zone2_mgmt_net:/, 'zone2_mgmt_net must be defined');
+    assert.match(content, /zone3_dataplane_net:/, 'zone3_dataplane_net must be defined');
+
+    // Structural isolation assertions:
+    // client-portal must NOT be on zone2_mgmt_net
+    // ops-dashboard must NOT be on zone1_counter_net
+    assert.ok(content.includes('client-portal:'));
+    assert.ok(content.includes('ops-dashboard:'));
+    assert.ok(content.includes('verification-api:'));
+    assert.ok(content.includes('crypto-service:'));
+  });
 });

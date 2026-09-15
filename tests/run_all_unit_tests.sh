@@ -132,6 +132,30 @@ if [ -f "tests/test_fabric_redundancy.test.sh" ]; then
     "bash tests/test_fabric_redundancy.test.sh"
 fi
 
+# 13. Operations Console Suite (Node.js / Express, SQLite WAL, RBAC, Token Revocation, Gateway Defense)
+if [ -d "components/ops-dashboard" ] && command -v npm >/dev/null 2>&1; then
+  run_suite "Operations Console Backend (components/ops-dashboard / 117 tests)" \
+    "(cd components/ops-dashboard && npm test)"
+fi
+
+# 14. Ops Dashboard Web Frontend Suite (React-Admin, Permission Matrix)
+if [ -d "components/ops-dashboard-web" ] && command -v npm >/dev/null 2>&1; then
+  run_suite "Ops Dashboard Web Frontend (components/ops-dashboard-web)" \
+    "(cd components/ops-dashboard-web && npm test)"
+fi
+
+# 15. Client Portal Server Suite (Node.js / Express Proxy Forwarder)
+if [ -d "components/client-portal/server" ] && command -v npm >/dev/null 2>&1; then
+  run_suite "Client Portal Proxy Backend (components/client-portal/server)" \
+    "(cd components/client-portal/server && npm test)"
+fi
+
+# 16. Client Portal Frontend Suite (React, Tailwind, Offline Verifier)
+if [ -d "components/client-portal/frontend" ] && command -v npm >/dev/null 2>&1; then
+  run_suite "Client Portal Frontend (components/client-portal/frontend)" \
+    "(cd components/client-portal/frontend && npm test)"
+fi
+
 # Summary
 echo -e "\n${BOLD}${CYAN}======================================================================${RESET}"
 echo -e "${BOLD}Summary: ${PASSED_SUITES}/${TOTAL_SUITES} test suites passed.${RESET}"

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   totp_secret TEXT DEFAULT NULL,
   totp_enabled INTEGER NOT NULL DEFAULT 0 CHECK (totp_enabled IN (0, 1)),
   force_password_reset INTEGER NOT NULL DEFAULT 0 CHECK (force_password_reset IN (0, 1)),
+  token_version INTEGER NOT NULL DEFAULT 1 CHECK (token_version >= 1),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

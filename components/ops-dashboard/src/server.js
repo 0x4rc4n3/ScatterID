@@ -35,10 +35,17 @@ if (Buffer.byteLength(JWT_SECRET, 'utf8') < 32) {
   process.exit(1);
 }
 
-export function createApp({ db: customDb = null, repos: customRepos = null, rateLimiter = undefined } = {}) {
+export function createApp({ db: customDb = null, repos: customRepos = null, rateLimiter = undefined, gatewayRateLimiter = undefined } = {}) {
   const app = express();
   const db = customDb || getDb();
   const repos = customRepos || createRepositories(db);
+
+  // Expose repositories on app context for authentication & revocation middleware
+  app.locals.repos = repos;
+  app.locals.db = db;
+  if (rateLimiter) {
+    app.locals.rateLimiter = rateLimiter;
+  }
 
   // Non-negotiable security headers & body size clamping (100kb)
   app.use(helmet({
@@ -66,9 +73,17 @@ export function createApp({ db: customDb = null, repos: customRepos = null, rate
   // Mount Routers
   app.use('/api/auth', createAuthRouter({ db, repos, rateLimiter }));
   app.use('/api/requests', createRequestsRouter({ db, repos }));
-  app.use('/api/keys', createKeysRouter({ db, repos }));
+  app.use('/api/keys', createKeysRouter({ db, repos, gatewayRateLimiter }));
 
-  // Global 404 handler
+  // SPA fallback for HTML5 client-side routing
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/healthz')) {
+      return next();
+    }
+    res.sendFile(path.resolve(__dirname, '../public/index.html'));
+  });
+
+  // Global 404 handler for unmatched API requests
   app.use((req, res) => {
     res.status(404).json({ error: 'NOT_FOUND', path: req.path });
   });
@@ -95,7 +110,7 @@ export async function startServer(port = process.env.PORT || 8080) {
   return app.listen(port, () => {
     console.log(`=============================================================`);
     console.log(`  ScatterID Ops Console running at http://0.0.0.0:${port}`);
-    console.log(`  Console UI available at http://localhost:${port}/dashboard.html`);
+    console.log(`  Console UI available at http://localhost:${port}/`);
     console.log(`=============================================================`);
   });
 }

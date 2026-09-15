@@ -100,5 +100,7 @@ temp/
 *.log
 logs/
 sdk/dist/
+dist/
+**/dist/
 components/blockchain/fabric-network/bin/
 config.json

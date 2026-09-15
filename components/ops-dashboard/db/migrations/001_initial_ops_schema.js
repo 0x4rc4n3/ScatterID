@@ -15,6 +15,7 @@ export function up(db) {
       totp_secret TEXT DEFAULT NULL,
       totp_enabled INTEGER NOT NULL DEFAULT 0 CHECK (totp_enabled IN (0, 1)),
       force_password_reset INTEGER NOT NULL DEFAULT 0 CHECK (force_password_reset IN (0, 1)),
+      token_version INTEGER NOT NULL DEFAULT 1 CHECK (token_version >= 1),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -114,6 +115,7 @@ export function up(db) {
       public_key_id_sha3 TEXT NOT NULL,
       encrypted_private_key TEXT DEFAULT NULL,
       status TEXT NOT NULL CHECK (status IN ('pre_staged', 'active', 'retired', 'compromised')),
+      rotation_reason TEXT DEFAULT NULL CHECK (rotation_reason IN ('rotated_routine', 'rotated_compromised', NULL)),
       active_from TEXT NOT NULL,
       valid_until TEXT DEFAULT NULL,
       sequence_number INTEGER NOT NULL UNIQUE,
@@ -142,6 +144,12 @@ export function up(db) {
   `;
 
   db.exec(ddl);
+
+  // Self-healing migration for pre-existing tables created before token_version
+  const cols = db.prepare('PRAGMA table_info(users)').all();
+  if (!cols.some(c => c.name === 'token_version')) {
+    db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 1 CHECK (token_version >= 1);');
+  }
 }
 
 export function down(db) {

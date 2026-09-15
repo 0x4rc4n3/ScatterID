@@ -159,8 +159,19 @@ def verify_hash_route():
         
     # Also check historical keys if necessary
     with kms.lock:
-        for pk in getattr(kms, 'public_key_history', []):
-            if hashlib.sha256(pk).hexdigest()[:32] == public_key_id and pk not in keys_to_test:
+        for entry in getattr(kms, 'public_key_history', []):
+            pk = entry['public_key'] if isinstance(entry, dict) else entry  # backward compat
+            pk_id = hashlib.sha256(pk).hexdigest()[:32]
+            if pk_id == public_key_id and pk not in keys_to_test:
+                # SECURITY: Reject immediately if this historical key was compromised.
+                # A mathematically valid signature from a compromised key is NOT trustworthy —
+                # the key may have been used by an attacker after compromise.
+                reason = entry.get('rotation_reason') if isinstance(entry, dict) else None
+                if reason == 'rotated_compromised':
+                    return jsonify({
+                        "valid": False,
+                        "reason": "publicKeyId corresponds to a key that was revoked due to compromise; signatures from this key are not accepted"
+                    }), 200
                 keys_to_test.append(pk)
                 
     if not keys_to_test:

@@ -238,10 +238,24 @@ def verify_offline(raw_json, cli_public_key=None):
                     else:
                         print(f"  {RED}✕ Level 2 Failed:{RESET} Signature is INVALID for the provided Public Key.")
         except ImportError:
-            print(f"  {RED}[!] CRITICAL:{RESET} `oqs` (liboqs-python) is not installed. ML-DSA-65 signature CANNOT be verified.")
-            print(f"      Install liboqs-python or verify via the Docker container to perform full PQC signature verification.")
-            sig_checked = False  # Override: signature was never actually checked
-            sig_verified = False
+            # SECURITY: liboqs missing when signature data IS present is a hard failure.
+            # Do NOT fall through to the success path — that would silently pass unverified credentials.
+            print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
+            print(f"{BOLD}{YELLOW}  ⚠ VERIFICATION RESULT: DEPENDENCY MISSING — SIGNATURE NOT VERIFIED{RESET}")
+            print(f"{BOLD}{CYAN}======================================================================{RESET}")
+            print(f"  {RED}CRITICAL: `oqs` (liboqs-python) is not installed.{RESET}")
+            print(f"  ML-DSA-65 post-quantum signature verification CANNOT proceed.")
+            print(f"  The credential has NOT been cryptographically verified.")
+            print(f"")
+            print(f"  To perform full PQC signature verification, install liboqs-python:")
+            print(f"    pip install liboqs-python")
+            print(f"  Or run via the Docker container which bundles native liboqs:")
+            print(f"    docker run --rm -v $PWD:/cred scatterid/verifier python3 tools/verify_offline.py /cred/credential.json")
+            print(f"")
+            print(f"  Exit code 2 = could not verify (dependency missing)")
+            print(f"  Exit code 1 = signature invalid")
+            print(f"  Exit code 0 = cryptographically verified\n")
+            sys.exit(2)  # Distinct from exit(1)=invalid and exit(0)=verified
         except Exception as e:
             print(f"  {RED}✕ Level 2 Error:{RESET} Failed to verify signature: {e}")
             sig_verified = False

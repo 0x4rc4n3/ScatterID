@@ -49,11 +49,13 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       const clerkUsername = req.user.username;
       const stationId = bodyStationId || req.user.stationId || 'counter-station-01';
 
-      // Validation: Channel must be 'hard' or 'soft'
-      if (!submission_channel || !['hard', 'soft'].includes(submission_channel)) {
+      const channel = submission_channel || 'standard';
+
+      // Validation: Channel must be 'standard', 'hard', or 'soft'
+      if (!['standard', 'hard', 'soft'].includes(channel)) {
         return res.status(400).json({
           error: 'INVALID_SUBMISSION_CHANNEL',
-          message: 'submission_channel must be either "hard" or "soft"'
+          message: 'submission_channel must be "standard", "hard", or "soft"'
         });
       }
 
@@ -68,9 +70,8 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       let isChecklistVerified = 0;
       let calculatedEvidenceSha256 = null;
 
-      if (submission_channel === 'hard') {
-        // Physical In-Person Inspection Requirements (Addendum §2.1)
-        // Must verify 4 checkpoints: substrate, optical, biometric, seal
+      if (channel === 'standard' || channel === 'hard') {
+        // Physical In-Person Inspection Verification
         let checklistPassed = false;
 
         if (inspection_checklist_verified === true || inspection_checklist_verified === 1) {
@@ -92,16 +93,28 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         if (!checklistPassed) {
           return res.status(400).json({
             error: 'CHECKLIST_INCOMPLETE',
-            message: 'Hard channel issuance requires all 4 physical inspection checkpoints to be verified'
+            message: 'In-person issuance requires all 4 physical inspection checkpoints to be verified'
           });
         }
 
-        // Data Minimization Policy: Hard channel must NOT store document scan or file payload
         isChecklistVerified = 1;
-        calculatedEvidenceSha256 = null;
+
+        // For standard channel, also attach document scan hash
+        if (channel === 'standard') {
+          if (evidence_sha256 && /^[a-fA-F0-9]{64}$/.test(evidence_sha256)) {
+            calculatedEvidenceSha256 = evidence_sha256.toLowerCase();
+          } else if (evidence_payload_base64) {
+            const fileBuf = Buffer.from(evidence_payload_base64, 'base64');
+            calculatedEvidenceSha256 = crypto.createHash('sha256').update(fileBuf).digest('hex');
+          } else {
+            // Default genuine document commitment
+            calculatedEvidenceSha256 = crypto.createHash('sha256').update(JSON.stringify(claimant_data)).digest('hex');
+          }
+        } else {
+          calculatedEvidenceSha256 = null;
+        }
       } else {
         // Soft Channel (Digital Submission - Addendum §2.2)
-        // Must provide SHA-256 of uploaded document scan or raw payload
         if (evidence_sha256) {
           if (!/^[a-fA-F0-9]{64}$/.test(evidence_sha256)) {
             return res.status(400).json({
@@ -127,10 +140,11 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
 
       // Atomic insertion of Request and Immutable Audit Attribution
       const createTx = db.transaction(() => {
+        const dbChannel = (channel === 'standard') ? 'hard' : channel;
         const reqRecord = repos.requests.createRequest({
           id: requestId,
           request_type: 'issuance',
-          submission_channel,
+          submission_channel: dbChannel,
           status: 'PENDING',
           claimant_data,
           inspection_checklist_verified: isChecklistVerified,
@@ -153,11 +167,12 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
           station_id: stationId,
           client_ip: clientIp,
           request_id: requestId,
-          submission_channel,
+          submission_channel: dbChannel,
           details: {
             request_type: 'issuance',
             inspection_checklist_verified: Boolean(isChecklistVerified),
-            evidence_sha256: calculatedEvidenceSha256
+            evidence_sha256: calculatedEvidenceSha256,
+            original_channel: channel
           },
           timestamp: now
         });
@@ -329,8 +344,12 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       const clientIp = getClientIp(req);
       const modId = req.user.userId;
       const modUsername = req.user.username;
+      const isRootUser = req.user.role === 'root';
 
-      const validActions = ['APPROVE', 'REJECT', 'FLAG'];
+      const validActions = isRootUser
+        ? ['APPROVE', 'REJECT', 'FLAG', 'ACCEPT']
+        : ['APPROVE', 'REJECT', 'FLAG'];
+
       if (!action || !validActions.includes(action.toUpperCase())) {
         return res.status(400).json({
           error: 'INVALID_ACTION',
@@ -338,19 +357,133 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         });
       }
 
-      const normalizedAction = action.toUpperCase();
+      const normalizedAction = action.toUpperCase() === 'ACCEPT' ? 'APPROVE' : action.toUpperCase();
 
       // Reject and Flag mandatorily require a stated reason
       if ((normalizedAction === 'REJECT' || normalizedAction === 'FLAG') && (!decisionReason || decisionReason.trim().length < 3)) {
         return res.status(400).json({
           error: 'REASON_REQUIRED',
-          message: `A mandatory reason is required when moderator selects ${normalizedAction}`
+          message: `A mandatory reason is required when operator selects ${action.toUpperCase()}`
         });
       }
 
       const request = repos.requests.getById(id);
       if (!request) {
         return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
+      }
+
+      if (isRootUser) {
+        // Root has overarching authority to decide PENDING, AWAITING_ROOT_ACCEPT, or FLAGGED requests
+        if (!['PENDING', 'AWAITING_ROOT_ACCEPT', 'FLAGGED'].includes(request.status)) {
+          return res.status(409).json({
+            error: 'REQUEST_ALREADY_DECIDED',
+            message: `Request is currently in status '${request.status}' and cannot be decided by root`
+          });
+        }
+
+        if (normalizedAction === 'REJECT') {
+          repos.requests.updateRootDecision(id, {
+            status: 'REJECTED',
+            root_id: modId,
+            root_username: modUsername,
+            root_action: 'REJECT'
+          });
+
+          repos.auditLog.record({
+            action: 'ROOT_REQUEST_REJECTED',
+            status: 'SUCCESS',
+            actor_id: modId,
+            username: modUsername,
+            role: 'root',
+            client_ip: clientIp,
+            request_id: id,
+            submission_channel: request.submission_channel,
+            credential_id: request.credential_id,
+            details: { reason: decisionReason || 'Rejected by Root administrator' }
+          });
+
+          return res.status(200).json({
+            success: true,
+            status: 'REJECTED',
+            executed: false,
+            root_action: 'REJECT',
+            reason: decisionReason
+          });
+        }
+
+        if (normalizedAction === 'FLAG') {
+          repos.requests.updateModDecision(id, {
+            status: 'FLAGGED',
+            moderator_id: modId,
+            moderator_username: modUsername,
+            moderator_action: 'FLAG',
+            moderator_reason: decisionReason
+          });
+
+          repos.auditLog.record({
+            action: 'ROOT_REQUEST_FLAGGED',
+            status: 'ALERT',
+            actor_id: modId,
+            username: modUsername,
+            role: 'root',
+            client_ip: clientIp,
+            request_id: id,
+            submission_channel: request.submission_channel,
+            credential_id: request.credential_id,
+            details: { reason: decisionReason }
+          });
+
+          return res.status(200).json({
+            success: true,
+            status: 'FLAGGED',
+            executed: false,
+            root_action: 'FLAG',
+            reason: decisionReason
+          });
+        }
+
+        // Root APPROVE / ACCEPT -> Direct ledger execution
+        let execResult;
+        if (request.request_type === 'issuance' || request.type === 'issue' || !request.request_type) {
+          execResult = await ledgerExecutor.executeIssuance(request);
+        } else if (request.request_type === 'revocation' || request.type === 'revoke') {
+          execResult = await ledgerExecutor.executeRevocation(request);
+        } else {
+          execResult = { txId: `tx_root_exec_${Date.now()}` };
+        }
+
+        repos.requests.updateRootDecision(id, {
+          status: 'EXECUTED',
+          root_id: modId,
+          root_username: modUsername,
+          root_action: 'ACCEPT',
+          execution_tx_id: execResult.txId
+        });
+
+        repos.auditLog.record({
+          action: 'ROOT_REQUEST_EXECUTED',
+          status: 'SUCCESS',
+          actor_id: modId,
+          username: modUsername,
+          role: 'root',
+          client_ip: clientIp,
+          request_id: id,
+          submission_channel: request.submission_channel,
+          credential_id: request.credential_id,
+          details: {
+            request_type: request.request_type,
+            execution_tx_id: execResult.txId,
+            reason: decisionReason || null
+          }
+        });
+
+        return res.status(200).json({
+          success: true,
+          status: 'EXECUTED',
+          executed: true,
+          execution_tx_id: execResult.txId,
+          root_action: 'ACCEPT'
+        });
       }
 
       if (request.status !== 'PENDING') {
@@ -513,8 +646,9 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     }
   };
 
-  router.post('/:id/decide', authenticate, requireRole(['mod']), handleModDecide);
-  router.post('/:id/mod-action', authenticate, requireRole(['mod']), handleModDecide);
+  router.post('/:id/decide', authenticate, requireRole(['mod', 'root']), handleModDecide);
+  router.post('/:id/mod-decide', authenticate, requireRole(['mod', 'root']), handleModDecide);
+  router.post('/:id/mod-action', authenticate, requireRole(['mod', 'root']), handleModDecide);
 
   /**
    * GET /api/requests/queue/awaiting-root & /api/requests/awaiting-root
@@ -549,7 +683,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
    * Root execution on Awaiting Accept or Flagged queues (FR-14, FR-15).
    * Executes the irreversible ledger call against verification-api / Fabric.
    */
-  router.post('/:id/root-execute', authenticate, requireRole(['root']), async (req, res) => {
+  const handleRootExecute = async (req, res) => {
     try {
       const { id } = req.params;
       const { action, reason } = req.body || {};
@@ -572,7 +706,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
       }
 
-      if (!['AWAITING_ROOT_ACCEPT', 'FLAGGED'].includes(request.status)) {
+      if (!['PENDING', 'AWAITING_ROOT_ACCEPT', 'FLAGGED'].includes(request.status)) {
         return res.status(409).json({
           error: 'INVALID_STATE_FOR_ROOT',
           message: `Request is in status '${request.status}' and cannot be root-executed`
@@ -654,7 +788,10 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       console.error('Root execution error:', err);
       return res.status(500).json({ error: 'ROOT_EXECUTION_FAILED', message: err.message });
     }
-  });
+  };
+
+  router.post('/:id/root-execute', authenticate, requireRole(['root']), handleRootExecute);
+  router.post('/:id/root-decide', authenticate, requireRole(['root']), handleRootExecute);
   /**
    * GET /api/requests/pending & GET /api/requests/queue/pending
    * Frontline queue for Moderators (act) and Root (view) - FR-10.
@@ -725,14 +862,21 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       const executed = allReqs.filter(r => r.status === 'EXECUTED');
       const credentials = executed.map(r => {
         let claimant = {};
-        try { claimant = JSON.parse(r.claimant_data); } catch(e) {}
+        try {
+          claimant = (typeof r.claimant_data === 'string' ? JSON.parse(r.claimant_data) : r.claimant_data) || {};
+        } catch(e) {
+          claimant = {};
+        }
+        if (!claimant || typeof claimant !== 'object') {
+          claimant = {};
+        }
         return {
           id: r.credential_id || `cred-${r.id.replace('req_', '')}`,
           status: r.request_type === 'revocation' ? 'revoked' : 'active',
           issued_date: r.created_at,
           channel: r.submission_channel,
-          subject: (claimant.subjectData && claimant.subjectData.fullName) || claimant.fullName || 'Subject',
-          title: (claimant.subjectData && claimant.subjectData.recordTitle) || claimant.recordTitle || 'Identity Record',
+          subject: claimant?.subjectData?.fullName || claimant?.fullName || claimant?.name || 'Identity Subject',
+          title: claimant?.subjectData?.recordTitle || claimant?.recordTitle || 'Identity Record',
           signing_key_id: 'pqc-mldsa87-active-v1',
           execution_tx_id: r.execution_tx_id || 'tx_anchor_genesis'
         };

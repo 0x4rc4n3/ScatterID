@@ -77,37 +77,79 @@ To prevent lateral movement and privilege escalation, the network is partitioned
 
 ---
 
-## 4. Docker Compose Port Topology & Host Binding
+## 4. Docker Compose Port Topology & Native Network Microsegmentation
 
-To enforce this segmentation at the container orchestration layer:
+To enforce this segmentation natively at the container orchestration layer:
 
 ```yaml
 services:
-  # Client Portal (Accessible to Help Desk VPN Subnet)
+  # Zone 1: Client Portal (Accessible to Help Desk VPN Subnet)
   client-portal:
-    image: scatterid-app:latest
+    build:
+      context: ../ScatterID-app
+      dockerfile: Dockerfile
     ports:
-      - "10.20.0.10:5000:5000" # Bound strictly to the Counter VPN interface
+      - "${PORT_CLIENT_PORTAL:-5000}:5000"
+    networks:
+      zone1_counter_net:
+        ipv4_address: 10.20.0.10
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.13
 
-  # Internal Ops Dashboard (Accessible ONLY to Management Subnet / On-Prem LAN)
+  # Zone 2: Operations Console (Accessible ONLY to Management Subnet / On-Prem LAN)
   ops-dashboard:
-    image: appsmith/appsmith-ce:latest
+    build:
+      context: ./components/ops-dashboard
+      dockerfile: Dockerfile
     ports:
-      - "10.10.0.10:8080:8080" # Bound strictly to the Management LAN interface
+      - "${PORT_OPS_DASHBOARD:-8080}:8080"
+    networks:
+      zone2_mgmt_net:
+        ipv4_address: 10.10.0.10
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.12
 
-  # Verification Gateway (Internal Loopback / Backend Bridge Only)
+  # Zone 3: Verification Gateway API (Internal Dataplane Only)
   verification-api:
-    image: scatterid-verification-api:latest
+    build:
+      context: ./components/verification-api
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT_VERIFICATION_API:-3000}:3000"
     networks:
-      - scatterid_backend
-    # No direct public host port mapping; accessed via reverse proxy or internal bridge
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.11
 
-  # PQC Crypto Microservice (mTLS Internal Bridge Only)
+  # Zone 3: PQC Crypto Microservice (mTLS Internal Dataplane Only)
   crypto-service:
-    image: scatterid-crypto-service:latest
+    build:
+      context: ./components/crypto/crypto-service
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT_CRYPTO_SERVICE:-5001}:5001"
     networks:
-      - scatterid_backend
-    # Zero external exposure
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.10
+
+networks:
+  zone1_counter_net:
+    name: scatterid_zone1_counter
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/24
+  zone2_mgmt_net:
+    name: scatterid_zone2_mgmt
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
+  zone3_dataplane_net:
+    name: scatterid_zone3_dataplane
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.30.0.0/24
 ```
 
 ---

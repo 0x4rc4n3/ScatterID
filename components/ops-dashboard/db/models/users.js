@@ -4,8 +4,8 @@
 export function createUsersRepo(db) {
   const stmts = {
     insert: db.prepare(`
-      INSERT INTO users (id, username, password_hash, role, station_id, totp_secret, totp_enabled, force_password_reset, created_at, updated_at)
-      VALUES (@id, @username, @password_hash, @role, @station_id, @totp_secret, @totp_enabled, @force_password_reset, @created_at, @updated_at)
+      INSERT INTO users (id, username, password_hash, role, station_id, totp_secret, totp_enabled, force_password_reset, token_version, created_at, updated_at)
+      VALUES (@id, @username, @password_hash, @role, @station_id, @totp_secret, @totp_enabled, @force_password_reset, @token_version, @created_at, @updated_at)
     `),
     findByUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
     findById: db.prepare('SELECT * FROM users WHERE id = ?'),
@@ -20,7 +20,17 @@ export function createUsersRepo(db) {
       SET password_hash = @password_hash, force_password_reset = @force_password_reset, updated_at = @updated_at 
       WHERE id = @id
     `),
-    listAll: db.prepare('SELECT id, username, role, station_id, totp_enabled, force_password_reset, created_at, updated_at FROM users ORDER BY created_at DESC')
+    incrementTokenVersion: db.prepare(`
+      UPDATE users
+      SET token_version = token_version + 1, updated_at = @updated_at
+      WHERE id = @id
+    `),
+    setTokenVersion: db.prepare(`
+      UPDATE users
+      SET token_version = @token_version, updated_at = @updated_at
+      WHERE id = @id
+    `),
+    listAll: db.prepare('SELECT id, username, role, station_id, totp_enabled, force_password_reset, token_version, created_at, updated_at FROM users ORDER BY created_at DESC')
   };
 
   return {
@@ -35,6 +45,7 @@ export function createUsersRepo(db) {
         totp_secret: user.totp_secret || null,
         totp_enabled: user.totp_enabled ? 1 : 0,
         force_password_reset: user.force_password_reset ? 1 : 0,
+        token_version: user.token_version !== undefined ? user.token_version : 1,
         created_at: user.created_at || now,
         updated_at: user.updated_at || now
       };
@@ -72,6 +83,17 @@ export function createUsersRepo(db) {
         force_password_reset: force_password_reset ? 1 : 0,
         updated_at: now
       });
+    },
+
+    incrementTokenVersion(id) {
+      const now = new Date().toISOString();
+      stmts.incrementTokenVersion.run({ id, updated_at: now });
+      const user = stmts.findById.get(id);
+      return user ? user.token_version : null;
+    },
+
+    revokeAllTokens(id) {
+      return this.incrementTokenVersion(id);
     },
 
     listAll() {

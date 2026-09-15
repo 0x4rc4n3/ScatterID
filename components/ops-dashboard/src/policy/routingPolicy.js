@@ -3,15 +3,17 @@
 // Document ID: DEV-ARCH-08 / POLICY-ENG-01
 
 export const POLICY_PROFILES = {
-  // Default Tiered Risk (Scenario B): Hard auto-executes, Soft gates to Root, Revocations gate to Root
+  // Default Tiered Risk (Scenario B): In-person verified standard auto-executes, revocations gate to Root
   SCENARIO_B: {
     name: 'Scenario B — Tiered Risk Policy',
     description: 'High-assurance in-person requests auto-execute upon moderator approval; remote and high-impact actions require Root Administrator authorization.',
     issuance: {
+      standard: 'AUTO_EXECUTE',
       hard: 'AUTO_EXECUTE',
       soft: 'ROUTE_TO_ROOT'
     },
     revocation: {
+      standard: 'ROUTE_TO_ROOT',
       hard: 'ROUTE_TO_ROOT',
       soft: 'ROUTE_TO_ROOT'
     },
@@ -28,10 +30,12 @@ export const POLICY_PROFILES = {
     name: 'Scenario A — Strict Dual-Control Policy',
     description: 'Every issuance and revocation requires explicit Root Administrator review and execution, regardless of channel.',
     issuance: {
+      standard: 'ROUTE_TO_ROOT',
       hard: 'ROUTE_TO_ROOT',
       soft: 'ROUTE_TO_ROOT'
     },
     revocation: {
+      standard: 'ROUTE_TO_ROOT',
       hard: 'ROUTE_TO_ROOT',
       soft: 'ROUTE_TO_ROOT'
     },
@@ -48,10 +52,12 @@ export const POLICY_PROFILES = {
     name: 'Scenario C — Delegated Operational Autonomy',
     description: 'Moderators possess direct ledger execution authority for issuances; revocations remain strictly Root-gated.',
     issuance: {
+      standard: 'AUTO_EXECUTE',
       hard: 'AUTO_EXECUTE',
       soft: 'AUTO_EXECUTE'
     },
     revocation: {
+      standard: 'ROUTE_TO_ROOT',
       hard: 'ROUTE_TO_ROOT',
       soft: 'ROUTE_TO_ROOT'
     },
@@ -122,13 +128,15 @@ export function resetPolicyToDefault() {
 export function evaluateModeratorApproval(request) {
   const policy = getActivePolicy();
   const reqType = (request.request_type || 'issuance').toLowerCase();
-  const channel = (request.submission_channel || 'hard').toLowerCase();
+  const channel = (request.submission_channel || 'standard').toLowerCase();
 
-  const routingRule = policy[reqType] ? policy[reqType][channel] : 'ROUTE_TO_ROOT';
+  const routingRule = policy[reqType]
+    ? (policy[reqType][channel] || policy[reqType].standard || policy[reqType].hard || 'ROUTE_TO_ROOT')
+    : 'ROUTE_TO_ROOT';
 
   if (routingRule === 'AUTO_EXECUTE') {
     const policyCode = (activePolicyProfile === 'SCENARIO_B')
-      ? 'SCENARIO_B_HARD_CHANNEL_AUTO_EXECUTE'
+      ? (channel === 'hard' ? 'SCENARIO_B_HARD_CHANNEL_AUTO_EXECUTE' : 'SCENARIO_B_STANDARD_AUTO_EXECUTE')
       : `${activePolicyProfile || 'CUSTOM'}_${reqType.toUpperCase()}_AUTO_EXECUTE`;
     return {
       action: 'AUTO_EXECUTE',

@@ -115,6 +115,7 @@ export async function runCli(argv = process.argv.slice(2), { customDb = null } =
           totp_secret: encryptedSecret,
           totp_enabled: 1
         });
+        repos.users.incrementTokenVersion(user.id);
       }
 
       repos.recoveryCodes.saveCodesForUser(user.id, codeHashes);
@@ -178,6 +179,7 @@ export async function runCli(argv = process.argv.slice(2), { customDb = null } =
     const resetTx = db.transaction(() => {
       repos.users.updateTotp(user.id, { totp_secret: null, totp_enabled: 0 });
       db.prepare('DELETE FROM recovery_codes WHERE user_id = ?').run(user.id);
+      repos.users.incrementTokenVersion(user.id);
       repos.auditLog.record({
         action: 'SECURITY_ALERT: MFA_RESET_OFFLINE_CLI',
         status: 'ALERT',
@@ -214,6 +216,7 @@ export async function runCli(argv = process.argv.slice(2), { customDb = null } =
 
     const pHash = await hashPassword(password);
     repos.users.updatePassword(user.id, pHash, 0);
+    repos.users.incrementTokenVersion(user.id);
 
     repos.auditLog.record({
       action: 'SECURITY_ALERT: PASSWORD_RESET_OFFLINE_CLI',

@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 // Registered migrations in chronological order
 export const MIGRATIONS = [
-  migration001
+  migration001,
 ];
 
 /**

@@ -125,6 +125,10 @@ export function createRequestsRepo(db) {
 
     listRecent(limit = 50) {
       return stmts.listAll.all(limit);
+    },
+
+    listAll(limit = 500) {
+      return stmts.listAll.all(limit);
     }
   };
 }

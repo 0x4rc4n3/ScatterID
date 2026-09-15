@@ -1,10 +1,10 @@
 # ScatterID Operations Console & Help Desk Client Portal — Comprehensive Progress Report
 
 **Document ID:** REP-OPS-PORTAL-2026-V1  
-**Date:** September 6, 2026  
-**Status:** Feature-Complete & Fully Verified  
+**Date:** September 7, 2026  
+**Status:** Feature-Complete, Security-Hardened & Fully Verified  
 **Coverage:** Core Repositories (`ScatterID`, `ScatterID-app`, `ScatterID-web`)  
-**Overall Automated Test Status:** **107 / 107 Tests Passing (100%)**
+**Overall Automated Test Status:** **152 / 152 Tests Passing (100%)**
 
 ---
 
@@ -160,24 +160,30 @@ ScatterID credentials operate across three distinct cryptographic tiers to balan
 
 ## 4. Engineering Verification & Test Suite Matrix
 
-The entire operations and portal ecosystem is covered by exhaustive, automated test suites running in Node.js test runner. **All 107 tests pass with 0 failures and 0 regressions.**
+The entire operations and portal ecosystem is covered by exhaustive, automated test suites running in Node.js test runner. Following security hardening and audit remediations, **all 152 tests pass with 0 failures and 0 regressions.**
 
 ### Summary Test Matrix
 
-| Component | Test Suite File | Test Count | Status | Key Coverage Areas |
+| Component | Test Suite File | Test Count | Status | Key Coverage & Remediation Areas |
 | :--- | :--- | :---: | :---: | :--- |
-| **Client Portal** | `ScatterID-app/test/portal_full_flow.test.js` | 29 | **PASS** | Clerk onboarding, 4-point checklist validation, scan upload SHA-256, Verify Desk Level 1/2, Revoke Desk docket enforcement, 4-step tracking stepper |
-| **Client Portal Core** | `ScatterID-app/test/server.test.js` | 6 | **PASS** | Health probes, claim presets, RFC 8785 hashing, salt validation |
-| **Ops Dashboard Full-Flow** | `ScatterID/tests/issue_104_ops_console_full_flow.test.js` | 15 | **PASS** | RBAC matrix, Scenario B Hard auto-exec, Soft root gating, rejection/flagging mandatory reasons, PQC key promotion, backup encryption, manual reconciliation |
-| **Agile Policy Engine** | `ScatterID/tests/agile_policy_engine.test.js` | 6 | **PASS** | Scenario B default, Scenario A gating, Scenario C auto-exec, custom policy maps, RBAC enforcement on policy endpoints |
-| **Database & Migrations** | `ScatterID/tests/phase1_schema.test.js` | 9 | **PASS** | SQLite WAL mode, foreign keys, 7 core tables, migration rollback idempotency |
-| **Intake & Attribution** | `ScatterID/tests/phase3_intake_queue.test.js` | 7 | **PASS** | Physical inspection checklist validation, soft evidence hash checks, revocation intake, safe tracking |
-| **Tiered Execution Engine** | `ScatterID/tests/phase4_decision_engine.test.js` | 6 | **PASS** | Hard issuance Fabric auto-execution, soft escalation, revocation invariants, flagging |
-| **PQC Key Lifecycle** | `ScatterID/tests/phase5_pqc_key_lifecycle.test.js` | 5 | **PASS** | Gateway dual-key grace window, PQC pool manager, delegation endorsement tokens, AES-256-GCM envelope |
-| **Break-Glass CLI** | `ScatterID/tests/phase6_admin_cli.test.js` | 5 | **PASS** | Emergency root reset, MFA purge, password reset, encrypted backup CLI export, PQC rotation CLI |
-| **Master Integration** | `ScatterID/tests/phase7_master_e2e.test.js` | 7 | **PASS** | End-to-end multi-role lifecycle, self-service phone migration, dual-key rotation e2e |
-| **Network Microsegmentation** | `ScatterID/tests/phase8_network_isolation.test.js` | 4 | **PASS** | iptables dry-run validation, WireGuard profiles, network isolation scripts |
-| **TOTAL** | **11 Test Suites** | **107** | **100% PASS** | **Complete Full-Stack Operational Integrity** |
+| **Client Portal** | `ScatterID-app/test/portal_full_flow.test.js` | 29 | **PASS** | Clerk onboarding, 4-point physical checklist validation, drag-and-drop scan WebCrypto SHA-256, Verify Desk Level 1/2, Revoke Desk docket enforcement, 4-step tracking stepper |
+| **Client Portal Core** | `ScatterID-app/test/server.test.js` | 6 | **PASS** | Health probes, claim presets, RFC 8785 canonicalization hashing, salt validation |
+| **Ops Console: Token Revocation** | `components/ops-dashboard/tests/token_revocation.test.js` | 8 | **PASS** | **Audit Finding 1 Remediated**: `token_version` on users table, JWT payload binding, instant server-side revocation on password reset, MFA device transfer, administrative purge, and logout |
+| **Ops Console: Gateway Oracle Defense** | `components/ops-dashboard/tests/gateway_oracle_defense.test.js` | 8 | **PASS** | **Audit Finding 2 Remediated**: Per-IP sliding window rate limiting (5 attempts/60s), exponential lockout backoff, `crypto.timingSafeEqual` constant-time verification, security alert generation in audit log |
+| **Ops Console: Network Segmentation** | `components/ops-dashboard/tests/network_rules.test.js` | 5 | **PASS** | **Audit Finding 4 Remediated**: Docker Compose native 3-zone microsegmentation (`10.20.0.0/24`, `10.10.0.0/24`, `10.30.0.0/24`), iptables dry-run rule generation, WireGuard profiles |
+| **Ops Console: Full-Flow** | `components/ops-dashboard/tests/dashboard_full_flow.test.js` | 15 | **PASS** | Full RBAC matrix, Scenario B Hard auto-exec, Soft root gating, rejection/flagging mandatory reasons, PQC key promotion, backup encryption, manual reconciliation |
+| **Ops Console: Agile Policy Engine** | `components/ops-dashboard/tests/policy_engine.test.js` | 6 | **PASS** | Scenario B default, Scenario A gating, Scenario C auto-exec, custom policy maps, RBAC enforcement on policy endpoints |
+| **Ops Console: Database & Schema** | `components/ops-dashboard/tests/db_migration.test.js` | 9 | **PASS** | SQLite WAL mode, foreign keys, 7 core tables, migration rollback idempotency |
+| **Ops Console: Intake Queue** | `components/ops-dashboard/tests/request_queue.test.js` | 7 | **PASS** | Physical inspection checklist validation, soft evidence hash checks, revocation intake, safe tracking |
+| **Ops Console: Tiered Execution** | `components/ops-dashboard/tests/tiered_routing.test.js` | 6 | **PASS** | Hard issuance Fabric auto-execution, soft escalation, revocation invariants, flagging |
+| **Ops Console: Key Lifecycle** | `components/ops-dashboard/tests/key_lifecycle.test.js` | 5 | **PASS** | Gateway dual-key grace window, PQC pool manager, delegation endorsement tokens, AES-256-GCM envelope |
+| **Ops Console: Break-Glass CLI** | `components/ops-dashboard/tests/breakglass_cli.test.js` | 5 | **PASS** | Emergency root reset, MFA purge, password reset, token version increment, encrypted backup CLI export, PQC rotation CLI |
+| **Ops Console: E2E Integration** | `components/ops-dashboard/tests/e2e_integration.test.js` | 7 | **PASS** | End-to-end multi-role lifecycle, self-service phone migration, dual-key rotation e2e |
+| **Ops Console: TOTP & MFA** | `components/ops-dashboard/tests/auth_totp.test.js` | 11 | **PASS** | TOTP enrollment, validation, single-use recovery code burn, token invalidation |
+| **Ops Console: JWT Security** | `components/ops-dashboard/tests/jwt_security.test.js` | 7 | **PASS** | Fail-fast entropy enforcement, 256-bit secret requirement, signature tampering detection |
+| **Ops Console: Login Lockout** | `components/ops-dashboard/tests/login_lockout.test.js` | 11 | **PASS** | Account lockout protection, IP rate limiting, exponential backoff, admin unlock |
+| **Ops Console: Peppered Recovery** | `components/ops-dashboard/tests/recovery_codes_hmac.test.js` | 7 | **PASS** | Peppered HMAC-SHA256 recovery code hashing, backward-compatible verification matrix |
+| **TOTAL** | **17 Test Suites** | **152** | **100% PASS** | **Complete Full-Stack Operational Integrity & Audit Remediations** |
 
 ---
 

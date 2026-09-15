@@ -316,4 +316,35 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${modToken}`);
     assert.equal(modFlagged.status, 403);
   });
+
+  test('7. Root Executive Authority: Root can decide flagged request via /:id/decide', async () => {
+    const intakeRes = await request
+      .post('/api/requests/issue')
+      .set('Authorization', `Bearer ${clerkToken}`)
+      .send({
+        submission_channel: 'soft',
+        claimant_data: { fullName: 'Flagged Test Subject' },
+        evidence_sha256: 'c'.repeat(64)
+      });
+    const reqId = intakeRes.body.requestId;
+
+    const flagRes = await request
+      .post(`/api/requests/${reqId}/decide`)
+      .set('Authorization', `Bearer ${modToken}`)
+      .send({ action: 'FLAG', reason: 'Identity verification needs root review' });
+    assert.equal(flagRes.status, 200);
+    assert.equal(flagRes.body.status, 'FLAGGED');
+
+    const rootDecideRes = await request
+      .post(`/api/requests/${reqId}/decide`)
+      .set('Authorization', `Bearer ${rootToken}`)
+      .send({ action: 'ACCEPT' });
+    assert.equal(rootDecideRes.status, 200);
+    assert.equal(rootDecideRes.body.status, 'EXECUTED');
+    assert.equal(rootDecideRes.body.executed, true);
+
+    const stored = repos.requests.getById(reqId);
+    assert.equal(stored.status, 'EXECUTED');
+    assert.ok(stored.execution_tx_id);
+  });
 });

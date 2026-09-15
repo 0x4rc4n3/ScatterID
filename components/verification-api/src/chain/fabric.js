@@ -14,8 +14,22 @@ const channelName = process.env.FABRIC_CHANNEL_NAME || 'scatterid-channel';
 const chaincodeName = process.env.FABRIC_CHAINCODE_NAME || 'scatterproof';
 const mspId = process.env.FABRIC_MSP_ID || 'IssuerMSP';
 
+// Single-peer configuration (write path uses this)
 const peerEndpoint = process.env.FABRIC_PEER_ENDPOINT || (fsSync.existsSync('/app/blockchain') ? 'peer0.issuer.scatterid.com:7051' : 'localhost:7051');
 const peerHostAlias = process.env.FABRIC_PEER_HOST_ALIAS || 'peer0.issuer.scatterid.com';
+
+// Multi-peer read configuration (Priority 3A fix: query multiple peers instead of one).
+// Set FABRIC_PEER_ENDPOINTS as a comma-separated list for redundant reads.
+// Falls back to the single peerEndpoint if not configured.
+const PEER_ENDPOINTS_RAW = process.env.FABRIC_PEER_ENDPOINTS || peerEndpoint;
+const PEER_ENDPOINTS = PEER_ENDPOINTS_RAW.split(',').map(s => s.trim()).filter(Boolean);
+
+// Peer aliases: space-separated, one per endpoint in order. Falls back to peerHostAlias for all.
+const PEER_ALIASES_RAW = process.env.FABRIC_PEER_HOST_ALIASES || peerHostAlias;
+const PEER_ALIASES = PEER_ALIASES_RAW.split(',').map(s => s.trim()).filter(Boolean);
+
+const PEER_MAX_RETRIES = parseInt(process.env.FABRIC_PEER_MAX_RETRIES || '3', 10);
+const PEER_RETRY_DELAY_MS = parseInt(process.env.FABRIC_PEER_RETRY_DELAY_MS || '500', 10);
 
 const defaultCryptoPath = path.resolve(__dirname, '../../../blockchain/fabric-network/organizations/peerOrganizations/issuer.scatterid.com');
 const containerCryptoPath = '/app/blockchain/fabric-network/organizations/peerOrganizations/issuer.scatterid.com';
@@ -106,6 +120,88 @@ async function getContract() {
   }
 }
 
+/**
+ * Creates a single-use gRPC client + gateway for a specific peer endpoint.
+ * Used by the multi-peer read path to try each peer independently.
+ */
+async function getPeerContract(endpoint, hostAlias) {
+  const tlsRootCert = await fs.readFile(tlsCertPath);
+  const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
+  const peerClient = new grpc.Client(endpoint, tlsCredentials, {
+    'grpc.ssl_target_name_override': hostAlias,
+    'grpc.keepalive_time_ms': 30000,
+    'grpc.keepalive_timeout_ms': 10000,
+  });
+
+  const gw = connect({
+    client: peerClient,
+    identity: await newIdentity(),
+    signer: await newSigner(),
+    hash: hash.sha256,
+  });
+
+  const network = gw.getNetwork(channelName);
+  const contract = network.getContract(chaincodeName);
+  return { contract, gw, peerClient };
+}
+
+/**
+ * Sleep helper for retry back-off.
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * evaluateWithMultiPeerRetry — queries multiple Fabric peers with per-peer retry.
+ *
+ * Priority 3A fix: instead of querying one peer with no retry (where a single network
+ * blip produces the same outcome as a real revocation), this queries all configured
+ * peers in order, retrying each PEER_MAX_RETRIES times before moving to the next.
+ * Returns the first successful result. Only throws if ALL peers fail after all retries.
+ *
+ * SECURITY NOTE: This fixes an *availability* SPOF only. The fail-closed rule
+ * in verify.js is unchanged — if all peers are truly unreachable the verifier
+ * still returns ledger_unreachable (invalid). Multi-peer + retry only reduces
+ * how often a transient single-peer blip triggers that path for no good reason.
+ */
+async function evaluateWithMultiPeerRetry(fcn, ...args) {
+  // If injected contract is set (tests), use it directly
+  if (injectedContract) {
+    const resultBytes = await injectedContract.evaluateTransaction(fcn, ...args);
+    return new TextDecoder().decode(resultBytes);
+  }
+
+  const errors = [];
+
+  for (let peerIdx = 0; peerIdx < PEER_ENDPOINTS.length; peerIdx++) {
+    const endpoint = PEER_ENDPOINTS[peerIdx];
+    const alias = PEER_ALIASES[peerIdx] || PEER_ALIASES[0] || peerHostAlias;
+
+    for (let attempt = 1; attempt <= PEER_MAX_RETRIES; attempt++) {
+      let peerConn = null;
+      try {
+        peerConn = await getPeerContract(endpoint, alias);
+        const resultBytes = await peerConn.contract.evaluateTransaction(fcn, ...args);
+        return new TextDecoder().decode(resultBytes);
+      } catch (err) {
+        const msg = `peer=${endpoint} attempt=${attempt}/${PEER_MAX_RETRIES}: ${err.message}`;
+        errors.push(msg);
+        if (attempt < PEER_MAX_RETRIES) {
+          await sleep(PEER_RETRY_DELAY_MS);
+        }
+      } finally {
+        if (peerConn) {
+          try { peerConn.gw.close(); } catch (_) {}
+          try { peerConn.peerClient.close(); } catch (_) {}
+        }
+      }
+    }
+  }
+
+  throw new Error(`All ${PEER_ENDPOINTS.length} Fabric peer(s) unreachable after retries: ${errors.join('; ')}`);
+}
+
 export async function anchorProof(credentialId, dataHash, issuerId) {
   try {
     const contract = await getContract();
@@ -127,9 +223,9 @@ export async function anchorProof(credentialId, dataHash, issuerId) {
 
 export async function queryProof(credentialId) {
   try {
-    const contract = await getContract();
-    const resultBytes = await contract.evaluateTransaction('QueryProof', credentialId);
-    return JSON.parse(new TextDecoder().decode(resultBytes));
+    // Read path: use multi-peer retry to avoid single-peer blips triggering fail-closed
+    const resultStr = await evaluateWithMultiPeerRetry('QueryProof', credentialId);
+    return JSON.parse(resultStr);
   } catch (err) {
     resetConnection();
     throw err;
@@ -138,6 +234,7 @@ export async function queryProof(credentialId) {
 
 export async function revokeProof(credentialId, issuerId) {
   try {
+    // Write path: uses the single primary peer — unchanged from before
     const contract = await getContract();
     const resultBytes = await contract.submitTransaction('RevokeProof', credentialId, issuerId || mspId);
     const resultStr = new TextDecoder().decode(resultBytes);
@@ -155,9 +252,9 @@ export async function revokeProof(credentialId, issuerId) {
 
 export async function proofExists(credentialId) {
   try {
-    const contract = await getContract();
-    const resultBytes = await contract.evaluateTransaction('ProofExists', credentialId);
-    return new TextDecoder().decode(resultBytes) === 'true';
+    // Read path: use multi-peer retry
+    const resultStr = await evaluateWithMultiPeerRetry('ProofExists', credentialId);
+    return resultStr === 'true';
   } catch (err) {
     resetConnection();
     throw err;
@@ -166,9 +263,9 @@ export async function proofExists(credentialId) {
 
 export async function getProofHistory(credentialId) {
   try {
-    const contract = await getContract();
-    const resultBytes = await contract.evaluateTransaction('GetProofHistory', credentialId);
-    return JSON.parse(new TextDecoder().decode(resultBytes));
+    // Read path: use multi-peer retry
+    const resultStr = await evaluateWithMultiPeerRetry('GetProofHistory', credentialId);
+    return JSON.parse(resultStr);
   } catch (err) {
     resetConnection();
     throw err;

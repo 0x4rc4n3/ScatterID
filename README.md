@@ -37,23 +37,49 @@ cd ScatterID
 ```
 
 ### Operational Profiles
-* **Core Microservices (`./scripts/start.sh` or `docker compose up -d`):**  
-  Launches core microservices (PQC Crypto Engine, Verification Gateway API, Hyperledger Fabric ledger, HashiCorp Vault). Note: Web dashboards and client portals have been decommissioned for a clean ground-up redesign.
+* **Core Microservices & Operations Console (`./scripts/start.sh` or `docker compose up -d`):**  
+  Launches core microservices (PQC Crypto Engine, Verification Gateway API, Hyperledger Fabric ledger, HashiCorp Vault) along with the Zone 2 Operations Console (`:8080`) and Zone 1 Help Desk Client Portal (`:5000`).
 
 ---
 
 ### Local Service Endpoints
-| Service | Endpoint | Description |
-| :--- | :--- | :--- |
-| **Verification Gateway API** | `http://localhost:3000` | REST API for credential issuance, verification, and revocation |
-| **PQC Crypto Service** | `https://localhost:5001` | High-security ML-DSA-65 signing engine (internal mTLS) |
-| **HashiCorp Vault KMS** | `http://localhost:8200` | Key management service holding post-quantum keypairs |
+| Service | Endpoint | Network Zone | Description |
+| :--- | :--- | :--- | :--- |
+| **Operations Console** | `http://localhost:8080` | Zone 2 (`10.10.0.10`) | Appsmith dark-slate executive console (Moderator review & Root authority execution) |
+| **Help Desk Client Portal** | `http://localhost:5000` | Zone 1 (`10.20.0.10`) | Front-counter clerk intake portal (4-point checklist, WebCrypto SHA-256, verify/revoke desk) |
+| **Verification Gateway API** | `http://localhost:3000` | Zone 3 (`10.30.0.11`) | REST API for credential issuance, verification, and revocation |
+| **PQC Crypto Service** | `https://localhost:5001` | Zone 3 (`10.30.0.10`) | High-security ML-DSA-65 signing engine (internal mTLS) |
+| **HashiCorp Vault KMS** | `http://localhost:8200` | Zone 3 (`10.30.0.20`) | Key management service holding post-quantum keypairs |
+
+---
+
+## Ecosystem Architecture & Multi-Repository Structure
+
+The ScatterID platform is structured across three complementary repositories forming the complete sovereign identity ecosystem:
+
+| Repository | Scope / Role | Port / Network Zone | Automated Test Coverage |
+| :--- | :--- | :--- | :--- |
+| **[`ScatterID`](.)** (This Repo) | Core PQC Crypto Engine, Verification Gateway API, Fabric Ledger, and **Operations Console** (`components/ops-dashboard`) | `:3000` (Core API)<br>`:5001` (PQC Engine)<br>`:8080` (Ops Console / Zone 2) | 12 core suites + 117 console tests (100% pass) |
+| **[`ScatterID-app`](../ScatterID-app)** | **Help Desk Client Portal**: Front-counter clerk interface for in-person document inspection (4-point checklist), digital scan intake (WebCrypto SHA-256), Level 1/2 verification desk, and revocation docket intake | `:5000` (Counter Desk / Zone 1) | 35 automated full-flow tests (100% pass) |
+| **[`ScatterID-web`](../ScatterID-web)** | **Documentation & Developer Portal**: Next.js public documentation, RFC references, and cryptographic interactive explorer | `:3001` (Public Web / DMZ) | Static build & lint verification |
+
+### Running the Ecosystem Services
+```bash
+# 1. Start core microservices + Operations Console (Zone 2 & 3)
+cd ScatterID
+docker compose up -d
+
+# 2. Start Help Desk Client Portal (Zone 1)
+cd ../ScatterID-app
+npm install && npm start # Serves on http://localhost:5000
+```
 
 ---
 
 ### Automated Test Suite
 ```bash
-./scripts/test_all.sh
+# Run all unit, parity, mutation, fuzzing, ops-dashboard, and client-portal test suites:
+./tests/run_all_unit_tests.sh
 ```
 
 ---
@@ -104,7 +130,8 @@ ScatterID/
 ├── components/
 │   ├── crypto/                 # PQC Engine & ML-DSA-65 Signer (Python / liboqs / mTLS)
 │   ├── verification-api/       # Verification Gateway API, SQLite Models & Reconciliation
-│   └── blockchain/             # Hyperledger Fabric Network, Raft Consensus & Go Chaincode
+│   ├── blockchain/             # Hyperledger Fabric Network, Raft Consensus & Go Chaincode
+│   └── ops-dashboard/          # Operations Console (:8080) — RBAC, Moderation, Root Approval & PQC Key Mgmt
 ├── sdk/                        # Client SDK (@scatterid/sdk for TypeScript / JavaScript)
 ├── docs/                       # Master Architecture, Cryptography & Compliance Specifications
 ├── scripts/                    # Turnkey Provisioning, Startup, & E2E Test Automation

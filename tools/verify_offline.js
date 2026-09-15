@@ -214,9 +214,12 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
   if (sigBytes) {
     console.log(`  - Signature Byte Length: ${sigBytes.length} bytes (ML-DSA-65 Standard: 3309 bytes)`);
     if (sigBytes.length === 3309) {
-      console.log(`  ${GREEN}✓ Signature Container:${RESET} Valid ML-DSA-65 Dilithium3 signature container length.`);
+      // IMPORTANT: This is a structural pre-check only — NOT cryptographic verification.
+      // A garbage or adversarially-crafted signature of the correct length will also pass this check.
+      // Byte-length conformance is a fast-fail guard, never a substitute for verify().
+      console.log(`  ${YELLOW}[i] Structural Pre-check:${RESET} Signature byte length matches ML-DSA-65 (3309 bytes). ${YELLOW}NOT a cryptographic verify() call.${RESET}`);
     } else {
-      console.log(`  ${YELLOW}[!] Warning:${RESET} Signature byte length (${sigBytes.length}B) differs from ML-DSA-65 standard (3309B).`);
+      console.log(`  ${RED}✕ Structural Pre-check Failed:${RESET} Signature byte length (${sigBytes.length}B) differs from ML-DSA-65 standard (3309B).`);
     }
   } else {
     console.log(`  ${YELLOW}[!] Notice:${RESET} 'signature' not present in offline bundle.`);
@@ -225,9 +228,10 @@ function verifyOffline(credentialJsonStr, cliPublicKey) {
   if (pkBytes) {
     console.log(`  - Public Key Byte Length: ${pkBytes.length} bytes (ML-DSA-65 Standard: 1952 bytes)`);
     if (pkBytes.length === 1952) {
-      console.log(`  ${GREEN}✓ Public Key Container:${RESET} Valid ML-DSA-65 public key container length.`);
+      // IMPORTANT: Same caveat — this is a byte-length pre-check, not a key validity proof.
+      console.log(`  ${YELLOW}[i] Structural Pre-check:${RESET} Public key byte length matches ML-DSA-65 (1952 bytes). ${YELLOW}NOT a cryptographic verify() call.${RESET}`);
     } else {
-      console.log(`  ${YELLOW}[!] Warning:${RESET} Public key byte length (${pkBytes.length}B) differs from ML-DSA-65 standard (1952B).`);
+      console.log(`  ${RED}✕ Structural Pre-check Failed:${RESET} Public key byte length (${pkBytes.length}B) differs from ML-DSA-65 standard (1952B).`);
     }
   }
 

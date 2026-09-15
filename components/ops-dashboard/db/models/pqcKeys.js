@@ -17,14 +17,23 @@ export function createPqcKeysRepo(db) {
     findByKeyId: db.prepare('SELECT * FROM pqc_key_pool WHERE key_id = ?'),
     getActiveKey: db.prepare("SELECT * FROM pqc_key_pool WHERE status = 'active' ORDER BY sequence_number DESC LIMIT 1"),
     getPreStagedKeys: db.prepare("SELECT * FROM pqc_key_pool WHERE status = 'pre_staged' ORDER BY sequence_number ASC"),
-    listAll: db.prepare('SELECT key_id, algorithm, public_key_id_sha3, status, active_from, valid_until, sequence_number, created_at FROM pqc_key_pool ORDER BY sequence_number ASC'),
+    listAll: db.prepare('SELECT key_id, algorithm, public_key_id_sha3, status, rotation_reason, active_from, valid_until, sequence_number, created_at FROM pqc_key_pool ORDER BY sequence_number ASC'),
     updateStatus: db.prepare('UPDATE pqc_key_pool SET status = ? WHERE key_id = ?'),
+    updateStatusAndReason: db.prepare('UPDATE pqc_key_pool SET status = ?, rotation_reason = ? WHERE key_id = ?'),
+    // When promoting a pre-staged key to active, retire the currently active key with reason 'rotated_routine'.
+    // SECURITY: rotation_reason distinguishes routine retirements from compromised ones.
+    // A signature from a 'rotated_compromised' key must be treated as invalid — not merely old.
     promotePreStagedToActive: db.prepare(`
-      UPDATE pqc_key_pool 
-      SET status = CASE 
+      UPDATE pqc_key_pool
+      SET status = CASE
         WHEN key_id = @newKeyId THEN 'active'
         WHEN status = 'active' THEN 'retired'
-        ELSE status 
+        ELSE status
+      END,
+      rotation_reason = CASE
+        WHEN key_id = @newKeyId THEN NULL
+        WHEN status = 'active' THEN 'rotated_routine'
+        ELSE rotation_reason
       END
       WHERE key_id = @newKeyId OR status = 'active'
     `)
@@ -91,7 +100,21 @@ export function createPqcKeysRepo(db) {
     },
 
     markCompromised(keyId) {
-      return poolStmts.updateStatus.run('compromised', keyId);
+      // SECURITY: Use updateStatusAndReason to set rotation_reason = 'rotated_compromised'.
+      // This ensures verifiers can distinguish this from a routine retirement and MUST
+      // treat any signature from this key as cryptographically invalid going forward.
+      return poolStmts.updateStatusAndReason.run('compromised', 'rotated_compromised', keyId);
+    },
+
+    /**
+     * Returns true if the given keyId is present in the pool and was rotated out
+     * due to compromise. Verification callers MUST use this to treat any signature
+     * produced by a compromised key as invalid — not merely "old".
+     */
+    isKeyCompromised(keyId) {
+      const key = poolStmts.findByKeyId.get(keyId);
+      if (!key) return false;
+      return key.rotation_reason === 'rotated_compromised' || key.status === 'compromised';
     },
 
     createDelegationEndorsement(endorsement) {

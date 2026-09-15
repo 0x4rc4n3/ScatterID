@@ -28,6 +28,31 @@ export function authenticate(req, res, next) {
   try {
     const decoded = verifyToken(token);
     req.user = decoded;
+
+    // Server-Side Revocation Verification (§2 Critical Finding 1)
+    const repos = req.app?.locals?.repos;
+    if (repos && repos.users && decoded.userId) {
+      const user = repos.users.findById(decoded.userId);
+      if (!user) {
+        return res.status(401).json({
+          error: 'USER_NOT_FOUND',
+          message: 'User account not found or has been deleted'
+        });
+      }
+
+      const tokenVersion = decoded.token_version ?? decoded.tokenVersion ?? 1;
+      const userTokenVersion = user.token_version ?? 1;
+
+      if (tokenVersion !== userTokenVersion) {
+        return res.status(401).json({
+          error: 'REVOKED_TOKEN',
+          message: 'Session token has been revoked or invalidated by password change, MFA transfer, or admin action'
+        });
+      }
+
+      req.userAccount = user;
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({

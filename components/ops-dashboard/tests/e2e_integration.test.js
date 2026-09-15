@@ -103,22 +103,14 @@ describe('Phase 7: Master End-to-End Integration Suite', () => {
   });
 
   test('1. Production Operations Console & Authentication Static Serving', async () => {
-    const resDash = await request.get('/dashboard.html');
-    assert.equal(resDash.status, 200);
-    assert.match(resDash.text, /ScatterID Operations Console/);
-    assert.match(resDash.text, /Moderation Queue/);
-
-    const resLogin = await request.get('/login.html');
-    assert.equal(resLogin.status, 200);
-    assert.match(resLogin.text, /Staff Authentication/);
-
     const resRoot = await request.get('/');
     assert.equal(resRoot.status, 302);
     assert.equal(resRoot.headers.location, '/index.html');
 
     const resIndex = await request.get('/index.html');
     assert.equal(resIndex.status, 200);
-    assert.match(resIndex.text, /Redirecting to ScatterID Operations Console/);
+    assert.match(resIndex.text, /ScatterID Operations Console/);
+    assert.match(resIndex.text, /<div id="root"><\/div>/);
   });
 
   test('2. Scenario B Flow 1: Hard-Channel Issuance Auto-Execution End-to-End', async () => {

@@ -175,3 +175,115 @@ export class AuthRateLimiter {
 
 // Export singleton instance as default
 export const defaultRateLimiter = new AuthRateLimiter();
+
+/**
+ * GatewayKeyRateLimiter (§2 Critical Finding 2)
+ * Defends /api/keys/gateway/validate against online guessing oracles and brute-force key attacks.
+ * Enforces per-IP attempt capping, sliding window tracking, exponential backoff lockout,
+ * and security event threshold alerts.
+ */
+export class GatewayKeyRateLimiter {
+  constructor(options = {}) {
+    this.maxAttempts = options.maxAttempts || parseInt(process.env.GATEWAY_MAX_ATTEMPTS || '5', 10);
+    this.windowMs = options.windowMs || parseInt(process.env.GATEWAY_WINDOW_MS || '60000', 10); // 1 minute window
+    this.baseLockoutMs = options.baseLockoutMs || parseInt(process.env.GATEWAY_BASE_LOCKOUT_MS || '30000', 10); // 30s base lockout
+    this.maxLockoutMs = options.maxLockoutMs || parseInt(process.env.GATEWAY_MAX_LOCKOUT_MS || '900000', 10); // 15 mins cap
+
+    // ip -> { count, violations, lockedUntil, resetAt }
+    this.ipAttempts = new Map();
+  }
+
+  isIpRateLimited(ip) {
+    const cleanIp = (ip || 'unknown').trim();
+    const record = this.ipAttempts.get(cleanIp);
+    if (!record) return { limited: false, remainingMs: 0, retryAfterSec: 0, count: 0 };
+
+    const now = Date.now();
+    if (record.lockedUntil && record.lockedUntil > now) {
+      const remainingMs = record.lockedUntil - now;
+      const retryAfterSec = Math.ceil(remainingMs / 1000);
+      return {
+        limited: true,
+        remainingMs,
+        retryAfterSec,
+        count: record.count,
+        violations: record.violations
+      };
+    }
+
+    // Window expired and not under lockout
+    if (record.resetAt && record.resetAt <= now && !record.lockedUntil) {
+      record.count = 0;
+      record.resetAt = now + this.windowMs;
+      return { limited: false, remainingMs: 0, retryAfterSec: 0, count: 0 };
+    }
+
+    if (record.count >= this.maxAttempts) {
+      const remainingMs = Math.max(0, (record.resetAt || now) - now);
+      const retryAfterSec = Math.ceil(remainingMs / 1000);
+      return {
+        limited: true,
+        remainingMs,
+        retryAfterSec,
+        count: record.count,
+        violations: record.violations
+      };
+    }
+
+    return { limited: false, remainingMs: 0, retryAfterSec: 0, count: record.count };
+  }
+
+  recordFailure(ip) {
+    const cleanIp = (ip || 'unknown').trim();
+    const now = Date.now();
+
+    let record = this.ipAttempts.get(cleanIp);
+    if (!record || (record.resetAt && record.resetAt <= now && !record.lockedUntil)) {
+      record = { count: 0, violations: 0, lockedUntil: null, resetAt: now + this.windowMs };
+      this.ipAttempts.set(cleanIp, record);
+    }
+
+    record.count += 1;
+    let locked = false;
+    let retryAfterSec = 0;
+
+    if (record.count >= this.maxAttempts) {
+      record.violations += 1;
+      const lockoutDuration = Math.min(
+        this.maxLockoutMs,
+        this.baseLockoutMs * Math.pow(2, record.violations - 1)
+      );
+      record.lockedUntil = now + lockoutDuration;
+      record.resetAt = record.lockedUntil + this.windowMs;
+      retryAfterSec = Math.ceil(lockoutDuration / 1000);
+      locked = true;
+    }
+
+    return {
+      locked,
+      attempts: record.count,
+      violations: record.violations,
+      retryAfterSec
+    };
+  }
+
+  recordSuccess(ip) {
+    const cleanIp = (ip || 'unknown').trim();
+    const record = this.ipAttempts.get(cleanIp);
+    if (record && !record.lockedUntil) {
+      record.count = 0;
+    }
+  }
+
+  resetIp(ip) {
+    const cleanIp = (ip || 'unknown').trim();
+    this.ipAttempts.delete(cleanIp);
+  }
+
+  reset() {
+    this.ipAttempts.clear();
+  }
+}
+
+export const defaultGatewayRateLimiter = new GatewayKeyRateLimiter();
+

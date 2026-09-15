@@ -1,3 +1,9 @@
+# ScatterID Ecosystem — Master 3-Zone Microsegmented Topology
+# Enforces Zero Trust Network Segmentation across:
+#   - Zone 1: Counter Subnet (10.20.0.0/24) -> Client Portal (:5000)
+#   - Zone 2: Management Subnet (10.10.0.0/24) -> Operations Console (:8080)
+#   - Zone 3: Core Dataplane Subnet (10.30.0.0/24) -> Verification API, Crypto Service, Vault KMS
+
 services:
   crypto-service:
     build:
@@ -8,7 +14,7 @@ services:
       - "${PORT_CRYPTO_SERVICE:-5001}:5001"
     environment:
       VAULT_ADDR: "${VAULT_ADDR:-http://vault.scatterid.com:8200}"
-      VAULT_TOKEN: "${VAULT_TOKEN}"
+      VAULT_TOKEN: "${VAULT_TOKEN:-}"
       VAULT_ROLE_ID: "${VAULT_ROLE_ID:-}"
       VAULT_SECRET_ID: "${VAULT_SECRET_ID:-}"
       VAULT_SECRET_PATH: "${VAULT_SECRET_PATH:-scatterid/mldsa}"
@@ -19,7 +25,8 @@ services:
       - ./components/crypto/certs:/app/certs
       - ./components/crypto/crypto-service:/app
     networks:
-      - scatterid_net
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.10
 
   verification-api:
     build:
@@ -48,12 +55,81 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - scatterid_net
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.11
+
+  ops-dashboard:
+    build:
+      context: ./components/ops-dashboard
+      dockerfile: Dockerfile
+    container_name: scatterid-ops-dashboard
+    ports:
+      - "${PORT_OPS_DASHBOARD:-8080}:8080"
+    environment:
+      PORT: 8080
+      JWT_SECRET: "${JWT_SECRET}"
+      RECOVERY_CODE_PEPPER: "${RECOVERY_CODE_PEPPER:-}"
+      SQLITE_DB_PATH: "/app/data/ops.db"
+      VERIFICATION_API_URL: "http://verification-api:3000"
+    depends_on:
+      - verification-api
+    volumes:
+      - ops_data:/app/data
+    networks:
+      zone2_mgmt_net:
+        ipv4_address: 10.10.0.10
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.12
+
+  client-portal:
+    build:
+      context: ../ScatterID-app
+      dockerfile: Dockerfile
+    container_name: scatterid-client-portal
+    ports:
+      - "${PORT_CLIENT_PORTAL:-5000}:5000"
+    environment:
+      PORT: 5000
+      GATEWAY_URL: "http://verification-api:3000"
+      OPS_DASHBOARD_URL: "http://ops-dashboard:8080"
+      VERIFICATION_API_KEY: "${VERIFICATION_API_KEY:-}"
+    depends_on:
+      - verification-api
+      - ops-dashboard
+    networks:
+      zone1_counter_net:
+        ipv4_address: 10.20.0.10
+      zone3_dataplane_net:
+        ipv4_address: 10.30.0.13
 
 networks:
-  scatterid_net:
-    name: scatterid_net
-    external: true
+  zone1_counter_net:
+    name: scatterid_zone1_counter
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.20.0.0/24
+          gateway: 10.20.0.1
+
+  zone2_mgmt_net:
+    name: scatterid_zone2_mgmt
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/24
+          gateway: 10.10.0.1
+
+  zone3_dataplane_net:
+    name: scatterid_zone3_dataplane
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.30.0.0/24
+          gateway: 10.30.0.1
 
 volumes:
   verification_data:
+  ops_data:

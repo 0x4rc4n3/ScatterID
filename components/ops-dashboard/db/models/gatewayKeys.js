@@ -1,6 +1,8 @@
 // Gateway Keys Repository (Zero-Downtime Dual-Key Phasing)
 // Document ID: SEC-OPS-06
 
+import crypto from 'node:crypto';
+
 export function createGatewayKeysRepo(db) {
   const stmts = {
     insert: db.prepare(`
@@ -71,9 +73,24 @@ export function createGatewayKeysRepo(db) {
     verifyKey(key_name, key_hash) {
       const nowIso = new Date().toISOString();
       const validKeys = stmts.findValidKeys.all(key_name, nowIso);
-      const match = validKeys.find(k => k.key_hash === key_hash);
-      if (!match) return { valid: false };
-      return { valid: true, status: match.status, keyRecord: match };
+
+      let matchedKey = null;
+      const inputBuf = Buffer.from(String(key_hash || ''), 'utf8');
+
+      for (const candidate of validKeys) {
+        const candBuf = Buffer.from(String(candidate.key_hash || ''), 'utf8');
+        if (inputBuf.length === candBuf.length && crypto.timingSafeEqual(inputBuf, candBuf)) {
+          matchedKey = candidate;
+        }
+      }
+
+      if (!matchedKey) {
+        const dummy = Buffer.alloc(inputBuf.length || 32);
+        crypto.timingSafeEqual(dummy, dummy);
+        return { valid: false };
+      }
+
+      return { valid: true, status: matchedKey.status, keyRecord: matchedKey };
     },
 
     purgeExpiredGrace() {
