@@ -1,9 +1,9 @@
 {
   "name": "@scatterid/sdk",
   "version": "1.0.0",
-  "description": "TypeScript/JavaScript SDK for post-quantum, zero-knowledge credential issuance and verification",
-  "main": "./dist/index.js",
-  "module": "./dist/index.esm.js",
+  "description": "TypeScript SDK for salted hash-commitment credential issuance and verification",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "scripts": {
@@ -19,18 +19,30 @@
     "sdk"
   ],
   "author": "ScatterID Team",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
     "canonicalize": "4.0.0",
     "uuid": "14.0.2"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.12.7",
     "@types/uuid": "^10.0.0",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
     "tsup": "^8.0.2",
     "typescript": "^5.4.5"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   }
 }

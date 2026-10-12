@@ -9,17 +9,17 @@
 
 ScatterID is a source-available, decentralized, privacy-preserving identity verification infrastructure. It provides a reference framework for organizations to issue, anchor, and mathematically verify privacy-preserving digital credentials resilient against post-quantum cryptographic threats.
 
-By combining **NIST FIPS 204 (ML-DSA-65)** post-quantum digital signatures, client-side **RFC 8785 (JCS)** canonicalization with cryptographic salting, and **Hyperledger Fabric** permissioned blockchain anchoring, ScatterID enforces strict data minimization: raw identity attributes never leave the client device.
+The TypeScript SDK canonicalizes claims locally with **RFC 8785 (JCS)**, salts and hashes them with **SHA3-256**, then sends the commitment—not the claim plaintext—to the issuance API. The API requests an **ML-DSA-65** signature and records credential status on a permissioned **Hyperledger Fabric** ledger. This describes the SDK path; deployments remain responsible for the issuer’s source data, client application, logs, and database controls.
 
 ---
 
 ## Architectural Highlights
 
-* **Post-Quantum Digital Signatures (NIST FIPS 204):** Implements ML-DSA-65 (formerly CRYSTALS-Dilithium3) lattice-based digital signatures to secure credentials against quantum computing cryptanalysis (Shor's algorithm).
-* **Hash-Commitment Data Minimization:** Raw claim data is canonicalized locally and salted with a 16-byte CSPRNG secret. Only a one-way `SHA3-256` commitment is ever transmitted to the network. ScatterID never stores, processes, or logs plaintext identity attributes.
-* **Immutable Blockchain Anchoring:** Cryptographic proof commitments and revocation states are permanently anchored to a permissioned Hyperledger Fabric ledger with Raft consensus.
+* **Post-Quantum Digital Signatures (NIST FIPS 204):** Uses ML-DSA-65 (formerly CRYSTALS-Dilithium3) for credential signatures. The algorithm is designed to resist known classical and quantum attacks; this is not a claim of proven immunity to future cryptanalysis.
+* **Hash-Commitment Data Minimization:** In the TypeScript SDK flow, the claim is canonicalized locally and combined with a 16-byte CSPRNG salt. The API receives the resulting `SHA3-256` commitment. Issuers still handle source attributes, and application-level logging or storage must be reviewed separately.
+* **Ledger-Recorded Credential State:** Commitment hashes and credential lifecycle state are written to a permissioned Hyperledger Fabric ledger. Ledger durability and availability depend on the deployed Fabric configuration and operational controls.
 * **Standalone Offline Verification:** Verifiers and auditors can validate credentials air-gapped without internet access or blockchain connectivity using CLI tools (Level 1 checks are zero-dependency; Level 2 signature verification requires liboqs).
-* **Turnkey Single-Command Provisioning:** Complete microservice topology (Vault KMS, PQC Crypto Microservice, Verification Gateway, Fabric Consortium, and Web Diagnostics Console) initializes out of the box with zero manual configuration.
+* **Local Stack Scripts:** Repository scripts help provision and start the local microservice topology. Review `.env.example`, Docker requirements, and script behavior before using the stack outside a development environment.
 
 ---
 
@@ -53,29 +53,15 @@ cd ScatterID
 
 ---
 
-## Ecosystem Architecture & Multi-Repository Structure
+## Repository Boundaries
 
-The ScatterID platform is structured across three complementary repositories forming the complete sovereign identity ecosystem:
+| Repository | Scope |
+| :--- | :--- |
+| **[`ScatterID`](.)** (this repository) | Core crypto service, verification API, Fabric configuration/chaincode, operations dashboard, SDK source, tools, and tests. |
+| **[`ScatterID-web`](https://github.com/0x4rc4n3/ScatterID-web)** | Public product website and documentation. |
 
-| Repository | Scope / Role | Port / Network Zone | Automated Test Coverage |
-| :--- | :--- | :--- | :--- |
-| **[`ScatterID`](.)** (This Repo) | Core PQC Crypto Engine, Verification Gateway API, Fabric Ledger, and **Operations Console** (`components/ops-dashboard`) | `:3000` (Core API)<br>`:5001` (PQC Engine)<br>`:8080` (Ops Console / Zone 2) | 12 core suites + 117 console tests (100% pass) |
-| **[`ScatterID-app`](../ScatterID-app)** | **Help Desk Client Portal**: Front-counter clerk interface for in-person document inspection (4-point checklist), digital scan intake (WebCrypto SHA-256), Level 1/2 verification desk, and revocation docket intake | `:5000` (Counter Desk / Zone 1) | 35 automated full-flow tests (100% pass) |
-| **[`ScatterID-web`](../ScatterID-web)** | **Documentation & Developer Portal**: Next.js public documentation, RFC references, and cryptographic interactive explorer | `:3001` (Public Web / DMZ) | Static build & lint verification |
-
-### Running the Ecosystem Services
-```bash
-# 1. Start core microservices + Operations Console (Zone 2 & 3)
-cd ScatterID
-docker compose up -d
-
-# 2. Start Help Desk Client Portal (Zone 1)
-cd ../ScatterID-app
-npm install && npm start # Serves on http://localhost:5000
-```
-
+The earlier `ScatterID-app` reference has been removed because that repository is not currently available under the linked GitHub account. The website and core services have separate runtime configurations; use each repository’s own instructions rather than assuming a shared port or deployment.
 ---
-
 ### Automated Test Suite
 ```bash
 # Run all unit, parity, mutation, fuzzing, ops-dashboard, and client-portal test suites:
@@ -153,30 +139,6 @@ ScatterID/
 ScatterID is designed and built by **Mudassir Javed** (`0x4rc4n3`), a cybersecurity graduate focused on security architecture, applied cryptography, and turning standards-track research (like NIST's post-quantum signature schemes) into deployable systems. This project is the technical centerpiece of that focus — an end-to-end reference architecture rather than a single algorithm demo, covering key management, service topology, offline verification tooling, and operational documentation.
 
 * **LinkedIn:** [linkedin.com/in/0x4rc4n3](https://www.linkedin.com/in/0x4rc4n3)
-* **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
-* **Website:** [scatterid.tech](https://www.scatterid.tech/)
-* **GitHub:** [github.com/0x4rc4n3](https://github.com/0x4rc4n3)
-
-## Security Disclosures
-
-See [SECURITY.md](SECURITY.md) for our responsible disclosure process and vulnerability response commitments.
-
----
-
-## License
-
-This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
-
-**You are free to:**
-* View, modify, and run the framework for personal use.
-* Use the code for academic, educational, and research purposes.
-* Fork and contribute to the project.
-
-**You are NOT permitted to:**
-* Use this software (or any modified version) for commercial purposes.
-* Integrate this verification framework or API into a for-profit product or service.
-* Sell access to the code.
-x4rc4n3)
 * **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
 * **Website:** [scatterid.tech](https://www.scatterid.tech/)
 * **GitHub:** [github.com/0x4rc4n3](https://github.com/0x4rc4n3)
