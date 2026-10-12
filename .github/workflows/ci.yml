@@ -66,7 +66,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker network create scatterid_net 2>/dev/null || true
-      - run: docker compose build
+      # Build services checked into this repository; the legacy UI is an opt-in external profile.
+      - run: docker compose build crypto-service verification-api ops-dashboard
 
   dependency-audit:
     name: Dependency Audit

@@ -2,7 +2,7 @@
 Document ID: SEC-NET-07 / DEV-ARCH-08
 
 ## 1. Purpose & Core Responsibility
-- Defines and orchestrates multi-container service configurations for the complete ScatterID ecosystem.
+- Defines and orchestrates the checked-in core service stack. The legacy client portal is an optional profile that requires a sibling `ScatterID-app` checkout.
 - Implements native **3-Zone Zero Trust Network Microsegmentation** directly in Docker Compose bridge networks.
 - Enforces strict network isolation between Counter Clerks, Security Moderators / Root Admins, and Internal Dataplane microservices.
 
@@ -10,9 +10,9 @@ Document ID: SEC-NET-07 / DEV-ARCH-08
 
 | Network Zone | Subnet | Permitted Containers | Permitted Host / Ingress Ports | Boundary Guarantees |
 | :--- | :--- | :--- | :--- | :--- |
-| **Zone 1: Counter Subnet** (`zone1_counter_net`) | `10.20.0.0/24` | `scatterid-client-portal` (:5000) | `5000` (Help Desk Portal) | Strictly isolated from Zone 2 (`10.10.0.0/24`). Counter clerks have zero network routes to the Operations Console. |
+| **Zone 1: Counter Subnet** (`zone1_counter_net`) | `10.20.0.0/24` | `scatterid-client-portal` (:5000, optional profile) | `5000` (Help Desk Portal) | Strictly isolated from Zone 2 (`10.10.0.0/24`). Counter clerks have zero network routes to the Operations Console. |
 | **Zone 2: Management Subnet** (`zone2_mgmt_net`) | `10.10.0.0/24` | `scatterid-ops-dashboard` (:8080) | `8080` (Ops Dashboard) | Strictly isolated from Zone 1. Accessible only to authenticated security staff and Root administrators. |
-| **Zone 3: Core Dataplane** (`zone3_dataplane_net`) | `10.30.0.0/24` | `scatterid-crypto` (:5001), `scatterid-verification` (:3000), `ops-dashboard`, `client-portal` | Internal only (`3000`, `5001`) | Holds core signing oracle, Fabric blockchain ledger, and SQLite audit stores. |
+| **Zone 3: Core Dataplane** (`zone3_dataplane_net`) | `10.30.0.0/24` | `scatterid-crypto` (:5001), `scatterid-verification` (:3000), `ops-dashboard`, `client-portal` (optional profile) | Internal only (`3000`, `5001`) | Holds core signing oracle, Fabric blockchain ledger, and SQLite audit stores. |
 
 ## 3. Service Configuration Schema
 - **`scatterid-crypto` (`:5001`)**:
@@ -25,6 +25,7 @@ Document ID: SEC-NET-07 / DEV-ARCH-08
   - Dual-homed on `zone2_mgmt_net` (`10.10.0.10`) and `zone3_dataplane_net` (`10.30.0.12`).
   - Executive operations console with Argon2id, RFC 6238 TOTP, rate limiting, and server-side token revocation.
 - **`scatterid-client-portal` (`:5000`)**:
+  - Optional; enabled with `docker compose --profile external-client-portal up` only when the sibling `../ScatterID-app` repository is checked out.
   - Dual-homed on `zone1_counter_net` (`10.20.0.10`) and `zone3_dataplane_net` (`10.30.0.13`).
   - Front-desk intake portal for credential issuance, verification, and revocation requests.
 
