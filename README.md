@@ -7,7 +7,7 @@
 [![Security: Gitleaks](https://img.shields.io/badge/Security-Gitleaks-blue.svg)](https://github.com/gitleaks/gitleaks)
 [![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-blue.svg)](LICENSE)
 
-ScatterID is an open-source, decentralized, zero-knowledge identity verification infrastructure. It provides a reference framework for organizations to issue, anchor, and mathematically verify privacy-preserving digital credentials resilient against post-quantum cryptographic threats.
+ScatterID is a source-available, decentralized, privacy-preserving identity verification infrastructure. It provides a reference framework for organizations to issue, anchor, and mathematically verify privacy-preserving digital credentials resilient against post-quantum cryptographic threats.
 
 By combining **NIST FIPS 204 (ML-DSA-65)** post-quantum digital signatures, client-side **RFC 8785 (JCS)** canonicalization with cryptographic salting, and **Hyperledger Fabric** permissioned blockchain anchoring, ScatterID enforces strict data minimization: raw identity attributes never leave the client device.
 
@@ -16,9 +16,9 @@ By combining **NIST FIPS 204 (ML-DSA-65)** post-quantum digital signatures, clie
 ## Architectural Highlights
 
 * **Post-Quantum Digital Signatures (NIST FIPS 204):** Implements ML-DSA-65 (formerly CRYSTALS-Dilithium3) lattice-based digital signatures to secure credentials against quantum computing cryptanalysis (Shor's algorithm).
-* **Zero-Knowledge Data Minimization:** Raw claim data is canonicalized locally and salted with a 16-byte CSPRNG secret. Only a one-way `SHA3-256` commitment is ever transmitted to the network. ScatterID never stores, processes, or logs plaintext identity attributes.
+* **Hash-Commitment Data Minimization:** Raw claim data is canonicalized locally and salted with a 16-byte CSPRNG secret. Only a one-way `SHA3-256` commitment is ever transmitted to the network. ScatterID never stores, processes, or logs plaintext identity attributes.
 * **Immutable Blockchain Anchoring:** Cryptographic proof commitments and revocation states are permanently anchored to a permissioned Hyperledger Fabric ledger with Raft consensus.
-* **Standalone Offline Verification:** Verifiers and auditors can validate credentials air-gapped without internet access or blockchain connectivity using zero-dependency CLI tools.
+* **Standalone Offline Verification:** Verifiers and auditors can validate credentials air-gapped without internet access or blockchain connectivity using CLI tools (Level 1 checks are zero-dependency; Level 2 signature verification requires liboqs).
 * **Turnkey Single-Command Provisioning:** Complete microservice topology (Vault KMS, PQC Crypto Microservice, Verification Gateway, Fabric Consortium, and Web Diagnostics Console) initializes out of the box with zero manual configuration.
 
 ---
@@ -153,6 +153,30 @@ ScatterID/
 ScatterID is designed and built by **Mudassir Javed** (`0x4rc4n3`), a cybersecurity graduate focused on security architecture, applied cryptography, and turning standards-track research (like NIST's post-quantum signature schemes) into deployable systems. This project is the technical centerpiece of that focus — an end-to-end reference architecture rather than a single algorithm demo, covering key management, service topology, offline verification tooling, and operational documentation.
 
 * **LinkedIn:** [linkedin.com/in/0x4rc4n3](https://www.linkedin.com/in/0x4rc4n3)
+* **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
+* **Website:** [scatterid.tech](https://www.scatterid.tech/)
+* **GitHub:** [github.com/0x4rc4n3](https://github.com/0x4rc4n3)
+
+## Security Disclosures
+
+See [SECURITY.md](SECURITY.md) for our responsible disclosure process and vulnerability response commitments.
+
+---
+
+## License
+
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+**You are free to:**
+* View, modify, and run the framework for personal use.
+* Use the code for academic, educational, and research purposes.
+* Fork and contribute to the project.
+
+**You are NOT permitted to:**
+* Use this software (or any modified version) for commercial purposes.
+* Integrate this verification framework or API into a for-profit product or service.
+* Sell access to the code.
+x4rc4n3)
 * **Email:** [mudassirbhatti276@gmail.com](mailto:mudassirbhatti276@gmail.com)
 * **Website:** [scatterid.tech](https://www.scatterid.tech/)
 * **GitHub:** [github.com/0x4rc4n3](https://github.com/0x4rc4n3)
