@@ -82,6 +82,9 @@ services:
         ipv4_address: 10.30.0.12
 
   client-portal:
+    # This optional legacy UI is maintained in a separate ScatterID-app checkout.
+    # Enable with --profile external-client-portal only when that sibling repo exists.
+    profiles: ["external-client-portal"]
     build:
       context: ../ScatterID-app
       dockerfile: Dockerfile

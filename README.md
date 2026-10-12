@@ -46,7 +46,7 @@ cd ScatterID
 | Service | Endpoint | Network Zone | Description |
 | :--- | :--- | :--- | :--- |
 | **Operations Console** | `http://localhost:8080` | Zone 2 (`10.10.0.10`) | Appsmith dark-slate executive console (Moderator review & Root authority execution) |
-| **Help Desk Client Portal** | `http://localhost:5000` | Zone 1 (`10.20.0.10`) | Front-counter clerk intake portal (4-point checklist, WebCrypto SHA-256, verify/revoke desk) |
+| **Help Desk Client Portal** | `http://localhost:5000` (optional) | Zone 1 (`10.20.0.10`) | Legacy portal profile requires the sibling `../ScatterID-app` checkout; it is not included in the default Compose build. |
 | **Verification Gateway API** | `http://localhost:3000` | Zone 3 (`10.30.0.11`) | REST API for credential issuance, verification, and revocation |
 | **PQC Crypto Service** | `https://localhost:5001` | Zone 3 (`10.30.0.10`) | High-security ML-DSA-65 signing engine (internal mTLS) |
 | **HashiCorp Vault KMS** | `http://localhost:8200` | Zone 3 (`10.30.0.20`) | Key management service holding post-quantum keypairs |
