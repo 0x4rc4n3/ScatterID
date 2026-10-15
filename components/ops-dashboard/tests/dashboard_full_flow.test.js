@@ -1,3 +1,4 @@
+import { commitmentFields, mockLedgerExecutor } from './helpers/intakeFixture.js';
 // Exhaustive Full-Flow Test Suite for ScatterID Operations Console & RBAC Hierarchy
 // Document ID: DEV-TEST-DASHBOARD-01 / ISSUE-104
 // Validates Role Hierarchy, Managerial Queues, Rejection/Flagging, Cryptographic Lifecycle, & Audit
@@ -46,7 +47,7 @@ describe('ISSUE-104: Ops Console Full-Flow RBAC, Managerial & Cryptographic Suit
     migrateUp(db);
     repos = createRepositories(db);
 
-    const appObj = createApp({ db, repos });
+    const appObj = createApp({ db, repos, ledgerExecutor: mockLedgerExecutor });
     request = supertest(appObj.app);
 
     const pHash = await hashPassword('MasterSecretPass2026!');
@@ -173,11 +174,7 @@ describe('ISSUE-104: Ops Console Full-Flow RBAC, Managerial & Cryptographic Suit
         .set('Authorization', `Bearer ${clerkToken}`)
         .send({
           submission_channel: 'hard',
-          claimant_data: {
-            fullName: 'Alexander Wright',
-            identifierNumber: 'SCT-HRD-2026-01',
-            issuingAuthority: 'ScatterID Central Authority'
-          },
+          ...commitmentFields(),
           inspection_checklist_verified: true,
           checklist_details: {
             substrate_material_integrity: true,
@@ -220,10 +217,7 @@ describe('ISSUE-104: Ops Console Full-Flow RBAC, Managerial & Cryptographic Suit
         .set('Authorization', `Bearer ${clerkToken}`)
         .send({
           submission_channel: 'soft',
-          claimant_data: {
-            fullName: 'Beatrice Gomez',
-            identifierNumber: 'SCT-SFT-2026-02'
-          },
+          ...commitmentFields(),
           evidence_sha256: 'e'.repeat(64)
         });
       assert.equal(intakeRes.status, 201);
@@ -311,7 +305,7 @@ describe('ISSUE-104: Ops Console Full-Flow RBAC, Managerial & Cryptographic Suit
         .set('Authorization', `Bearer ${clerkToken}`)
         .send({
           submission_channel: 'hard',
-          claimant_data: { fullName: 'Rejected Claimant' },
+          ...commitmentFields(),
           inspection_checklist_verified: true
         });
       const reqId = intakeRes.body.requestId;
@@ -343,7 +337,7 @@ describe('ISSUE-104: Ops Console Full-Flow RBAC, Managerial & Cryptographic Suit
         .set('Authorization', `Bearer ${clerkToken}`)
         .send({
           submission_channel: 'hard',
-          claimant_data: { fullName: 'Suspicious Case' },
+          ...commitmentFields(),
           inspection_checklist_verified: true
         });
       const reqId = intakeRes.body.requestId;

@@ -1,3 +1,4 @@
+import { commitmentFields, mockLedgerExecutor } from './helpers/intakeFixture.js';
 // Automated Unit & Integration Tests for Phase 4: Scenario B Tiered Risk Decision & Execution Engine
 // Document ID: DEV-ARCH-08 / ADDENDUM-01 / SEC-OPS-06
 
@@ -43,7 +44,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
     migrateUp(db);
     repos = createRepositories(db);
 
-    const appObj = createApp({ db, repos });
+    const appObj = createApp({ db, repos, ledgerExecutor: mockLedgerExecutor });
     request = supertest(appObj.app);
 
     const pHash = await hashPassword('SecurePass2026!');
@@ -70,7 +71,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'hard',
-        claimant_data: { fullName: 'Arthur Dent', nationalId: 'NAT-UK-4242' },
+        ...commitmentFields(),
         inspection_checklist_verified: true
       });
 
@@ -116,7 +117,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Ford Prefect', nationalId: 'NAT-DIG-9911' },
+        ...commitmentFields(),
         evidence_sha256: 'a'.repeat(64)
       });
 
@@ -218,7 +219,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'hard',
-        claimant_data: { fullName: 'Suspect User' },
+        ...commitmentFields(),
         inspection_checklist_verified: true
       });
     const reqId = intakeRes.body.requestId;
@@ -268,7 +269,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Illegible User' },
+        ...commitmentFields(),
         evidence_sha256: 'b'.repeat(64)
       });
     const reqId = intakeRes.body.requestId;
@@ -323,7 +324,7 @@ describe('Phase 4: Scenario B Tiered Risk Decision & Execution Engine', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Flagged Test Subject' },
+        ...commitmentFields(),
         evidence_sha256: 'c'.repeat(64)
       });
     const reqId = intakeRes.body.requestId;

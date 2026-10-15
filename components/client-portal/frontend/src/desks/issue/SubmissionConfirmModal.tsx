@@ -6,6 +6,7 @@ import { IssueSubmissionPayload } from '../../types/issueRequest.js';
 interface SubmissionConfirmModalProps {
   open: boolean;
   payload: IssueSubmissionPayload | null;
+  claimantName: string;
   onConfirm: () => void;
   onCancel: () => void;
   submitting?: boolean;
@@ -14,6 +15,7 @@ interface SubmissionConfirmModalProps {
 export const SubmissionConfirmModal: React.FC<SubmissionConfirmModalProps> = ({
   open,
   payload,
+  claimantName,
   onConfirm,
   onCancel,
   submitting = false,
@@ -24,7 +26,7 @@ export const SubmissionConfirmModal: React.FC<SubmissionConfirmModalProps> = ({
     <ConfirmModal
       open={open}
       title="Confirm Credential Intake Submission"
-      message={`You are submitting an intake application for ${payload.claimant_data.fullName} with verified in-person physical document checkpoints and attached document scan. This action will be recorded in the security audit trail.`}
+      message={`You are submitting a commitment-only intake for ${claimantName}. The claim and its salt stay on this device; only the salted commitment and workflow metadata are sent to Operations.`}
       confirmLabel={submitting ? 'Submitting...' : 'Confirm & Submit to Queue'}
       onConfirm={onConfirm}
       onCancel={onCancel}

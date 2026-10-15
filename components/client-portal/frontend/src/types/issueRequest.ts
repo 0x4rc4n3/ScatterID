@@ -1,5 +1,4 @@
-// components/client-portal/frontend/src/types/issueRequest.ts
-
+// Intake payload is intentionally commitment-only. Claim content and salt stay in the claimant-side browser.
 export type SubmissionChannel = 'hard' | 'soft';
 
 export interface HardChecklistState {
@@ -21,11 +20,11 @@ export interface IssueClaimantData {
 
 export interface IssueSubmissionPayload {
   submission_channel: SubmissionChannel;
-  claimant_data: IssueClaimantData;
+  data_hash: string;
+  claimant_receipt_token: string;
   inspection_checklist?: HardChecklistState;
   inspection_checklist_verified?: boolean;
   evidence_sha256?: string;
-  evidence_payload_base64?: string;
   station_id?: string;
   reason?: string;
 }

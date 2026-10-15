@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as migration001 from './001_initial_ops_schema.js';
+import * as migration002 from './002_commitment_only_issuance.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,7 @@ const __dirname = path.dirname(__filename);
 // Registered migrations in chronological order
 export const MIGRATIONS = [
   migration001,
+  migration002,
 ];
 
 /**

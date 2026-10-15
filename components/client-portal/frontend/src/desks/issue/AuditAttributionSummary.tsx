@@ -2,7 +2,6 @@
 import React from 'react';
 import { useAuth } from '../../auth/useAuth.js';
 import { Shield, Clock, MapPin, UserCheck } from 'lucide-react';
-import { SubmissionChannel } from '../../types/issueRequest.js';
 
 interface AuditAttributionSummaryProps {
   channel?: string;
@@ -37,7 +36,7 @@ export const AuditAttributionSummary: React.FC<AuditAttributionSummaryProps> = (
           <span className="text-textLightMuted block flex items-center gap-1 mb-1">
             <Shield className="w-3.5 h-3.5 text-brand500" /> Verification Scope:
           </span>
-          <span className="font-bold text-brand700">In-Person + Scan</span>
+          <span className="font-bold text-brand700">In-Person Inspection</span>
         </div>
 
         <div>

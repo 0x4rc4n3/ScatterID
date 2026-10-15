@@ -71,6 +71,9 @@ services:
       RECOVERY_CODE_PEPPER: "${RECOVERY_CODE_PEPPER:-}"
       SQLITE_DB_PATH: "/app/data/ops.db"
       VERIFICATION_API_URL: "http://verification-api:3000"
+      VERIFICATION_API_KEY: "${VERIFICATION_API_KEY:-}"
+      REVOKE_API_KEY: "${REVOKE_API_KEY:-}"
+      VERIFICATION_API_TIMEOUT_MS: "${VERIFICATION_API_TIMEOUT_MS:-10000}"
     depends_on:
       - verification-api
     volumes:

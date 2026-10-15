@@ -19,7 +19,7 @@ export class OpsDashboardClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     });
-    const data = await res.json();
+    const data: any = await res.json();
     if (!res.ok) {
       throw new Error(data.message || data.error || 'Clerk authentication failed');
     }
@@ -33,7 +33,7 @@ export class OpsDashboardClient {
     const res = await fetch(`${this.baseUrl}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
+    const data: any = await res.json();
     if (!res.ok) {
       throw new Error(data.message || data.error || 'Invalid session token');
     }
@@ -53,7 +53,7 @@ export class OpsDashboardClient {
       },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
+    const data: any = await res.json();
     return { status: res.status, data };
   }
 
@@ -66,7 +66,7 @@ export class OpsDashboardClient {
       },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
+    const data: any = await res.json();
     return { status: res.status, data };
   }
 
@@ -76,7 +76,18 @@ export class OpsDashboardClient {
         Authorization: `Bearer ${authToken}`,
       },
     });
-    const data = await res.json();
+    const data: any = await res.json();
+    return { status: res.status, data };
+  }
+
+  async forwardClaimantReceipt(requestId: string | undefined, receiptToken: string) {
+    const path = requestId
+      ? `/api/requests/claimant-receipt/${encodeURIComponent(requestId)}`
+      : '/api/requests/claimant-receipt';
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      headers: { 'X-Claimant-Receipt-Token': receiptToken },
+    });
+    const data: any = await res.json();
     return { status: res.status, data };
   }
 }

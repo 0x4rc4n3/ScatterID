@@ -18,10 +18,6 @@ export const RequestDetailPanel: React.FC<RequestDetailPanelProps> = ({
   request,
   onDecisionComplete,
 }) => {
-  const claimant = typeof request.claimant_data === 'string'
-    ? JSON.parse(request.claimant_data || '{}')
-    : request.claimant_data || {};
-
   return (
     <Paper
       variant="outlined"
@@ -76,7 +72,7 @@ export const RequestDetailPanel: React.FC<RequestDetailPanelProps> = ({
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, color: tokens.color.textMain, mb: 1 }}>
-          Claimant Details
+          Privacy-Preserving Claim Commitment
         </Typography>
         <Paper
           variant="outlined"
@@ -95,7 +91,7 @@ export const RequestDetailPanel: React.FC<RequestDetailPanelProps> = ({
               color: tokens.color.textMain,
             }}
           >
-            {JSON.stringify(claimant, null, 2)}
+            {request.data_hash || 'Commitment unavailable'}
           </Box>
         </Paper>
       </Box>

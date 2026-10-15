@@ -1,52 +1,75 @@
-// Ledger Execution Dispatcher for Hyperledger Fabric Anchoring & Revocation
-// Document ID: DEV-ARCH-08
+// Verification API dispatcher: approvals are only complete after the API confirms its ledger result.
 
-import crypto from 'node:crypto';
+function apiConfig() {
+  const baseUrl = process.env.VERIFICATION_API_URL?.replace(/\/$/, '');
+  const apiKey = process.env.VERIFICATION_API_KEY;
+  if (!baseUrl || !apiKey) {
+    throw new Error('Verification API is not configured (VERIFICATION_API_URL and VERIFICATION_API_KEY are required)');
+  }
+  return { baseUrl, apiKey };
+}
 
-/**
- * Dispatches issuance or revocation execution to Hyperledger Fabric.
- * In live mode, interacts with Fabric Gateway.
- * In self-hosted mock/dev/test mode, generates cryptographically signed transaction commitments.
- */
-export function createLedgerExecutor({ fabricGateway = null, db = null } = {}) {
+async function postJson(url, apiKey, payload, { revoke = false } = {}) {
+  const timeoutMs = Number.parseInt(process.env.VERIFICATION_API_TIMEOUT_MS || '10000', 10);
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+  if (revoke && process.env.REVOKE_API_KEY) headers['X-Revoke-Key'] = process.env.REVOKE_API_KEY;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok && response.status !== 202) {
+    throw new Error(body.error || body.message || `Verification API returned HTTP ${response.status}`);
+  }
+  return body;
+}
+
+export function createLedgerExecutor() {
   return {
     async executeIssuance(request) {
-      if (!request) throw new Error('Request record required for issuance execution');
-
-      // Live Fabric execution path if gateway configured
-      if (fabricGateway && typeof fabricGateway.submitTransaction === 'function') {
-        const claimantStr = typeof request.claimant_data === 'string' 
-          ? request.claimant_data 
-          : JSON.stringify(request.claimant_data);
-        const commitmentHash = crypto.createHash('sha256').update(claimantStr).digest('hex');
-        const txId = await fabricGateway.submitTransaction('AnchorProof', request.id, commitmentHash);
-        return { txId, status: 'anchored' };
+      if (!request?.id) throw new Error('Request record required for issuance execution');
+      if (!/^[0-9a-f]{64}$/i.test(request.data_hash || '')) {
+        throw new Error('Issuance request is missing a valid SHA3-256 data_hash commitment');
       }
+      const { baseUrl, apiKey } = apiConfig();
+      // The stable ops request ID is the idempotency key, preventing duplicate credentials on retries.
+      let result = await postJson(`${baseUrl}/issue`, apiKey, {
+        dataHash: request.data_hash.toLowerCase(),
+        idempotencyKey: request.id
+      });
 
-      // High-assurance local/test dispatcher
-      const txId = `tx_fabric_anchor_${crypto.randomBytes(16).toString('hex')}`;
+      // A stored credential may be returned as pending if the API process stopped
+      // after persistence but before completing its first ledger call.
+      if (['anchor_failed', 'pending'].includes(result.status) && result.credentialId) {
+        result = await postJson(
+          `${baseUrl}/issue/${encodeURIComponent(result.credentialId)}/retry-anchor`,
+          apiKey,
+          {}
+        );
+      }
+      if (result.status !== 'anchored' || !result.credentialId || !result.anchorTxId) {
+        throw new Error(result.reason || result.error || `Verification API did not confirm ledger anchoring (status: ${result.status || 'unknown'})`);
+      }
       return {
-        txId,
         status: 'anchored',
-        timestamp: new Date().toISOString()
+        credentialId: result.credentialId,
+        anchorTxId: result.anchorTxId,
+        txId: result.anchorTxId,
+        issuanceReceipt: result
       };
     },
 
     async executeRevocation(request) {
-      if (!request) throw new Error('Request record required for revocation execution');
-      const credId = request.credential_id || request.id;
-
-      if (fabricGateway && typeof fabricGateway.submitTransaction === 'function') {
-        const txId = await fabricGateway.submitTransaction('RevokeProof', credId, request.reason || 'REVOKED');
-        return { txId, status: 'revoked' };
+      const credentialId = request?.credential_id || request?.credentialId;
+      if (!credentialId) throw new Error('Credential ID is required for revocation execution');
+      const { baseUrl, apiKey } = apiConfig();
+      const result = await postJson(`${baseUrl}/revoke`, apiKey, { credentialId }, { revoke: true });
+      if (!result.success || result.status !== 'revoked') {
+        throw new Error(result.error || result.message || 'Verification API did not confirm revocation');
       }
-
-      const txId = `tx_fabric_revoke_${crypto.randomBytes(16).toString('hex')}`;
-      return {
-        txId,
-        status: 'revoked',
-        timestamp: new Date().toISOString()
-      };
+      return { status: 'revoked', credentialId: result.credentialId || credentialId, txId: null, anchorTxId: null, issuanceReceipt: null };
     }
   };
 }
