@@ -18,6 +18,12 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
   const router = express.Router();
   const ledgerExecutor = customExecutor || createLedgerExecutor({ db });
 
+  const redactRequest = (record) => {
+    if (!record) return record;
+    const { claimant_receipt_token_hash, issuance_receipt_json, claimant_data, ...safe } = record;
+    return { ...safe, claimant_data: null };
+  };
+
   /**
    * Helper to generate unique request ID
    */
@@ -35,11 +41,11 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     try {
       const {
         submission_channel,
-        claimant_data,
+        data_hash,
+        claimant_receipt_token,
         inspection_checklist,
         inspection_checklist_verified,
         evidence_sha256,
-        evidence_payload_base64,
         station_id: bodyStationId,
         reason
       } = req.body || {};
@@ -51,6 +57,10 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
 
       const channel = submission_channel || 'standard';
 
+      if (Object.hasOwn(req.body || {}, 'claimant_data') || Object.hasOwn(req.body || {}, 'claim') || Object.hasOwn(req.body || {}, 'salt') || Object.hasOwn(req.body || {}, 'evidence_payload_base64')) {
+        return res.status(400).json({ error: 'PRIVATE_DATA_REJECTED', message: 'Claim, salt, and raw evidence must stay on the claimant device; submit only commitments and evidence hashes.' });
+      }
+
       // Validation: Channel must be 'standard', 'hard', or 'soft'
       if (!['standard', 'hard', 'soft'].includes(channel)) {
         return res.status(400).json({
@@ -59,12 +69,16 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         });
       }
 
-      // Validation: Claimant data is required
-      if (!claimant_data || typeof claimant_data !== 'object' || Object.keys(claimant_data).length === 0) {
+      // Claim data and salt must never cross the ops API boundary.
+      if (typeof data_hash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(data_hash)) {
         return res.status(400).json({
-          error: 'MISSING_CLAIMANT_DATA',
-          message: 'Structured claimant data is required for issuance'
+          error: 'INVALID_COMMITMENT',
+          message: 'data_hash must be a 64-character salted SHA3-256 commitment'
         });
+      }
+
+      if (typeof claimant_receipt_token !== 'string' || !/^[0-9a-fA-F]{64}$/.test(claimant_receipt_token)) {
+        return res.status(400).json({ error: 'INVALID_RECEIPT_TOKEN', message: 'A client-generated 32-byte claimant receipt token is required.' });
       }
 
       let isChecklistVerified = 0;
@@ -103,12 +117,9 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         if (channel === 'standard') {
           if (evidence_sha256 && /^[a-fA-F0-9]{64}$/.test(evidence_sha256)) {
             calculatedEvidenceSha256 = evidence_sha256.toLowerCase();
-          } else if (evidence_payload_base64) {
-            const fileBuf = Buffer.from(evidence_payload_base64, 'base64');
-            calculatedEvidenceSha256 = crypto.createHash('sha256').update(fileBuf).digest('hex');
           } else {
-            // Default genuine document commitment
-            calculatedEvidenceSha256 = crypto.createHash('sha256').update(JSON.stringify(claimant_data)).digest('hex');
+            // Raw evidence stays client-side; only an independently computed hash may be submitted.
+            calculatedEvidenceSha256 = null;
           }
         } else {
           calculatedEvidenceSha256 = null;
@@ -123,69 +134,90 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
             });
           }
           calculatedEvidenceSha256 = evidence_sha256.toLowerCase();
-        } else if (evidence_payload_base64) {
-          const fileBuf = Buffer.from(evidence_payload_base64, 'base64');
-          calculatedEvidenceSha256 = crypto.createHash('sha256').update(fileBuf).digest('hex');
         } else {
           return res.status(400).json({
             error: 'MISSING_EVIDENCE',
-            message: 'Soft channel issuance strictly requires evidence_sha256 or evidence_payload_base64'
+            message: 'Soft channel issuance strictly requires evidence_sha256; raw evidence payloads are not accepted by ops'
           });
         }
         isChecklistVerified = 0;
       }
 
+      const claimantReceiptTokenHash = crypto.createHash('sha256').update(claimant_receipt_token.toLowerCase()).digest('hex');
+      const existingRequest = repos.requests.getByReceiptTokenHash(claimantReceiptTokenHash);
+      if (existingRequest) {
+        if (existingRequest.data_hash !== data_hash.toLowerCase()) {
+          return res.status(409).json({ error: 'RECEIPT_TOKEN_CONFLICT', message: 'This receipt token is already bound to a different commitment.' });
+        }
+        return res.status(200).json({ success: true, requestId: existingRequest.id, status: existingRequest.status, submission_channel: existingRequest.submission_channel });
+      }
       const requestId = generateRequestId('req_iss');
-      const now = new Date().toISOString();
+       const now = new Date().toISOString();
 
-      // Atomic insertion of Request and Immutable Audit Attribution
-      const createTx = db.transaction(() => {
-        const dbChannel = (channel === 'standard') ? 'hard' : channel;
-        const reqRecord = repos.requests.createRequest({
-          id: requestId,
-          request_type: 'issuance',
-          submission_channel: dbChannel,
-          status: 'PENDING',
-          claimant_data,
-          inspection_checklist_verified: isChecklistVerified,
-          evidence_sha256: calculatedEvidenceSha256,
-          clerk_id: staffUserId,
-          clerk_username: clerkUsername,
-          station_id: stationId,
-          client_ip: clientIp,
-          reason: reason || null,
-          created_at: now,
-          updated_at: now
-        });
+       // Atomic insertion of Request and Immutable Audit Attribution
+       const createTx = db.transaction(() => {
+         const dbChannel = (channel === 'standard') ? 'hard' : channel;
+         const reqRecord = repos.requests.createRequest({
+           id: requestId,
+           request_type: 'issuance',
+           submission_channel: dbChannel,
+           status: 'PENDING',
+           data_hash: data_hash.toLowerCase(),
+           claimant_receipt_token_hash: claimantReceiptTokenHash,
+           inspection_checklist_verified: isChecklistVerified,
+           evidence_sha256: calculatedEvidenceSha256,
+           clerk_id: staffUserId,
+           clerk_username: clerkUsername,
+           station_id: stationId,
+           client_ip: clientIp,
+           reason: reason || null,
+           created_at: now,
+           updated_at: now
+         });
 
-        repos.auditLog.record({
-          action: 'CLERK_REQUEST_SUBMITTED',
-          status: 'SUCCESS',
-          actor_id: staffUserId,
-          username: clerkUsername,
-          role: req.user.role,
-          station_id: stationId,
-          client_ip: clientIp,
-          request_id: requestId,
-          submission_channel: dbChannel,
-          details: {
-            request_type: 'issuance',
-            inspection_checklist_verified: Boolean(isChecklistVerified),
-            evidence_sha256: calculatedEvidenceSha256,
-            original_channel: channel
-          },
-          timestamp: now
-        });
+         repos.auditLog.record({
+           action: 'CLERK_REQUEST_SUBMITTED',
+           status: 'SUCCESS',
+           actor_id: staffUserId,
+           username: clerkUsername,
+           role: req.user.role,
+           station_id: stationId,
+           client_ip: clientIp,
+           request_id: requestId,
+           submission_channel: dbChannel,
+           details: {
+             request_type: 'issuance',
+             inspection_checklist_verified: Boolean(isChecklistVerified),
+             evidence_sha256: calculatedEvidenceSha256,
+             original_channel: channel,
+             data_hash: data_hash.toLowerCase()
+           },
+           timestamp: now
+         });
 
-        return reqRecord;
-      });
+         return reqRecord;
+       });
 
-      const created = createTx();
+      let created;
+      try {
+        created = createTx();
+      } catch (err) {
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+          const duplicate = repos.requests.getByReceiptTokenHash(claimantReceiptTokenHash);
+          if (duplicate) {
+            if (duplicate.data_hash !== data_hash.toLowerCase()) {
+              return res.status(409).json({ error: 'RECEIPT_TOKEN_CONFLICT', message: 'This receipt token is already bound to a different commitment.' });
+            }
+            return res.status(200).json({ success: true, requestId: duplicate.id, status: duplicate.status, submission_channel: duplicate.submission_channel });
+          }
+        }
+        throw err;
+      }
 
-      return res.status(201).json({
-        success: true,
-        requestId: created.id,
-        request: created,
+       return res.status(201).json({
+         success: true,
+         requestId: created.id,
+         request: redactRequest(created),
         status: created.status,
         submission_channel: created.submission_channel,
         attribution: {
@@ -449,8 +481,10 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
         } else if (request.request_type === 'revocation' || request.type === 'revoke') {
           execResult = await ledgerExecutor.executeRevocation(request);
         } else {
-          execResult = { txId: `tx_root_exec_${Date.now()}` };
+          throw new Error(`Unsupported request type for execution: ${request.request_type || request.type || 'unknown'}`);
         }
+
+        if (execResult.issuanceReceipt) repos.requests.updateIssuanceReceipt(id, execResult.issuanceReceipt);
 
         repos.requests.updateRootDecision(id, {
           status: 'EXECUTED',
@@ -567,6 +601,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
 
         if (policyEval.action === 'AUTO_EXECUTE') {
           const execResult = await ledgerExecutor.executeIssuance(request);
+          if (execResult.issuanceReceipt) repos.requests.updateIssuanceReceipt(id, execResult.issuanceReceipt);
 
           repos.requests.updateModDecision(id, {
             status: 'EXECUTED',
@@ -658,7 +693,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     const list = repos.requests.getAwaitingRoot();
     return res.status(200).json({
       count: list.length,
-      requests: list
+      requests: list.map(redactRequest)
     });
   };
   router.get('/queue/awaiting-root', authenticate, requireRole(['root']), getAwaitingRootHandler);
@@ -672,7 +707,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     const list = repos.requests.getFlaggedForRoot();
     return res.status(200).json({
       count: list.length,
-      requests: list
+      requests: list.map(redactRequest)
     });
   };
   router.get('/queue/flagged', authenticate, requireRole(['root']), getFlaggedHandler);
@@ -749,8 +784,10 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       } else if (request.request_type === 'revocation') {
         execResult = await ledgerExecutor.executeRevocation(request);
       } else {
-        execResult = { txId: `tx_key_rotation_${Date.now()}` };
+        throw new Error(`Unsupported request type for execution: ${request.request_type || 'unknown'}`);
       }
+
+      if (execResult.issuanceReceipt) repos.requests.updateIssuanceReceipt(id, execResult.issuanceReceipt);
 
       repos.requests.updateRootDecision(id, {
         status: 'EXECUTED',
@@ -800,7 +837,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     const pendingList = repos.requests.getPendingForMod();
     return res.status(200).json({
       count: pendingList.length,
-      requests: pendingList
+      requests: pendingList.map(redactRequest)
     });
   };
 
@@ -861,26 +898,18 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
       const allReqs = repos.requests.listAll(500);
       const executed = allReqs.filter(r => r.status === 'EXECUTED');
       const credentials = executed.map(r => {
-        let claimant = {};
-        try {
-          claimant = (typeof r.claimant_data === 'string' ? JSON.parse(r.claimant_data) : r.claimant_data) || {};
-        } catch(e) {
-          claimant = {};
-        }
-        if (!claimant || typeof claimant !== 'object') {
-          claimant = {};
-        }
         return {
-          id: r.credential_id || `cred-${r.id.replace('req_', '')}`,
+          id: r.credential_id,
           status: r.request_type === 'revocation' ? 'revoked' : 'active',
           issued_date: r.created_at,
           channel: r.submission_channel,
-          subject: claimant?.subjectData?.fullName || claimant?.fullName || claimant?.name || 'Identity Subject',
-          title: claimant?.subjectData?.recordTitle || claimant?.recordTitle || 'Identity Record',
-          signing_key_id: 'pqc-mldsa87-active-v1',
-          execution_tx_id: r.execution_tx_id || 'tx_anchor_genesis'
+          subject: 'Identity Subject',
+          title: 'Identity Credential',
+          data_hash: r.data_hash || null,
+          signing_key_id: null,
+          execution_tx_id: r.execution_tx_id || null
         };
-      });
+      }).filter(credential => credential.id);
       return res.status(200).json({ credentials });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -955,6 +984,28 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
   });
 
   /**
+   * GET /api/requests/claimant-receipt/:id
+   * Claimant-held token authorizes retrieval of the signed credential after approval.
+   */
+  const claimantReceiptHandler = (req, res) => {
+    const token = req.get('X-Claimant-Receipt-Token') || '';
+    if (!/^[0-9a-f]{64}$/i.test(token)) {
+      return res.status(401).json({ error: 'INVALID_RECEIPT_TOKEN' });
+    }
+    const tokenHash = crypto.createHash('sha256').update(token.toLowerCase()).digest('hex');
+    const record = repos.requests.getByReceiptTokenHash(tokenHash);
+    if (!record || (req.params.id && record.id !== req.params.id)) {
+      return res.status(404).json({ error: 'RECEIPT_NOT_FOUND' });
+    }
+    if (record.status !== 'EXECUTED' || !record.issuance_receipt_json) {
+      return res.status(202).json({ requestId: record.id, status: record.status, issued: false });
+    }
+    return res.status(200).json({ requestId: record.id, status: 'issued', credential: JSON.parse(record.issuance_receipt_json) });
+  };
+  router.get('/claimant-receipt', claimantReceiptHandler);
+  router.get('/claimant-receipt/:id', claimantReceiptHandler);
+
+  /**
    * GET /api/requests/:id
    * Detailed request view for Mod/Root review.
    */
@@ -963,7 +1014,7 @@ export function createRequestsRouter({ db, repos, ledgerExecutor: customExecutor
     if (!record) {
       return res.status(404).json({ error: 'REQUEST_NOT_FOUND' });
     }
-    return res.status(200).json({ request: record });
+    return res.status(200).json({ request: redactRequest(record) });
   });
 
   return router;

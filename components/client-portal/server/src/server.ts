@@ -8,6 +8,7 @@ import { createClerkAuthHandler } from './auth/clerkAuth.js';
 import { createIssueRouter } from './routes/issue.js';
 import { createRevokeRouter } from './routes/revoke.js';
 import { createTrackRouter } from './routes/track.js';
+import { createClaimantReceiptRouter } from './routes/claimantReceipt.js';
 import { createVerifyRouter } from './routes/verify.js';
 import { OpsDashboardClient } from './proxy/opsDashboardClient.js';
 import { VerificationApiClient } from './proxy/verificationApiClient.js';
@@ -44,6 +45,7 @@ export function createServer(options: ServerOptions = {}) {
   app.use('/issue', createIssueRouter(opsClient));
   app.use('/revoke', createRevokeRouter(opsClient));
   app.use('/track', createTrackRouter(opsClient));
+  app.use('/claimant-receipt', createClaimantReceiptRouter(opsClient));
   app.use('/verify', createVerifyRouter(verifyClient));
 
   return app;

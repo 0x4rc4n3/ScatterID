@@ -26,3 +26,10 @@ export async function submitRevokeRequest(
 export async function trackRequest(requestId: string): Promise<any> {
   return portalHttpClient<any>(`/track/${encodeURIComponent(requestId)}`);
 }
+
+export async function getClaimantReceipt(requestId: string | undefined, receiptToken: string): Promise<any> {
+  const path = requestId ? `/claimant-receipt/${encodeURIComponent(requestId)}` : '/claimant-receipt';
+  return portalHttpClient<any>(path, {
+    headers: { 'X-Claimant-Receipt-Token': receiptToken },
+  });
+}

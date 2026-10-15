@@ -5,6 +5,7 @@ import { IssueClaimantData } from '../../types/issueRequest.js';
 interface ClaimantDetailsSectionProps {
   claimant: IssueClaimantData;
   onChange: (updated: IssueClaimantData) => void;
+  disabled?: boolean;
 }
 
 const PRESETS = [
@@ -46,8 +47,10 @@ const PRESETS = [
 export const ClaimantDetailsSection: React.FC<ClaimantDetailsSectionProps> = ({
   claimant,
   onChange,
+  disabled = false,
 }) => {
   const handleFieldChange = (field: keyof IssueClaimantData, val: any) => {
+    if (disabled) return;
     onChange({
       ...claimant,
       [field]: val,
@@ -55,7 +58,7 @@ export const ClaimantDetailsSection: React.FC<ClaimantDetailsSectionProps> = ({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg border border-borderLight shadow-sm mb-6">
+    <fieldset disabled={disabled} className="bg-white p-6 rounded-lg border border-borderLight shadow-sm mb-6 w-full min-w-0">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-textOnLight">Claimant & Subject Credentials</h3>
@@ -148,6 +151,6 @@ export const ClaimantDetailsSection: React.FC<ClaimantDetailsSectionProps> = ({
           />
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 };

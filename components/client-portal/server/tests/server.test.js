@@ -76,10 +76,44 @@ describe('ScatterID Client Portal Server (Counter-VPN Proxy)', () => {
     const res = await supertest(app)
       .post('/issue')
       .set('Authorization', 'Bearer valid-clerk-token')
-      .send({ submission_channel: 'hard', claimant_data: { subject: 'Test' } });
+      .send({ submission_channel: 'hard', data_hash: 'a'.repeat(64), claimant_receipt_token: 'b'.repeat(64) });
 
     assert.equal(res.status, 201);
     assert.equal(capturedToken, 'valid-clerk-token');
     assert.equal(capturedPayload.submission_channel, 'hard');
+    assert.equal(capturedPayload.claimant_data, undefined);
+    assert.equal(capturedPayload.data_hash, 'a'.repeat(64));
+  });
+
+  it('GET /claimant-receipt/:id forwards the holder token without clerk authentication', async () => {
+    let forwarded = null;
+    const mockOpsClient = {
+      async forwardClaimantReceipt(requestId, receiptToken) {
+        forwarded = { requestId, receiptToken };
+        return { status: 200, data: { requestId, status: 'issued', credential: { credentialId: 'cred-1' } } };
+      },
+    };
+
+    const token = 'c'.repeat(64);
+    const app = createServer({ opsDashboardClient: mockOpsClient });
+    const res = await supertest(app)
+      .get('/claimant-receipt/req-789')
+      .set('X-Claimant-Receipt-Token', token);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(forwarded, { requestId: 'req-789', receiptToken: token });
+    assert.equal(res.body.credential.credentialId, 'cred-1');
+  });
+
+  it('GET /claimant-receipt rejects malformed holder tokens before proxying', async () => {
+    let called = false;
+    const app = createServer({
+      opsDashboardClient: {
+        async forwardClaimantReceipt() { called = true; return { status: 200, data: {} }; },
+      },
+    });
+    const res = await supertest(app).get('/claimant-receipt').set('X-Claimant-Receipt-Token', 'not-a-token');
+    assert.equal(res.status, 401);
+    assert.equal(called, false);
   });
 });

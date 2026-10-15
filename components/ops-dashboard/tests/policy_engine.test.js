@@ -1,3 +1,4 @@
+import { commitmentFields, mockLedgerExecutor } from './helpers/intakeFixture.js';
 // Agile Policy & Governance Engine Integration Tests
 // Validates customizable risk postures (Scenario B, Scenario A, Scenario C, Custom)
 // Document ID: DEV-ARCH-08 / ISSUE-102
@@ -45,7 +46,7 @@ describe('Agile Policy Engine & Dynamic Governance (ISSUE-102)', () => {
     migrateUp(db);
     repos = createRepositories(db);
 
-    const appObj = createApp({ db, repos });
+    const appObj = createApp({ db, repos, ledgerExecutor: mockLedgerExecutor });
     request = supertest(appObj.app);
 
     const pHash = await hashPassword('SecurePass2026!');
@@ -114,7 +115,7 @@ describe('Agile Policy Engine & Dynamic Governance (ISSUE-102)', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'hard',
-        claimant_data: { fullName: 'Alice Strict', nationalId: 'NAT-STRICT-001' },
+        ...commitmentFields(),
         inspection_checklist_verified: true,
         checklist_details: {
           substrate_material_integrity: true,
@@ -157,7 +158,7 @@ describe('Agile Policy Engine & Dynamic Governance (ISSUE-102)', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Bob Fast', nationalId: 'NAT-FAST-002' },
+        ...commitmentFields(),
         evidence_sha256: 'c'.repeat(64)
       });
     assert.equal(intakeRes.status, 201);

@@ -1,3 +1,4 @@
+import { commitmentFields, mockLedgerExecutor } from './helpers/intakeFixture.js';
 // Automated Unit & Integration Tests for Phase 3: Request Intake & Audit Attribution Queue
 // Document ID: DEV-ARCH-08 / ADDENDUM-01 / SEC-OPS-06
 
@@ -43,7 +44,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
     migrateUp(db);
     repos = createRepositories(db);
 
-    const appObj = createApp({ db, repos });
+    const appObj = createApp({ db, repos, ledgerExecutor: mockLedgerExecutor });
     request = supertest(appObj.app);
 
     const pHash = await hashPassword('TestPass123!');
@@ -90,11 +91,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
       .set('X-Forwarded-For', '10.20.0.14')
       .send({
         submission_channel: 'hard',
-        claimant_data: {
-          fullName: 'Robert Frost',
-          nationalId: 'NAT-USA-998811',
-          dateOfBirth: '1985-03-26'
-        },
+        ...commitmentFields(),
         inspection_checklist: {
           substrate_material_integrity: true,
           optical_security_features: true,
@@ -128,6 +125,43 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
     assert.equal(auditLogs[0].client_ip, '10.20.0.14');
   });
 
+  test('Commitment-only issuance stores no claimant data and protects the signed receipt with the claimant token', async () => {
+    const proof = commitmentFields();
+    const intake = await request.post('/api/requests/issue')
+      .set('Authorization', `Bearer ${clerkToken}`)
+      .send({ submission_channel: 'hard', ...proof, inspection_checklist_verified: true });
+    assert.equal(intake.status, 201);
+    const requestId = intake.body.requestId;
+    const stored = repos.requests.getById(requestId);
+    assert.equal(stored.claimant_data, null);
+    assert.equal(stored.data_hash, proof.data_hash);
+    assert.notEqual(stored.claimant_receipt_token_hash, proof.claimant_receipt_token);
+    assert.equal(intake.body.claimant_receipt_token_hash, undefined);
+    assert.equal(intake.body.request.claimant_data, null);
+    assert.equal(intake.body.request.claimant_receipt_token_hash, undefined);
+    assert.equal(intake.body.request.issuance_receipt_json, undefined);
+
+    const beforeApproval = await request.get('/api/requests/claimant-receipt')
+      .set('X-Claimant-Receipt-Token', proof.claimant_receipt_token);
+    assert.equal(beforeApproval.status, 202);
+    assert.equal(beforeApproval.body.requestId, requestId);
+
+    const approval = await request.post(`/api/requests/${requestId}/decide`)
+      .set('Authorization', `Bearer ${modToken}`).send({ action: 'APPROVE' });
+    assert.equal(approval.status, 200);
+    assert.equal(approval.body.status, 'EXECUTED');
+
+    const receipt = await request.get(`/api/requests/claimant-receipt/${requestId}`)
+      .set('X-Claimant-Receipt-Token', proof.claimant_receipt_token);
+    assert.equal(receipt.status, 200);
+    assert.equal(receipt.body.credential.dataHash, proof.data_hash);
+    assert.equal(receipt.body.credential.anchorTxId, approval.body.execution_tx_id);
+
+    const denied = await request.get(`/api/requests/claimant-receipt/${requestId}`)
+      .set('X-Claimant-Receipt-Token', '0'.repeat(64));
+    assert.equal(denied.status, 404);
+  });
+
   test('2. Hard Channel Issuance Rejects Incomplete Inspection Checklist', async () => {
     // Missing optical_security_features
     const res = await request
@@ -135,7 +169,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'hard',
-        claimant_data: { fullName: 'Failing Claimant' },
+        ...commitmentFields(),
         inspection_checklist: {
           substrate_material_integrity: true,
           optical_security_features: false, // failed
@@ -149,19 +183,15 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
   });
 
   test('3. Soft Channel Issuance with Digital Scan Upload & SHA-256 Hash', async () => {
-    const samplePayload = 'Simulated Document PDF Content In Bytes';
-    const expectedSha256 = crypto.createHash('sha256').update(samplePayload).digest('hex');
+    const expectedSha256 = crypto.createHash('sha256').update('Simulated Document PDF Content In Bytes').digest('hex');
 
     const res = await request
       .post('/api/requests/issue')
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: {
-          fullName: 'Grace Hopper',
-          nationalId: 'NAT-DIG-443322'
-        },
-        evidence_payload_base64: Buffer.from(samplePayload).toString('base64')
+        ...commitmentFields(),
+        evidence_sha256: expectedSha256
       });
 
     assert.equal(res.status, 201);
@@ -185,7 +215,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'No Scan User' }
+        ...commitmentFields(),
       });
     assert.equal(missingRes.status, 400);
     assert.equal(missingRes.body.error, 'MISSING_EVIDENCE');
@@ -196,7 +226,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Bad Hash User' },
+        ...commitmentFields(),
         evidence_sha256: 'not-a-valid-sha256'
       });
     assert.equal(malformedRes.status, 400);
@@ -239,7 +269,7 @@ describe('Phase 3: Request Intake & Audit Attribution Queue', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'hard',
-        claimant_data: { fullName: 'Track Me' },
+        ...commitmentFields(),
         inspection_checklist_verified: true
       });
 

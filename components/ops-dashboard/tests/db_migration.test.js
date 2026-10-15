@@ -54,9 +54,11 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
 
   test('2. Forward Migration (migrateUp) creates all 7 tables and migration tracking', () => {
     const results = migrateUp(db);
-    assert.equal(results.length, 1);
+    assert.equal(results.length, 2);
     assert.equal(results[0].status, 'APPLIED');
     assert.equal(results[0].version, '001');
+    assert.equal(results[1].status, 'APPLIED');
+    assert.equal(results[1].version, '002');
 
     // Verify tables exist in sqlite_master
     const tableRows = db.prepare(`
@@ -83,9 +85,10 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
 
     // Verify migration tracking record
     const applied = getAppliedMigrations(db);
-    assert.equal(applied.length, 1);
+    assert.equal(applied.length, 2);
     assert.equal(applied[0].version, '001');
-    assert.equal(applied[0].name, 'initial_ops_schema');
+    assert.equal(applied[1].version, '002');
+    assert.equal(applied[1].name, 'commitment_only_issuance');
   });
 
   test('3. Users Table constraints, roles, and unique enforcement', () => {
@@ -198,6 +201,7 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
     });
     assert.equal(hardReq.status, 'PENDING');
     assert.equal(hardReq.inspection_checklist_verified, 1);
+    assert.equal(hardReq.claimant_data, null, 'New ops records must never persist raw claimant data');
 
     // Mod approves Hard-Channel Issuance -> System auto-executes
     repos.requests.updateModDecision('req_hard_001', {
@@ -431,6 +435,9 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
 
   test('9. Automated Rollback (migrateDown) and Idempotency', () => {
     // Run rollback
+    const latestRollback = migrateDown(db);
+    assert.equal(latestRollback.status, 'ROLLED_BACK');
+    assert.equal(latestRollback.version, '002');
     const rollbackResult = migrateDown(db);
     assert.equal(rollbackResult.status, 'ROLLED_BACK');
     assert.equal(rollbackResult.version, '001');
@@ -448,8 +455,9 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
 
     // Re-run forward migration (idempotent re-application)
     const reMigrateResults = migrateUp(db);
-    assert.equal(reMigrateResults.length, 1);
+    assert.equal(reMigrateResults.length, 2);
     assert.equal(reMigrateResults[0].status, 'APPLIED');
+    assert.equal(reMigrateResults[1].status, 'APPLIED');
 
     // Verify tables are restored
     const restoredTables = db.prepare(`
@@ -461,5 +469,6 @@ describe('Phase 1: Database Schema & Migration Engine', () => {
     // Calling migrateUp again reports ALREADY_APPLIED
     const secondCall = migrateUp(db);
     assert.equal(secondCall[0].status, 'ALREADY_APPLIED');
+    assert.equal(secondCall[1].status, 'ALREADY_APPLIED');
   });
 });

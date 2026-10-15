@@ -1,3 +1,4 @@
+import { commitmentFields, mockLedgerExecutor } from './helpers/intakeFixture.js';
 // Master End-to-End Integration Suite for ScatterID Ops & Access
 // Verifies all Scenario B flows, Static Test Harness, MFA Phone Migration, and Disaster Recovery
 // Document ID: DEV-ARCH-08 / Master Blueprint: start.md
@@ -55,7 +56,7 @@ describe('Phase 7: Master End-to-End Integration Suite', () => {
     migrateUp(db);
     repos = createRepositories(db);
 
-    const appObj = createApp({ db, repos });
+    const appObj = createApp({ db, repos, ledgerExecutor: mockLedgerExecutor });
     request = supertest(appObj.app);
 
     const pHash = await hashPassword('MasterSecretPass2026!');
@@ -128,10 +129,7 @@ describe('Phase 7: Master End-to-End Integration Suite', () => {
       .set('X-Forwarded-For', '10.20.0.99')
       .send({
         submission_channel: 'hard',
-        claimant_data: {
-          fullName: 'Ada Lovelace',
-          nationalId: 'NAT-GB-181512'
-        },
+        ...commitmentFields(),
         inspection_checklist_verified: true
       });
     assert.equal(intakeRes.status, 201);
@@ -189,7 +187,7 @@ describe('Phase 7: Master End-to-End Integration Suite', () => {
       .set('Authorization', `Bearer ${clerkToken}`)
       .send({
         submission_channel: 'soft',
-        claimant_data: { fullName: 'Charles Babbage', nationalId: 'NAT-GB-179112' },
+        ...commitmentFields(),
         evidence_sha256: sampleSha
       });
     const reqId = intakeRes.body.requestId;
