@@ -1,0 +1,75 @@
+# ScatterID DevSecOps — Gitleaks Secret Scanner Configuration
+# Enforces Shift-Left secret hygiene across source code, commit history, and PRs.
+title = "ScatterID Gitleaks Ruleset"
+
+[extend]
+useDefault = true
+
+# ==============================================================================
+# ScatterID Custom Detection Rules
+# ==============================================================================
+
+# Rule 1: High-Entropy API Service Keys
+[[rules]]
+id = "scatterid-service-api-key"
+description = "Detected potential hardcoded ScatterID Service API Key"
+regex = '''(?i)(?:CRYPTO_SERVICE_API_KEY|VERIFICATION_API_KEY|REVOKE_API_KEY)\s*[:=]\s*['"]([a-zA-Z0-9_-]{24,})['"]'''
+entropy = 3.5
+secretGroup = 1
+keywords = [
+    "CRYPTO_SERVICE_API_KEY",
+    "VERIFICATION_API_KEY",
+    "REVOKE_API_KEY"
+]
+
+# Rule 2: Recovery Code Pepper Secrets
+[[rules]]
+id = "scatterid-recovery-pepper"
+description = "Detected potential hardcoded ScatterID Recovery Code Pepper"
+regex = '''(?i)(?:RECOVERY_CODE_PEPPER)\s*[:=]\s*['"]([a-zA-Z0-9+/=_-]{16,})['"]'''
+entropy = 3.2
+secretGroup = 1
+keywords = [
+    "RECOVERY_CODE_PEPPER"
+]
+
+# Rule 3: HashiCorp Vault AppRole Secrets
+[[rules]]
+id = "scatterid-vault-approle-secret"
+description = "Detected potential hardcoded HashiCorp Vault Secret ID or Token"
+regex = '''(?i)(?:VAULT_SECRET_ID|VAULT_TOKEN)\s*[:=]\s*['"]([a-zA-Z0-9-]{20,})['"]'''
+secretGroup = 1
+keywords = [
+    "VAULT_SECRET_ID",
+    "VAULT_TOKEN"
+]
+
+# ==============================================================================
+# Allowlist Configuration (Zero-False-Positive Test Exclusions)
+# ==============================================================================
+# Exclude known synthetic test fixtures, placeholder env templates, and test mocks
+[allowlist]
+description = "ScatterID synthetic test fixtures, documentation examples, and templates"
+paths = [
+    # Environment templates
+    '''(^|.*/)\.env\.example$''',
+    '''(^|.*/)docs/.*''',
+    '''(^|.*/)README\.md$''',
+    # Test directories containing synthetic test keys/hashes
+    '''(^|.*/)tests/.*''',
+    '''(^|.*/).*/tests/.*''',
+    '''.*\.test\.(js|ts|mjs|py)$''',
+    '''.*_test\.(go|py)$''',
+    # Package lockfiles and built docs
+    '''(^|.*/)package-lock\.json$'''
+]
+
+stopwords = [
+    "mock-key",
+    "example-key",
+    "test-secret",
+    "dummy-secret",
+    "00000000-0000-0000-0000-000000000000",
+    "change-me-in-production",
+    "pqc-mldsa-root-v2"
+]

@@ -13,7 +13,7 @@ export const PERMISSION_MATRIX: Record<UserRole, Record<string, string[]>> = {
     overview: ['read'],
     credentials: ['read', 'show'],
     moderationQueue: ['read', 'show'],
-    pendingRequests: ['read', 'show', 'decide'],
+    pendingRequests: ['read', 'show'],
     awaitingAccept: ['read', 'decide', 'execute'],
     flagged: ['read', 'decide', 'execute'],
     keyRotation: ['read', 'rotate', 'pre-stage', 'promote', 'delegation', 'export', 'restore'],

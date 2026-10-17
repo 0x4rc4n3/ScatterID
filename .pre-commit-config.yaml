@@ -1,0 +1,51 @@
+# ==============================================================================
+# ScatterID — Pre-Commit Framework Configuration (Shift-Left Developer Hook)
+# ==============================================================================
+# Ensures security and code quality gates run locally before any git commit.
+# Install:
+#   pip install pre-commit
+#   pre-commit install
+# Run manually:
+#   pre-commit run --all-files
+# ==============================================================================
+
+default_language_version:
+  python: python3
+  node: 20.0.0
+
+repos:
+  # 1. Base File Integrity & Hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']
+      - id: check-json
+        exclude: 'package-lock\.json'
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # 2. Secret Scanning (Gitleaks)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        args: ['--config=.gitleaks.toml', '--verbose']
+
+  # 3. Dockerfile Security & Best Practice Linting (Hadolint)
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        files: Dockerfile
+
+  # 4. Static Code Analysis (Semgrep)
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.78.0
+    hooks:
+      - id: semgrep
+        args: ['--config=.semgrep.yml', '--error', '--skip-unknown-extensions']

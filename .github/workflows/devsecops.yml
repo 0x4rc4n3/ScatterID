@@ -1,0 +1,351 @@
+name: ScatterID DevSecOps Shift-Left Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Sunday midnight full security audit
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ============================================================================
+  # 1. SECRET SCANNING (Shift-Left Secret Detection)
+  # ============================================================================
+  secret-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code with Full History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
+
+  # ============================================================================
+  # 2. STATIC APPLICATION SECURITY TESTING (SAST - Semgrep & Bandit)
+  # ============================================================================
+  sast-semgrep:
+    name: SAST - Semgrep AST Security Analysis
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep with OWASP & Custom ScatterID Invariants
+        run: |
+          semgrep scan \
+            --config=auto \
+            --config=p/owasp-top-ten \
+            --config=p/cwe-top-25 \
+            --config=.semgrep.yml \
+            --sarif \
+            --output=semgrep.sarif \
+            --error
+
+      - name: Upload Semgrep SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  sast-bandit:
+    name: SAST - Python Security (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit Security Analysis
+        run: |
+          bandit -r components/crypto/crypto-service tools \
+            -x "tests,test_*.py" \
+            -ll -f json -o bandit-results.json || true
+          cat bandit-results.json
+
+      - name: Upload Bandit Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-results.json
+
+  sast-codeql:
+    name: SAST - GitHub CodeQL Semantic Analysis (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript', 'python']
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ============================================================================
+  # 3. CONTAINER & INFRASTRUCTURE-AS-CODE (IaC) SECURITY
+  # ============================================================================
+  container-and-iac-lint:
+    name: IaC & Dockerfile Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfiles with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          failure-threshold: warning
+          ignore: DL3008,DL3013
+
+      - name: Scan Docker Compose with Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          file: docker-compose.yml
+          framework: compose
+          output_format: cli
+          soft_fail: true
+
+  # ============================================================================
+  # 4. SOFTWARE COMPOSITION ANALYSIS (SCA) & TRIVY VULNERABILITY SCAN
+  # ============================================================================
+  sca-vulnerability-scan:
+    name: SCA & Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Repository Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+  # ============================================================================
+  # 5. SOFTWARE BILL OF MATERIALS (SBOM GENERATION)
+  # ============================================================================
+  generate-sbom:
+    name: Generate SBOM (CodeQL / GitHub SPDX & Syft CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate CodeQL / GitHub Dependency Graph SPDX SBOM (Dynamic)
+        run: |
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/dependency-graph/sbom > sbom.spdx.github.json 2>/dev/null || echo '{"message":"Dependency graph SBOM generation requested"}' > sbom.spdx.github.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate CycloneDX SBOM via Syft (Dynamic AST/Lockfile Engine)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+
+      - name: Generate SPDX SBOM via Syft
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Archive SBOM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scatterid-sbom-bundle
+          path: |
+            sbom.cyclonedx.json
+            sbom.spdx.json
+            sbom.spdx.github.json
+          retention-days: 90
+
+  # ============================================================================
+  # 6. CRYPTOGRAPHY BILL OF MATERIALS (CBOM - CycloneDX 1.6 / IBM Research)
+  # ============================================================================
+  generate-cbom:
+    name: Generate CBOM (IBM Research CBOM / CycloneDX 1.6)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate Dynamic CycloneDX 1.6 Cryptographic BOM
+        run: |
+          python tools/generate_cbom.py cbom.cyclonedx.json
+
+      - name: Run IBM CBOMkit Theia Container Scanner (IBM/CBOM)
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            ghcr.io/cbomkit/cbomkit-theia:latest \
+            dir /workspace \
+            --ignore '**/node_modules/**,**/.git/**,**/build/**' \
+            --output /workspace/cbom.theia.json || true
+
+      - name: Validate CBOM Compliance
+        run: |
+          python -m unittest tests/test_cbom_compliance.py
+
+      - name: Archive CBOM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scatterid-cbom-cyclonedx-1.6
+          path: |
+            cbom.cyclonedx.json
+            cbom.theia.json
+          retention-days: 90
+
+  # ============================================================================
+  # 7. BRUTAL TEST BATTERY (Top-to-Bottom Verification)
+  # ============================================================================
+  brutal-test-battery:
+    name: Brutal Test Battery (Top-to-Bottom)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install System Dependencies for PQC
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake ninja-build libssl-dev openssl
+
+      - name: Install Node Dependencies
+        run: |
+          (cd sdk && npm ci)
+          (cd components/verification-api && npm ci)
+          (cd components/ops-dashboard && npm ci)
+          (cd components/ops-dashboard-web && npm ci)
+          (cd components/client-portal/frontend && npm ci)
+          (cd components/client-portal/server && npm ci)
+
+      - name: Install Python Dependencies
+        run: |
+          pip install -r components/crypto/crypto-service/requirements.txt
+          pip install rfc8785
+
+      - name: Execute Full Offline Test Harness (17 Suites)
+        run: |
+          bash tests/run_all_unit_tests.sh
+
+  # ============================================================================
+  # 8. DYNAMIC APPLICATION SECURITY TESTING (DAST - OWASP ZAP)
+  # ============================================================================
+  dast-scan:
+    name: DAST - OWASP ZAP Dynamic API Scan
+    runs-on: ubuntu-latest
+    needs: [container-and-iac-lint]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Mock TLS Certificates
+        run: |
+          bash components/crypto/certs/generate_certs.sh
+
+      - name: Boot Microservices Stack for DAST
+        run: |
+          docker network create scatterid_net 2>/dev/null || true
+          docker compose up -d crypto-service verification-api ops-dashboard
+
+      - name: Wait for Services to be Healthy
+        run: |
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/healthz; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:8080/healthz; do sleep 2; done'
+          echo "Services healthy and ready for dynamic scanning!"
+
+      - name: OWASP ZAP Baseline Scan - Verification API
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          allow_issue_writing: false
+        continue-on-error: true
+
+      - name: OWASP ZAP Baseline Scan - Operations Dashboard
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          allow_issue_writing: false
+        continue-on-error: true
+
+      - name: Teardown Services
+        if: always()
+        run: |
+          docker compose down -v

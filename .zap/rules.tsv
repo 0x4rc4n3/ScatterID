@@ -1,0 +1,8 @@
+# OWASP ZAP Rules Configuration for ScatterID Local/Staging DAST Baseline
+# Format: <rule-id>\t<threshold>\t<regex>
+# 10020 = Anti-CSRF Tokens Check (API endpoints use Bearer JWT / API keys instead of browser CSRF cookies)
+10020	IGNORE	.*
+# 10038 = Content Security Policy (CSP) Header Not Set (handled by reverse proxy in Phase 2/3 production)
+10038	WARN	.*
+# 10096 = Timestamp Disclosure (Internal microservice timestamps returned in audit/health payloads)
+10096	INFO	.*

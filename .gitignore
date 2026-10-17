@@ -102,5 +102,10 @@ logs/
 sdk/dist/
 dist/
 **/dist/
+build/
+*.cyclonedx.json
+*.spdx.json
+*.sarif
+*-results.json
 components/blockchain/fabric-network/bin/
 config.json

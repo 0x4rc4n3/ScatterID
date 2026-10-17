@@ -1,4 +1,6 @@
 # ScatterID Operations Console Dockerfile
+# Hardened Multi-Stage Build with non-root least-privilege execution
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -19,6 +21,11 @@ COPY src ./src
 COPY db ./db
 COPY public ./public
 
+# Hardening: Run as non-root user and ensure db directory permissions
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+ && chown -R appuser:appgroup /app
+
+USER appuser
 EXPOSE 8080
 
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \

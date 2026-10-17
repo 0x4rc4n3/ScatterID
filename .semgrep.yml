@@ -1,0 +1,114 @@
+# ==============================================================================
+# ScatterID — Custom Static Code Analysis (SAST) Ruleset for Semgrep
+# ==============================================================================
+# Covers OWASP Top 10, Cryptographic Invariants, and Decentralized Identity Security
+# ==============================================================================
+
+rules:
+  # ----------------------------------------------------------------------------
+  # Category: Cryptographic Hygiene & Randomness
+  # ----------------------------------------------------------------------------
+  - id: scatterid-insecure-randomness-js
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      [CWE-338] Insecure PRNG detected: Math.random() is cryptographically weak.
+      ScatterID requires cryptographically secure randomness (crypto.randomBytes or
+      crypto.getRandomValues) for all salts, tokens, and nonces.
+    patterns:
+      - pattern: Math.random()
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/*.test.*"
+
+  - id: scatterid-insecure-randomness-py
+    languages: [python]
+    severity: ERROR
+    message: |
+      [CWE-338] Insecure PRNG detected: 'random' module is not suitable for cryptographic operations.
+      Use Python's 'secrets' module or os.urandom() for key derivation, nonces, and challenge tokens.
+    patterns:
+      - pattern-either:
+          - pattern: random.random(...)
+          - pattern: random.randint(...)
+          - pattern: random.choice(...)
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+
+  - id: scatterid-weak-crypto-hash
+    languages: [javascript, typescript, python]
+    severity: ERROR
+    message: |
+      [CWE-327] Deprecated or collision-vulnerable hash algorithm detected (MD5 or SHA-1).
+      ScatterID mandates SHA3-256 (Keccak) or SHA-256 for integrity hashing and NIST ML-DSA for signatures.
+    pattern-either:
+      - pattern: crypto.createHash('md5')
+      - pattern: crypto.createHash('sha1')
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+
+  - id: scatterid-tls-reject-unauthorized-disabled
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      [CWE-295] TLS certificate validation explicitly disabled via rejectUnauthorized: false.
+      All inter-service and external TLS connections must strictly validate certificates.
+    patterns:
+      - pattern: |
+          { rejectUnauthorized: false, ... }
+    paths:
+      exclude:
+        - "**/tests/**"
+
+  # ----------------------------------------------------------------------------
+  # Category: Injection & Parameter Tampering
+  # ----------------------------------------------------------------------------
+  - id: scatterid-sql-string-concatenation
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: |
+      [CWE-89] Potential SQL Injection: String concatenation or interpolation detected in database query.
+      ScatterID requires parameterized queries (e.g., db.prepare('SELECT ... WHERE id = ?').get(id)).
+    pattern-either:
+      - pattern: $DB.prepare(`... ${$VAR} ...`)
+      - pattern: $DB.run(`... ${$VAR} ...`)
+      - pattern: $DB.get(`... ${$VAR} ...`)
+      - pattern: $DB.all(`... ${$VAR} ...`)
+      - pattern: $DB.query(`... ${$VAR} ...`)
+    paths:
+      exclude:
+        - "**/tests/**"
+
+  - id: scatterid-dangerous-eval
+    languages: [javascript, typescript, python]
+    severity: ERROR
+    message: |
+      [CWE-95] Dynamic code execution via eval() or Function() constructor is strictly forbidden.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: exec(...)
+
+  # ----------------------------------------------------------------------------
+  # Category: Timing Attack Mitigation
+  # ----------------------------------------------------------------------------
+  - id: scatterid-timing-unsafe-secret-comparison
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: |
+      [CWE-208] Secret token or hash comparison using '===' or '!==' is vulnerable to timing attacks.
+      Use crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)) for API keys and tokens.
+    patterns:
+      - pattern-either:
+          - pattern: $TOKEN === $SECRET
+          - pattern: $SECRET === $TOKEN
+      - metavariable-regex:
+          metavariable: $TOKEN
+          regex: (?i).*(api_?key|token|hmac|secret|hash|pepper).*
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/*.test.*"
