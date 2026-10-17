@@ -19,13 +19,10 @@ In traditional software development, security testing (penetration testing, comp
 
 ```mermaid
 flowchart LR
-    A["Developer Workstation<br/>(Pre-Commit Hooks,<br/>IDE Linters)"] --> B["Pull Request Gate<br/>(Fast-Fail SAST,<br/>Gitleaks, Lint)"]
-    B --> C["Continuous Integration<br/>(Brutal Tests, SCA,<br/>CodeQL SBOM, IBM CBOM)"]
-    C --> D["Staging Deployment<br/>(OWASP ZAP DAST,<br/>Hardened Containers)"]
-    D --> E["Production<br/>(Zero Trust, Distroless,<br/>Runtime Monitoring)"]
-
-    classDef pass fill:#1b4332,stroke:#40916c,color:#d8f3dc;
-    class A,B,C,D,E pass;
+    A["Developer Workstation: Pre-Commit Hooks"] --> B["Pull Request Gate: Fast-Fail SAST"]
+    B --> C["Continuous Integration: CodeQL SBOM, IBM CBOM"]
+    C --> D["Staging Deployment: OWASP ZAP DAST"]
+    D --> E["Production: Zero Trust Distroless"]
 ```
 
 In ScatterID, security is enforced **as code** across every layer:
@@ -127,21 +124,21 @@ When microservices require native C++ addons (`better-sqlite3`, `argon2`), they 
 
 ```mermaid
 flowchart TD
-    subgraph DYNAMIC_INPUTS["Live Project Sources (Dynamic on Every Run)"]
-        SRC_AST["Source Code ASTs<br/>(Python ast.parse, JS source regex)"]
-        LOCKFILES["Lockfiles & Manifests<br/>(package-lock.json, requirements.txt)"]
-        CERTS["X.509 Scripts & Certs<br/>(generate_certs.sh, docker-compose)"]
+    subgraph DYNAMIC_INPUTS["Live Project Sources: Dynamic on Every Run"]
+        SRC_AST["Source Code ASTs: Python ast, JS source regex"]
+        LOCKFILES["Lockfiles and Manifests: package-lock, requirements"]
+        CERTS["X.509 Scripts and Certs: generate_certs, docker-compose"]
     end
 
     subgraph SBOM_ENGINE["Dynamic SBOM Generation"]
-        GH_CODEQL["GitHub CodeQL & Dependency Graph API<br/>(gh api /dependency-graph/sbom)"]
-        SYFT["Anchore Syft AST Scanner<br/>(CycloneDX & SPDX JSON)"]
+        GH_CODEQL["GitHub CodeQL and Dependency Graph API"]
+        SYFT["Anchore Syft AST Scanner (CycloneDX and SPDX)"]
     end
 
-    subgraph CBOM_ENGINE["IBM Research CBOM Engine (IBM/CBOM)"]
+    subgraph CBOM_ENGINE["IBM Research CBOM Engine: IBM/CBOM"]
         PY_CBOM["Dynamic AST Discovery (tools/generate_cbom.py)"]
-        THEIA["IBM CBOMkit-theia Container Scanner<br/>(ghcr.io/cbomkit/cbomkit-theia)"]
-        CBOM_OUT["CycloneDX 1.6 Cryptographic BOM<br/>(cbom.cyclonedx.json)"]
+        THEIA["IBM CBOMkit-theia Container Scanner"]
+        CBOM_OUT["CycloneDX 1.6 Cryptographic BOM"]
     end
 
     SRC_AST --> PY_CBOM

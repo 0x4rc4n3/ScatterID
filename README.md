@@ -39,22 +39,22 @@ ScatterID's security controls are systematically mapped to authoritative nationa
 
 ```mermaid
 flowchart TD
-    subgraph STANDARDS["Global Regulatory & Cryptographic Standards"]
-        NIST["NIST FIPS 204 / FIPS 202 / SP 800-208"]
-        NSA["NSA CNSA 2.0 (Quantum Transition)"]
-        WH["White House NSM-10 & EO 14028"]
-        OWASP["OWASP ASVS v4.0 & Top 10 (2021)"]
-        IBM["IBM Research CBOM / CycloneDX 1.6"]
-        CIS["CIS Docker Benchmark & Distroless"]
+    subgraph STANDARDS["Global Regulatory and Cryptographic Standards"]
+        NIST["NIST FIPS 204, FIPS 202, SP 800-208"]
+        NSA["NSA CNSA 2.0 Quantum Transition"]
+        WH["White House NSM-10 and EO 14028"]
+        OWASP["OWASP ASVS v4.0 and Top 10"]
+        IBM["IBM Research CBOM and CycloneDX 1.6"]
+        CIS["CIS Docker Benchmark and Distroless"]
     end
 
     subgraph SCATTERID["ScatterID Security Architecture"]
-        PQC["Post-Quantum Lattice Signatures (ML-DSA-65)"]
-        COMMIT["ZK Pre-Image Commitments (SHA3-256 + RFC 8785)"]
+        PQC["Post-Quantum Lattice Signatures: ML-DSA-65"]
+        COMMIT["ZK Pre-Image Commitments: SHA3-256 and RFC 8785"]
         MICRO["3-Zone Zero Trust Microsegmentation"]
         PIPE["Shift-Left DevSecOps CI/CD Pipeline"]
-        CBOM_ENG["Dynamic CBOM & SBOM Generation Engine"]
-        CONT["Chainguard Distroless & Toolchain Stripping"]
+        CBOM_ENG["Dynamic CBOM and SBOM Engine"]
+        CONT["Chainguard Distroless and Toolchain Stripping"]
     end
 
     NIST --> PQC
@@ -65,11 +65,6 @@ flowchart TD
     OWASP --> MICRO
     OWASP --> PIPE
     CIS --> CONT
-
-    classDef std fill:#0d1b2a,stroke:#415a77,color:#e0e1dd;
-    classDef sc fill:#1b4332,stroke:#40916c,color:#d8f3dc;
-    class NIST,NSA,WH,OWASP,IBM,CIS std;
-    class PQC,COMMIT,MICRO,PIPE,CBOM_ENG,CONT sc;
 ```
 
 ### Authoritative Standards Compliance Matrix
@@ -95,40 +90,33 @@ ScatterID divides the enterprise network into **three microsegmented security zo
 
 ```mermaid
 flowchart TD
-    subgraph ZONE1["Zone 1: Counter Subnet (10.20.0.0/24)"]
-        CLIENT["Client Portal Web App<br/>(:5000 / React)"]
-        GATEWAY["Portal Gateway Proxy<br/>(:5000 / Chainguard Distroless)"]
+    subgraph ZONE1["Zone 1: Counter Subnet 10.20.0.0/24"]
+        CLIENT["Client Portal Web App (:5000)"]
+        GATEWAY["Portal Gateway Proxy (Chainguard Distroless)"]
     end
 
-    subgraph ZONE2["Zone 2: Management Subnet (10.10.0.0/24)"]
-        CONSOLE["Operations Console Web<br/>(:8080 / React-Admin)"]
-        OPS_API["Operations Backend API<br/>(Node.js / Hardened Non-Root)"]
-        DECISION["Tiered Risk Decision Engine<br/>(Scenario B Policy)"]
+    subgraph ZONE2["Zone 2: Management Subnet 10.10.0.0/24"]
+        CONSOLE["Operations Console Web (:8080)"]
+        OPS_API["Operations Backend API (Hardened Non-Root)"]
+        DECISION["Tiered Risk Decision Engine"]
     end
 
-    subgraph ZONE3["Zone 3: Core Dataplane Subnet (10.30.0.0/24 - Air-Gapped Internal)"]
-        VERIFY["Verification Gateway API<br/>(:3000 / Hardened Multi-Stage)"]
-        CRYPTO["Post-Quantum Crypto Service<br/>(:5001 / Python liboqs mTLS)"]
-        VAULT["HashiCorp Vault KMS<br/>(:8200 / AppRole Auth)"]
-        FABRIC["Hyperledger Fabric Ledger<br/>(Raft Consensus / Go Chaincode)"]
+    subgraph ZONE3["Zone 3: Core Dataplane Subnet 10.30.0.0/24"]
+        VERIFY["Verification Gateway API (:3000)"]
+        CRYPTO["Post-Quantum Crypto Service (:5001 mTLS)"]
+        VAULT["HashiCorp Vault KMS (:8200)"]
+        FABRIC["Hyperledger Fabric Ledger (Go Chaincode)"]
     end
 
     CLIENT --> GATEWAY
-    GATEWAY -.->|Restricted Reverse Proxy| VERIFY
-    GATEWAY -.->|Request Intake| OPS_API
+    GATEWAY -.->|"Restricted Reverse Proxy"| VERIFY
+    GATEWAY -.->|"Request Intake"| OPS_API
     CONSOLE --> OPS_API
     OPS_API --> DECISION
-    DECISION -->|Approved Anchor/Revoke| VERIFY
-    VERIFY -->|Internal mTLS 1.3| CRYPTO
-    CRYPTO -->|Transit Key Storage| VAULT
-    VERIFY -->|State Commitment Anchor| FABRIC
-
-    classDef z1 fill:#1a365d,stroke:#2b6cb0,color:#ebf8ff;
-    classDef z2 fill:#44337a,stroke:#6b46c1,color:#faf5ff;
-    classDef z3 fill:#1c4532,stroke:#276749,color:#f0fff4;
-    class ZONE1 z1;
-    class ZONE2 z2;
-    class ZONE3 z3;
+    DECISION -->|"Approved Anchor or Revoke"| VERIFY
+    VERIFY -->|"Internal mTLS 1.3"| CRYPTO
+    CRYPTO -->|"Transit Key Storage"| VAULT
+    VERIFY -->|"State Commitment Anchor"| FABRIC
 ```
 
 ### Network Zone Isolation Rules:
