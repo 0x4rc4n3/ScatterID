@@ -260,9 +260,7 @@ ScatterID’s verification strategy validates invariants at every layer of the c
 ScatterID/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                     # Continuous integration test runner
-│       ├── devsecops.yml              # 8-stage Shift-Left DevSecOps master pipeline
-│       └── codeql.yml                 # Semantic code analysis workflow
+│       └── devsecops.yml              # Unified Shift-Left DevSecOps & CI/CD master pipeline
 ├── .gitleaks.toml                     # High-entropy secret scanner configuration
 ├── .pre-commit-config.yaml            # Workstation git hook configurations
 ├── .semgrep.yml                       # Custom AST security rules (OWASP/CWE)
@@ -277,8 +275,7 @@ ScatterID/
 │   │   └── server/                    # Gateway proxy (Chainguard Distroless Dockerfile)
 │   ├── crypto/
 │   │   ├── certs/                     # X.509 RSA-4096 mTLS generation scripts
-│   │   ├── crypto-service/            # NIST FIPS 204 ML-DSA-65 signer (Python/liboqs)
-│   │   └── liboqs/                    # Open Quantum Safe C-library reference
+│   │   └── crypto-service/            # NIST FIPS 204 ML-DSA-65 signer (Python/liboqs)
 │   ├── ops-dashboard/                 # Operations Console Backend (:8080 / Express / SQLite)
 │   ├── ops-dashboard-web/             # Executive Web Console (React-Admin / RBAC)
 │   └── verification-api/              # Verification Gateway API (:3000 / Multi-Stage Dockerfile)

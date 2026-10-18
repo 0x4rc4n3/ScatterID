@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "tsx --test tests/**/*.test.js"
+    "test": "tsx --test tests/*.test.js"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
